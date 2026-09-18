@@ -1,0 +1,15 @@
+*.class
+*.log
+.DS_Store
+.dart_tool/
+.flutter-plugins
+.packages
+.pub/
+build/
+*.g.dart
+*.freezed.dart
+android/key.properties
+*.jks
+*.keystore
+ios/Runner/GoogleService-Info.plist
+android/app/google-services.json

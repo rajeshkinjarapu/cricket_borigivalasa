@@ -1,0 +1,185 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../features/auth/data/models/app_user.dart';
+import '../../features/auth/presentation/providers/auth_providers.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/signup_screen.dart';
+import '../../features/auth/presentation/screens/splash_screen.dart';
+import '../../features/dashboard/presentation/screens/admin_dashboard.dart';
+import '../../features/dashboard/presentation/screens/member_dashboard.dart';
+import '../../features/dashboard/presentation/screens/scaffold_with_nav_bar.dart';
+import '../../features/matches/presentation/screens/match_detail_screen.dart';
+import '../../features/matches/presentation/screens/match_form_screen.dart';
+import '../../features/members/presentation/screens/member_management_screen.dart';
+import '../../features/scoring/presentation/screens/charts_screen.dart';
+import '../../features/scoring/presentation/screens/live_scorer_screen.dart';
+import '../../features/scoring/presentation/screens/live_viewer_screen.dart';
+import '../../features/scoring/presentation/screens/scorecard_screen.dart';
+import '../../features/teams/presentation/screens/team_detail_screen.dart';
+import '../../features/teams/presentation/screens/team_form_screen.dart';
+import '../../features/tournaments/presentation/screens/tournament_detail_screen.dart';
+import '../../features/tournaments/presentation/screens/tournament_form_screen.dart';
+import '../../features/tournaments/presentation/screens/tournament_list_screen.dart';
+import '../../features/tournaments/presentation/screens/points_table_screen.dart';
+import '../../features/players/presentation/screens/player_stats_screen.dart';
+import '../../features/players/presentation/screens/player_form_screen.dart';
+import '../../features/auth/presentation/screens/profile_screen.dart';
+import '../../features/scoring/presentation/screens/match_summary_screen.dart';
+import '../../features/matches/presentation/screens/global_matches_screen.dart';
+import '../../features/dashboard/presentation/screens/stats_overview_screen.dart';
+import '../constants/app_constants.dart';
+
+final routerProvider = Provider<GoRouter>((ref) {
+  final authNotifier = ValueNotifier<AsyncValue<AppUser?>>(const AsyncValue.loading());
+  ref.listen<AsyncValue<AppUser?>>(authStateProvider, (_, next) {
+    authNotifier.value = next;
+  });
+  return GoRouter(
+    initialLocation: '/splash',
+    refreshListenable: authNotifier,
+    redirect: (context, state) {
+      final authAsync = ref.read(authStateProvider);
+      final loc = state.matchedLocation;
+      final onAuthRoute = loc == '/login' || loc == '/signup';
+      if (authAsync.isLoading && !authAsync.hasValue) {
+        return loc == '/splash' ? null : '/splash';
+      }
+      final user = authAsync.value;
+      if (user == null) return onAuthRoute ? null : '/login';
+      final home = user.role == UserRole.admin ? '/admin' : '/member';
+      if (loc == '/splash' || onAuthRoute) return home;
+      final adminOnly = loc.endsWith('/new') || loc.endsWith('/edit') ||
+        loc.startsWith('/members');
+      if (adminOnly && user.role != UserRole.admin) return home;
+      if (loc.startsWith('/admin') && user.role != UserRole.admin) return home;
+      if (loc.startsWith('/member') && user.role != UserRole.member) return home;
+      return null;
+    },
+    routes: [
+      GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
+      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+      GoRoute(path: '/signup', builder: (_, __) => const SignupScreen()),
+      GoRoute(path: '/admin', builder: (_, __) => const AdminDashboard()),
+      
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return ScaffoldWithNavBar(navigationShell: navigationShell);
+        },
+        branches: [
+          // Branch 0: Home
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/member', builder: (_, __) => const MemberDashboard()),
+            ],
+          ),
+          // Branch 1: Matches
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/matches-list', builder: (_, __) => const GlobalMatchesScreen()),
+            ],
+          ),
+          // Branch 2: Tournaments
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/tournaments',
+                builder: (_, __) => const TournamentListScreen(),
+                routes: [
+                  GoRoute(path: 'new',
+                    builder: (_, __) => const TournamentFormScreen()),
+          GoRoute(path: ':tid',
+            builder: (_, s) => TournamentDetailScreen(
+              tournamentId: s.pathParameters['tid']!),
+            routes: [
+              GoRoute(path: 'points-table',
+                builder: (_, s) => PointsTableScreen(
+                  tournamentId: s.pathParameters['tid']!)),
+              GoRoute(path: 'edit',
+                builder: (_, s) => TournamentFormScreen(
+                  tournamentId: s.pathParameters['tid']!)),
+              GoRoute(path: 'teams/new',
+                builder: (_, s) => TeamFormScreen(
+                  tournamentId: s.pathParameters['tid']!)),
+              GoRoute(path: 'teams/:teamId',
+                builder: (_, s) => TeamDetailScreen(
+                  tournamentId: s.pathParameters['tid']!,
+                  teamId: s.pathParameters['teamId']!),
+                routes: [
+                  GoRoute(path: 'edit',
+                    builder: (_, s) => TeamFormScreen(
+                      tournamentId: s.pathParameters['tid']!,
+                      teamId: s.pathParameters['teamId']!)),
+                  GoRoute(path: 'players/new',
+                    builder: (_, s) => PlayerFormScreen(
+                      tournamentId: s.pathParameters['tid']!,
+                      teamId: s.pathParameters['teamId']!)),
+                  GoRoute(path: 'players/:playerId/edit',
+                    builder: (_, s) => PlayerFormScreen(
+                      tournamentId: s.pathParameters['tid']!,
+                      teamId: s.pathParameters['teamId']!,
+                      playerId: s.pathParameters['playerId']!)),
+                  GoRoute(path: 'players/:playerId/stats',
+                    builder: (_, s) => PlayerStatsScreen(
+                      tournamentId: s.pathParameters['tid']!,
+                      teamId: s.pathParameters['teamId']!,
+                      playerId: s.pathParameters['playerId']!)),
+                ]),
+              GoRoute(path: 'matches/new',
+                builder: (_, s) => MatchFormScreen(
+                  tournamentId: s.pathParameters['tid']!)),
+              GoRoute(path: 'matches/:mid',
+                builder: (_, s) => MatchDetailScreen(
+                  tournamentId: s.pathParameters['tid']!,
+                  matchId: s.pathParameters['mid']!),
+                routes: [
+                  GoRoute(path: 'edit',
+                    builder: (_, s) => MatchFormScreen(
+                      tournamentId: s.pathParameters['tid']!,
+                      matchId: s.pathParameters['mid']!)),
+                  GoRoute(path: 'summary',
+                    builder: (_, s) => MatchSummaryScreen(
+                      tournamentId: s.pathParameters['tid']!,
+                      matchId: s.pathParameters['mid']!)),
+                  GoRoute(path: 'scoring',
+                    builder: (_, s) => LiveScorerScreen(
+                      tournamentId: s.pathParameters['tid']!,
+                      matchId: s.pathParameters['mid']!)),
+                  GoRoute(path: 'live',
+                    builder: (_, s) => LiveViewerScreen(
+                      tournamentId: s.pathParameters['tid']!,
+                      matchId: s.pathParameters['mid']!)),
+                  GoRoute(path: 'scorecard',
+                    builder: (_, s) => ScorecardScreen(
+                      tournamentId: s.pathParameters['tid']!,
+                      matchId: s.pathParameters['mid']!)),
+                  GoRoute(path: 'charts',
+                    builder: (_, s) => ChartsScreen(
+                      tournamentId: s.pathParameters['tid']!,
+                      matchId: s.pathParameters['mid']!)),
+                ]),
+                ]),
+            ]),
+        ],
+      ),
+      // Branch 3: Stats
+      StatefulShellBranch(
+        routes: [
+          GoRoute(path: '/stats', builder: (_, __) => const StatsOverviewScreen()),
+        ],
+      ),
+      // Branch 4: Profile
+      StatefulShellBranch(
+        routes: [
+          GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+        ],
+      ),
+    ]),
+    
+    // Other top-level routes
+    GoRoute(path: '/members', builder: (_, __) => const MemberManagementScreen()),
+    ],
+    errorBuilder: (context, state) => Scaffold(
+      appBar: AppBar(title: const Text('Not found')),
+      body: Center(child: Text('No route for ${state.uri}'))),
+  );
+});
