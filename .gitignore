@@ -10,4 +10,3 @@ android/key.properties
 *.jks
 *.keystore
 ios/Runner/GoogleService-Info.plist
-android/app/google-services.json

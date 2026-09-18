@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "492410104110",
+    "project_id": "cricket-borigivalasa",
+    "storage_bucket": "cricket-borigivalasa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:492410104110:android:21654ad6fbe22401dff2bf",
+        "android_client_info": {
+          "package_name": "com.yourdomain.cricket_scoring_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5YF7El-_FJAQuK8N-8q6Ecdb9m3Mi2ss"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
