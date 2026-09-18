@@ -22,6 +22,14 @@ class ScoringRepository {
   CollectionReference<Map<String, dynamic>> _bowlRef(String t, String m, int n) =>
     _innRef(t, m, n).collection(AppConstants.bowlingScorecardCollection);
 
+  Stream<List<BallEvent>> watchCurrentOverBalls(String t, String m, int n, int overNumber) {
+    return _oversRef(t, m, n).doc(overNumber.toString()).snapshots().map((doc) {
+      if (!doc.exists) return [];
+      final raw = (doc.data()?['balls'] as List?) ?? const [];
+      return raw.map((b) => BallEvent.fromJson(Map<String, dynamic>.from(b as Map))).toList();
+    });
+  }
+
   Stream<Innings?> watchInnings(String t, String m, int n) =>
     _innRef(t, m, n).snapshots().map((d) => !d.exists ? null
       : Innings.fromJson({...d.data()!, 'inningsNumber': n}));
@@ -139,6 +147,144 @@ class ScoringRepository {
         bw.toJson()..remove('playerId'), SetOptions(merge: false));
     }
     await b.commit();
+
+    if (complete != null) {
+      await _checkAndFinalizeMatch(
+        tournamentId: tournamentId,
+        matchId: matchId,
+        inningsNumber: inningsNumber,
+        innings: innings,
+        snap: snap,
+      );
+    }
+  }
+
+  Future<void> _checkAndFinalizeMatch({
+    required String tournamentId,
+    required String matchId,
+    required int inningsNumber,
+    required Innings innings,
+    required InningsSnapshot snap,
+  }) async {
+    final matchDocRef = _matchRef(tournamentId, matchId);
+    if (inningsNumber == 1) {
+      // 1st innings complete: update match status to live if not already
+      await matchDocRef.update({
+        'status': 'live',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    // 2nd innings complete: determine winner and finalize match
+    final inn1Doc = await _innRef(tournamentId, matchId, 1).get();
+    if (!inn1Doc.exists) return;
+    final inn1Runs = (inn1Doc.data()?['runs'] as num?)?.toInt() ?? 0;
+    final inn1TeamId = inn1Doc.data()?['battingTeamId'] as String? ?? '';
+    final inn1TeamName = inn1Doc.data()?['battingTeamName'] as String? ?? 'Team A';
+
+    final inn2Runs = snap.runs;
+    final inn2Wickets = snap.wickets;
+    final inn2TeamId = innings.battingTeamId;
+    final inn2TeamName = innings.battingTeamName;
+
+    String? winnerId;
+    String resultText;
+    bool isTie = false;
+
+    if (inn2Runs > inn1Runs) {
+      winnerId = inn2TeamId;
+      resultText = '$inn2TeamName won by ${10 - inn2Wickets} wickets';
+    } else if (inn1Runs > inn2Runs) {
+      winnerId = inn1TeamId;
+      resultText = '$inn1TeamName won by ${inn1Runs - inn2Runs} runs';
+    } else {
+      isTie = true;
+      resultText = 'Match Tied';
+    }
+
+    await matchDocRef.update({
+      'status': 'completed',
+      'winnerTeamId': winnerId,
+      'resultText': resultText,
+      'isTie': isTie,
+      'liveScore': {
+        'inn1': {
+          'teamId': inn1TeamId,
+          'runs': inn1Runs,
+          'wickets': (inn1Doc.data()?['wickets'] as num?)?.toInt() ?? 0,
+          'legalBalls': (inn1Doc.data()?['legalBalls'] as num?)?.toInt() ?? 0,
+        },
+        'inn2': {
+          'teamId': inn2TeamId,
+          'runs': inn2Runs,
+          'wickets': inn2Wickets,
+          'legalBalls': snap.legalBalls,
+        },
+      },
+      'completedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    // Sync player career stats
+    await _syncCareerStatsForMatch(tournamentId, matchId);
+  }
+
+  Future<void> _syncCareerStatsForMatch(String tournamentId, String matchId) async {
+    try {
+      // Collect all batting and bowling performances from both innings
+      for (int inn = 1; inn <= 2; inn++) {
+        final batSnap = await _batRef(tournamentId, matchId, inn).get();
+        for (final doc in batSnap.docs) {
+          final data = doc.data();
+          final playerId = doc.id;
+          final runs = (data['runs'] as num?)?.toInt() ?? 0;
+          final playerRef = _db.collection('players').doc(playerId);
+          final pDoc = await playerRef.get();
+          if (!pDoc.exists) continue;
+
+          final stats = Map<String, dynamic>.from((pDoc.data()?['stats'] as Map?) ?? {});
+          final curMatches = (stats['matchesPlayed'] as num?)?.toInt() ?? 0;
+          final curRuns = (stats['runsScored'] as num?)?.toInt() ?? 0;
+          final curHigh = (stats['highestScore'] as num?)?.toInt() ?? 0;
+
+          stats['matchesPlayed'] = curMatches + 1;
+          stats['runsScored'] = curRuns + runs;
+          if (runs > curHigh) stats['highestScore'] = runs;
+          final avg = stats['matchesPlayed'] > 0 ? stats['runsScored'] / stats['matchesPlayed'] : 0.0;
+          stats['battingAverage'] = double.parse(avg.toStringAsFixed(1));
+
+          await playerRef.update({'stats': stats});
+        }
+
+        final bowlSnap = await _bowlRef(tournamentId, matchId, inn).get();
+        for (final doc in bowlSnap.docs) {
+          final data = doc.data();
+          final playerId = doc.id;
+          final wickets = (data['wickets'] as num?)?.toInt() ?? 0;
+          final runsConceded = (data['runs'] as num?)?.toInt() ?? 0;
+          if (wickets == 0 && runsConceded == 0) continue;
+
+          final playerRef = _db.collection('players').doc(playerId);
+          final pDoc = await playerRef.get();
+          if (!pDoc.exists) continue;
+
+          final stats = Map<String, dynamic>.from((pDoc.data()?['stats'] as Map?) ?? {});
+          final curWickets = (stats['wicketsTaken'] as num?)?.toInt() ?? 0;
+          stats['wicketsTaken'] = curWickets + wickets;
+
+          // Update best bowling if better
+          final curBest = stats['bestBowling'] as String? ?? '-';
+          if (curBest == '-' || wickets > (int.tryParse(curBest.split('/').first) ?? -1)) {
+            stats['bestBowling'] = '$wickets/$runsConceded';
+          }
+
+          await playerRef.update({'stats': stats});
+        }
+      }
+    } catch (_) {
+      // Best-effort stats aggregation
+    }
   }
 
   Future<void> undoLastBall({required String tournamentId,

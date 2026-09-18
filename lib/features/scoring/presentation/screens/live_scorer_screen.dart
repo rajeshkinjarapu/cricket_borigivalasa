@@ -338,13 +338,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                 const SizedBox(height: 24),
                 const Text('Current Over', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
                 const SizedBox(height: 8),
-                // Timeline placeholder (Ideally we would fetch the last 6 balls from the repository)
-                // For now, keeping it visually present.
-                Container(
-                  height: 40,
-                  decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(20)),
-                  child: const Center(child: Text('Over Timeline (Phase 10)', style: TextStyle(color: Colors.grey))),
-                ),
+                _buildCurrentOverTimeline(live),
               ],
             ),
           ),
@@ -518,6 +512,96 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
           ),
           child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCurrentOverTimeline(Innings live) {
+    // Current over number (1-based)
+    final currentOverNum = (live.legalBalls ~/ 6) + 1;
+    final ballsAsync = ref.watch(currentOverBallsProvider((
+      tournamentId: widget.tournamentId,
+      matchId: widget.matchId,
+      innings: live.inningsNumber,
+      overNumber: currentOverNum,
+    )));
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: ballsAsync.when(
+        loading: () => const SizedBox(
+          height: 36,
+          child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+        ),
+        error: (_, __) => const SizedBox(
+          height: 36,
+          child: Center(child: Text('Error loading over', style: TextStyle(color: Colors.grey, fontSize: 12))),
+        ),
+        data: (balls) {
+          if (balls.isEmpty) {
+            return const SizedBox(
+              height: 36,
+              child: Center(
+                child: Text('New Over - Start Bowling', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
+              ),
+            );
+          }
+          return SizedBox(
+            height: 36,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: balls.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final b = balls[index];
+                return _ballChip(b);
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _ballChip(BallEvent b) {
+    Color bg = Colors.grey.shade200;
+    Color fg = Colors.black87;
+    String text = b.shortLabel;
+
+    if (b.isWicket) {
+      bg = Colors.red.shade600;
+      fg = Colors.white;
+    } else if (b.batRuns == 4) {
+      bg = Colors.blue.shade600;
+      fg = Colors.white;
+    } else if (b.batRuns == 6) {
+      bg = Colors.purple.shade600;
+      fg = Colors.white;
+    } else if (b.extraType != ExtraType.none) {
+      bg = Colors.orange.shade700;
+      fg = Colors.white;
+    } else if (b.batRuns > 0) {
+      bg = Colors.green.shade600;
+      fg = Colors.white;
+    }
+
+    return Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: bg,
+        shape: BoxShape.circle,
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1))],
+      ),
+      child: Text(
+        text,
+        style: TextStyle(color: fg, fontWeight: FontWeight.bold, fontSize: text.length > 2 ? 11 : 13),
       ),
     );
   }

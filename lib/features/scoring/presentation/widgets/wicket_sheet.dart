@@ -5,10 +5,10 @@ class WicketResult {
   final WicketType type;
   final String dismissedPlayerId, dismissedPlayerName;
   final String? fielderId, fielderName;
-  final String newBatsmanId, newBatsmanName;
+  final String? newBatsmanId, newBatsmanName;
   const WicketResult({required this.type, required this.dismissedPlayerId,
-    required this.dismissedPlayerName, required this.newBatsmanId,
-    required this.newBatsmanName, this.fielderId, this.fielderName});
+    required this.dismissedPlayerName, this.newBatsmanId,
+    this.newBatsmanName, this.fielderId, this.fielderName});
 }
 
 Future<WicketResult?> showWicketSheet(BuildContext context, {
@@ -39,16 +39,20 @@ class _WS extends State<_W> {
   @override
   void initState() { super.initState(); _outId = widget.strikerId; }
   void _ok() {
-    if (_newId == null) return;
+    final isAllOut = widget.batsmen.isEmpty;
+    if (!isAllOut && _newId == null) return;
     final name = _outId == widget.strikerId
       ? widget.strikerName : widget.nonStrikerName;
-    dynamic nb; for (final p in widget.batsmen) if (p.id == _newId) nb = p;
+    dynamic nb; 
+    if (!isAllOut) {
+      for (final p in widget.batsmen) if (p.id == _newId) nb = p;
+    }
     dynamic f; if (_fielderId != null) for (final p in widget.bowling)
       if (p.id == _fielderId) f = p;
     Navigator.pop(context, WicketResult(type: _type,
       dismissedPlayerId: _outId, dismissedPlayerName: name,
       fielderId: f?.id as String?, fielderName: f?.name as String?,
-      newBatsmanId: nb.id as String, newBatsmanName: nb.name as String));
+      newBatsmanId: nb?.id as String?, newBatsmanName: nb?.name as String?));
   }
   @override
   Widget build(BuildContext context) {

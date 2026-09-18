@@ -30,6 +30,7 @@ class PointsTableScreen extends ConsumerWidget {
                   DataColumn(label: Text('W')),
                   DataColumn(label: Text('L')),
                   DataColumn(label: Text('T')),
+                  DataColumn(label: Text('NRR')),
                   DataColumn(label: Text('Pts')),
                 ],
                 rows: list.map((st) => DataRow(cells: [
@@ -38,6 +39,7 @@ class PointsTableScreen extends ConsumerWidget {
                   DataCell(Text(st.won.toString())),
                   DataCell(Text(st.lost.toString())),
                   DataCell(Text(st.tied.toString())),
+                  DataCell(Text(st.netRunRate.toStringAsFixed(3))),
                   DataCell(Text(st.points.toString(), style: const TextStyle(fontWeight: FontWeight.bold))),
                 ])).toList(),
               ),

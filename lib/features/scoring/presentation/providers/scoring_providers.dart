@@ -19,6 +19,10 @@ final bowlingScorecardProvider = StreamProvider.family<List<BowlingScorecardRow>
 final allBallsProvider = FutureProvider.family<List<BallEvent>, InningsKey>(
   (ref, k) => ref.watch(scoringRepositoryProvider)
     .loadAllBalls(k.tournamentId, k.matchId, k.innings));
+typedef OverKey = ({String tournamentId, String matchId, int innings, int overNumber});
+final currentOverBallsProvider = StreamProvider.family<List<BallEvent>, OverKey>(
+  (ref, k) => ref.watch(scoringRepositoryProvider)
+    .watchCurrentOverBalls(k.tournamentId, k.matchId, k.innings, k.overNumber));
 final maxOversProvider = Provider.family<int, String>((ref, t) {
   final tr = ref.watch(tournamentDetailProvider(t)).value;
   return tr?.format.maxOvers ?? 20;

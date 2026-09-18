@@ -50,7 +50,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final home = user.role == UserRole.admin ? '/admin' : '/member';
       if (loc == '/splash' || onAuthRoute) return home;
       final adminOnly = loc.endsWith('/new') || loc.endsWith('/edit') ||
-        loc.startsWith('/members');
+        loc.endsWith('/scoring') || loc.startsWith('/members');
       if (adminOnly && user.role != UserRole.admin) return home;
       if (loc.startsWith('/admin') && user.role != UserRole.admin) return home;
       if (loc.startsWith('/member') && user.role != UserRole.member) return home;
