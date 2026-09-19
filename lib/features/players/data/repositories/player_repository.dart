@@ -4,13 +4,28 @@ import '../models/player.dart';
 class PlayerRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  Stream<List<Player>> watchAll() {
+    return _db.collection('players').snapshots().map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => Player.fromJson({...doc.data(), 'id': doc.id}))
+          .toList();
+      list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      return list;
+    });
+  }
+
   Stream<List<Player>> watchByTeam(String teamId) {
     return _db
         .collection('players')
         .where('teamId', isEqualTo: teamId)
-        .orderBy('createdAt', descending: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => Player.fromJson({...doc.data(), 'id': doc.id})).toList());
+        .map((snapshot) {
+          final list = snapshot.docs
+              .map((doc) => Player.fromJson({...doc.data(), 'id': doc.id}))
+              .toList();
+          list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+          return list;
+        });
   }
 
   Stream<Player?> watchById(String id) {

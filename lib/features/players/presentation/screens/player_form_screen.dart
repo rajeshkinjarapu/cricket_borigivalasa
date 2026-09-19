@@ -21,6 +21,7 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _jerseyController = TextEditingController();
+  final _phoneController = TextEditingController();
   
   PlayerRole _role = PlayerRole.batter;
   BattingStyle _battingStyle = BattingStyle.rightHand;
@@ -33,6 +34,7 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
   void dispose() {
     _nameController.dispose();
     _jerseyController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -41,6 +43,7 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
     _isLoaded = true;
     _nameController.text = p.name;
     _jerseyController.text = p.jerseyNumber?.toString() ?? '';
+    _phoneController.text = p.phoneNumber ?? '';
     _role = p.role;
     _battingStyle = p.battingStyle;
     _bowlingStyle = p.bowlingStyle;
@@ -52,6 +55,7 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
     setState(() => _isSaving = true);
     final controller = ref.read(playerControllerProvider.notifier);
     final jerseyNo = int.tryParse(_jerseyController.text.trim());
+    final phone = _phoneController.text.trim();
 
     if (widget.isEdit) {
       final existing = ref.read(playerDetailProvider(widget.playerId!)).value;
@@ -65,6 +69,7 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
         battingStyle: _battingStyle,
         bowlingStyle: _bowlingStyle,
         jerseyNumber: jerseyNo,
+        phoneNumber: phone.isNotEmpty ? phone : null,
       ));
     } else {
       await controller.create(Player(
@@ -75,6 +80,7 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
         battingStyle: _battingStyle,
         bowlingStyle: _bowlingStyle,
         jerseyNumber: jerseyNo,
+        phoneNumber: phone.isNotEmpty ? phone : null,
       ));
     }
 
@@ -158,6 +164,17 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
                         decoration: InputDecoration(
                           labelText: 'Jersey Number (Optional)',
                           prefixIcon: const Icon(Icons.numbers),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText: 'Mobile Number (Optional)',
+                          hintText: 'e.g. 9876543210',
+                          prefixIcon: const Icon(Icons.phone_rounded),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),

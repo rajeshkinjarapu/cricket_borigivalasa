@@ -12,11 +12,20 @@ class MemberRepository {
   String? get currentUid => _auth.currentUser?.uid;
 
   Stream<List<AppUser>> watchAll() => _db
-    .collection(AppConstants.usersCollection)
-    .orderBy('createdAt', descending: true)
-    .snapshots()
-    .map((s) => s.docs.map((d) => AppUser.fromJson(
-      {...d.data(), 'uid': d.id})).toList());
+      .collection(AppConstants.usersCollection)
+      .snapshots()
+      .map((s) {
+        final list = s.docs
+            .map((d) => AppUser.fromJson({...d.data(), 'uid': d.id}))
+            .toList();
+        list.sort((a, b) {
+          if (a.createdAt == null && b.createdAt == null) return 0;
+          if (a.createdAt == null) return 1;
+          if (b.createdAt == null) return -1;
+          return b.createdAt!.compareTo(a.createdAt!);
+        });
+        return list;
+      });
 
   Future<void> updateRole(String uid, UserRole role) async {
     await _db.collection(AppConstants.usersCollection).doc(uid)

@@ -15,6 +15,7 @@ class MatchListTab extends ConsumerWidget {
     final isAdmin = ref.watch(currentUserProvider)?.role == UserRole.admin;
     return Scaffold(backgroundColor: Colors.transparent,
       floatingActionButton: isAdmin ? FloatingActionButton.small(
+        heroTag: 'fab_match_list_tab',
         onPressed: () => context.push(
           '/tournaments/$tournamentId/matches/new'),
         child: const Icon(Icons.add)) : null,

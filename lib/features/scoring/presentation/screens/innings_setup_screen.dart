@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../matches/presentation/providers/match_providers.dart';
+import '../../../players/data/models/player.dart';
 import '../../../players/presentation/providers/player_providers.dart';
+import '../../../teams/data/models/team.dart';
 import '../../../teams/presentation/providers/team_providers.dart';
 import '../providers/scoring_providers.dart';
 
@@ -31,7 +33,7 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
   String? _bowlerId;
   bool _isSaving = false;
 
-  Future<void> _startInnings() async {
+  Future<void> _startInnings(List<Player> batPlayers, List<Player> bowlPlayers, String batId, String bowlId, String batTeamName, String bowlTeamName) async {
     if (_strikerId == null || _nonStrikerId == null || _bowlerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select all players')));
       return;
@@ -41,33 +43,20 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
       return;
     }
 
+    final openingStriker = batPlayers.where((p) => p.id == _strikerId).firstOrNull;
+    final openingNonStriker = batPlayers.where((p) => p.id == _nonStrikerId).firstOrNull;
+    final openingBowler = bowlPlayers.where((p) => p.id == _bowlerId).firstOrNull;
+
+    if (openingStriker == null || openingNonStriker == null || openingBowler == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selected players could not be found.')));
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
-      final match = ref.read(matchDetailProvider((
-        tournamentId: widget.tournamentId,
-        matchId: widget.matchId,
-      ))).value;
-      if (match == null) return;
-
-      final battingFirstTeamId = match.tossDecision == TossDecision.bat
-          ? match.tossWinnerId!
-          : (match.tossWinnerId == match.teamAId ? match.teamBId : match.teamAId);
-
-      String batId, bowlId;
-      if (widget.inningsNumber == 1) {
-        batId = battingFirstTeamId;
-        bowlId = batId == match.teamAId ? match.teamBId : match.teamAId;
-      } else {
-        batId = battingFirstTeamId == match.teamAId ? match.teamBId : match.teamAId;
-        bowlId = battingFirstTeamId;
-      }
-
-      final teams = ref.read(tournamentTeamsProvider(widget.tournamentId)).value ?? [];
-      final batTeam = teams.firstWhere((t) => t.id == batId);
-      final bowlTeam = teams.firstWhere((t) => t.id == bowlId);
-
-      final batPlayers = ref.read(teamPlayersProvider(batId)).value ?? [];
-      final bowlPlayers = ref.read(teamPlayersProvider(bowlId)).value ?? [];
+      final teams = ref.read(teamsProvider).value ?? [];
+      final batTeam = teams.where((t) => t.id == batId).firstOrNull ?? Team(id: batId, name: batTeamName, shortName: '', tournamentIds: [widget.tournamentId]);
+      final bowlTeam = teams.where((t) => t.id == bowlId).firstOrNull ?? Team(id: bowlId, name: bowlTeamName, shortName: '', tournamentIds: [widget.tournamentId]);
 
       await ref.read(scoringRepositoryProvider).initInnings(
         tournamentId: widget.tournamentId,
@@ -75,9 +64,9 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
         inningsNumber: widget.inningsNumber,
         battingTeam: batTeam,
         bowlingTeam: bowlTeam,
-        openingStriker: batPlayers.firstWhere((p) => p.id == _strikerId),
-        openingNonStriker: batPlayers.firstWhere((p) => p.id == _nonStrikerId),
-        openingBowler: bowlPlayers.firstWhere((p) => p.id == _bowlerId),
+        openingStriker: openingStriker,
+        openingNonStriker: openingNonStriker,
+        openingBowler: openingBowler,
         targetRuns: widget.targetRuns,
       );
 
@@ -118,10 +107,21 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
     final batPlayersAsync = ref.watch(teamPlayersProvider(batId));
     final bowlPlayersAsync = ref.watch(teamPlayersProvider(bowlId));
 
+    final batPlayers = batPlayersAsync.value ?? [];
+    final bowlPlayers = bowlPlayersAsync.value ?? [];
+
+    final hasEnoughPlayers = batPlayers.length >= 2 && bowlPlayers.isNotEmpty;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
-        title: Text('Innings ${widget.inningsNumber} Setup', style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF1E3A8A), // Royal Blue Header
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          'Innings ${widget.inningsNumber} Setup',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white),
+        ),
       ),
       body: SafeArea(
         child: ListView(
@@ -129,21 +129,84 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
           children: [
             if (widget.targetRuns != null)
               Container(
-                margin: const EdgeInsets.only(bottom: 24),
+                margin: const EdgeInsets.only(bottom: 20),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200),
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.flag, color: Colors.blue),
+                    const Icon(Icons.flag_rounded, color: Color(0xFFD97706)),
                     const SizedBox(width: 8),
                     Text(
                       'Target: ${widget.targetRuns} runs',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue.shade800),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFFB45309)),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Incomplete squad warning banner if players are missing
+            if (!hasEnoughPlayers)
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFFECACA)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 22),
+                        SizedBox(width: 8),
+                        Text(
+                          'Players Missing for Innings',
+                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF991B1B)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Batting team ($batTeamName) needs at least 2 players (has ${batPlayers.length}). Bowling team ($bowlTeamName) needs at least 1 player (has ${bowlPlayers.length}).',
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF7F1D1D), height: 1.3),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (batPlayers.length < 2)
+                          ElevatedButton.icon(
+                            onPressed: () => context.push('/teams/$batId'),
+                            icon: const Icon(Icons.person_add_rounded, size: 16),
+                            label: Text('Add to $batTeamName'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E3A8A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ),
+                        if (bowlPlayers.isEmpty)
+                          ElevatedButton.icon(
+                            onPressed: () => context.push('/teams/$bowlId'),
+                            icon: const Icon(Icons.person_add_rounded, size: 16),
+                            label: Text('Add to $bowlTeamName'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E3A8A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -152,7 +215,8 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
             // Batting Team Selection
             Card(
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.shade200)),
+              color: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFFE2E8F0))),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -160,22 +224,22 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.sports_cricket, color: Theme.of(context).primaryColor),
+                        const Icon(Icons.sports_cricket, color: Color(0xFF16A34A)),
                         const SizedBox(width: 8),
                         Text('Batting: $batTeamName', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ],
                     ),
                     const SizedBox(height: 16),
                     _buildPlayerDropdown(
-                      label: 'Striker',
+                      label: 'Opening Striker *',
                       asyncPlayers: batPlayersAsync,
                       selectedId: _strikerId,
                       excludeId: _nonStrikerId,
                       onChanged: (v) => setState(() => _strikerId = v),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     _buildPlayerDropdown(
-                      label: 'Non-Striker',
+                      label: 'Opening Non-Striker *',
                       asyncPlayers: batPlayersAsync,
                       selectedId: _nonStrikerId,
                       excludeId: _strikerId,
@@ -190,7 +254,8 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
             // Bowling Team Selection
             Card(
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.shade200)),
+              color: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFFE2E8F0))),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -198,14 +263,14 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.sports_baseball, color: Colors.orange),
+                        const Icon(Icons.sports_baseball, color: Color(0xFFEA580C)),
                         const SizedBox(width: 8),
                         Text('Bowling: $bowlTeamName', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ],
                     ),
                     const SizedBox(height: 16),
                     _buildPlayerDropdown(
-                      label: 'Opening Bowler',
+                      label: 'Opening Bowler *',
                       asyncPlayers: bowlPlayersAsync,
                       selectedId: _bowlerId,
                       onChanged: (v) => setState(() => _bowlerId = v),
@@ -214,20 +279,24 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
             
             SizedBox(
-              height: 56,
+              height: 54,
               child: ElevatedButton.icon(
-                onPressed: _isSaving ? null : _startInnings,
-                icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.play_arrow),
+                onPressed: (_isSaving || !hasEnoughPlayers)
+                    ? null
+                    : () => _startInnings(batPlayers, bowlPlayers, batId, bowlId, batTeamName, bowlTeamName),
+                icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.play_arrow_rounded),
                 label: _isSaving
                     ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('LET\'S PLAY', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                    : const Text('START INNINGS', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
+                  backgroundColor: hasEnoughPlayers ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  disabledBackgroundColor: const Color(0xFFCBD5E1),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
                 ),
               ),
             ),
@@ -239,7 +308,7 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
 
   Widget _buildPlayerDropdown({
     required String label,
-    required AsyncValue<List<dynamic>> asyncPlayers,
+    required AsyncValue<List<Player>> asyncPlayers,
     required String? selectedId,
     String? excludeId,
     required ValueChanged<String?> onChanged,
@@ -249,13 +318,29 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
       error: (e, _) => Text('Error: $e', style: const TextStyle(color: Colors.red)),
       data: (players) {
         final items = players.where((p) => p.id != excludeId).toList();
+        if (items.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFECACA)),
+            ),
+            child: const Text(
+              'No players available. Please add players first.',
+              style: TextStyle(color: Color(0xFFDC2626), fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          );
+        }
         return DropdownButtonFormField<String>(
-          value: selectedId,
+          value: items.any((p) => p.id == selectedId) ? selectedId : null,
           decoration: InputDecoration(
             labelText: label,
+            filled: true,
+            fillColor: const Color(0xFFF8FAFC),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          items: items.map((p) => DropdownMenuItem<String>(value: p.id as String, child: Text(p.name as String))).toList(),
+          items: items.map((p) => DropdownMenuItem<String>(value: p.id, child: Text(p.name))).toList(),
           onChanged: onChanged,
         );
       },

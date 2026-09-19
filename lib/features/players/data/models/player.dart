@@ -54,6 +54,7 @@ class Player {
   final BattingStyle battingStyle;
   final BowlingStyle bowlingStyle;
   final int? jerseyNumber;
+  final String? phoneNumber;
   final String? profilePicUrl;
   final PlayerStats stats;
   final DateTime createdAt;
@@ -66,6 +67,7 @@ class Player {
     this.battingStyle = BattingStyle.rightHand,
     this.bowlingStyle = BowlingStyle.none,
     this.jerseyNumber,
+    this.phoneNumber,
     this.profilePicUrl,
     PlayerStats? stats,
     DateTime? createdAt,
@@ -90,6 +92,7 @@ class Player {
         orElse: () => BowlingStyle.none,
       ),
       jerseyNumber: json['jerseyNumber'] as int?,
+      phoneNumber: json['phoneNumber'] as String?,
       profilePicUrl: json['profilePicUrl'] as String?,
       stats: PlayerStats.fromJson(json['stats'] as Map<String, dynamic>?),
       createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -105,6 +108,7 @@ class Player {
       'battingStyle': battingStyle.name,
       'bowlingStyle': bowlingStyle.name,
       'jerseyNumber': jerseyNumber,
+      'phoneNumber': phoneNumber,
       'profilePicUrl': profilePicUrl,
       'stats': stats.toJson(),
       'createdAt': Timestamp.fromDate(createdAt),
@@ -119,6 +123,7 @@ class Player {
     BattingStyle? battingStyle,
     BowlingStyle? bowlingStyle,
     int? jerseyNumber,
+    String? phoneNumber,
     String? profilePicUrl,
     PlayerStats? stats,
     DateTime? createdAt,
@@ -131,6 +136,7 @@ class Player {
       battingStyle: battingStyle ?? this.battingStyle,
       bowlingStyle: bowlingStyle ?? this.bowlingStyle,
       jerseyNumber: jerseyNumber ?? this.jerseyNumber,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       profilePicUrl: profilePicUrl ?? this.profilePicUrl,
       stats: stats ?? this.stats,
       createdAt: createdAt ?? this.createdAt,

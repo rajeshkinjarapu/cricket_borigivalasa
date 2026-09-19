@@ -38,9 +38,9 @@ class ScaffoldWithNavBar extends StatelessWidget {
             label: 'Matches',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.emoji_events_outlined),
-            activeIcon: Icon(Icons.emoji_events),
-            label: 'Tournaments',
+            icon: Icon(Icons.sensors_rounded, color: Colors.redAccent),
+            activeIcon: Icon(Icons.sensors_rounded, color: Colors.red),
+            label: 'Live',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.leaderboard_outlined),

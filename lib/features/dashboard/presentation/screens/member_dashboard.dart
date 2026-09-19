@@ -6,6 +6,7 @@ import '../providers/dashboard_providers.dart';
 import '../widgets/live_match_card.dart';
 import '../widgets/upcoming_match_card.dart';
 import '../widgets/tournament_summary_card.dart';
+import '../widgets/app_drawer.dart';
 
 class MemberDashboard extends ConsumerWidget {
   const MemberDashboard({super.key});
@@ -20,88 +21,117 @@ class MemberDashboard extends ConsumerWidget {
     final tournamentsAsync = ref.watch(activeTournamentsProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: const Color(0xFFF8F9FA),
+      drawer: const AppDrawer(),
       appBar: AppBar(
+        backgroundColor: const Color(0xFF1E3A8A), // Royal Blue Header
+        foregroundColor: Colors.white,
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: Theme.of(context).primaryColor,
-              child: Text(
-                (u?.displayName.isNotEmpty ?? false) ? u!.displayName[0].toUpperCase() : 'M',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Hi, ${u?.displayName ?? 'Member'}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-                ),
-                const Row(
-                  children: [
-                    Text('Role: Scorer ', style: TextStyle(fontSize: 12, color: Colors.black54)),
-                    Icon(Icons.verified, color: Colors.green, size: 14),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
+        title: const Text('Member Dashboard',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
         actions: [
           IconButton(
-            icon: const Badge(
-              label: Text('3'),
-              child: Icon(Icons.notifications_outlined, color: Colors.black87),
-            ),
-            onPressed: () {},
+            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            onPressed: () => context.push('/notifications'),
           ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Colors.black87),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.redAccent),
-            onPressed: () async {
-              await ref.read(authControllerProvider.notifier).signOut();
-              ref.invalidate(authStateProvider);
-              if (context.mounted) context.go('/login');
-            },
-          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           children: [
+            // Profile Info Card
+            Container(
+              padding: const EdgeInsets.all(20),
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(color: const Color(0xFF1E3A8A).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5)),
+                ],
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  // Square avatar with rounded corners
+                  GestureDetector(
+                    onTap: () => context.push('/profile'),
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white, width: 2),
+                        color: Colors.white.withOpacity(0.2),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3)),
+                        ],
+                        image: (u?.photoUrl != null && u!.photoUrl!.isNotEmpty)
+                            ? DecorationImage(image: NetworkImage(u.photoUrl!), fit: BoxFit.cover)
+                            : null,
+                      ),
+                      child: (u?.photoUrl == null || u!.photoUrl!.isEmpty)
+                          ? Center(
+                              child: Text(
+                                (u?.displayName.isNotEmpty ?? false) ? u!.displayName[0].toUpperCase() : 'M',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Welcome back,', style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w500)),
+                        Text(
+                          u?.displayName ?? 'Member',
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -0.5),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (isScorer)
+                          Container(
+                            margin: const EdgeInsets.only(top: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.verified, color: Colors.greenAccent, size: 14),
+                                SizedBox(width: 4),
+                                Text('Scorer', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // Quick Actions
             if (isScorer) ...[
               Row(
                 children: [
-                  Expanded(child: _QuickActionBtn(icon: Icons.add, label: 'Create Match', color: Theme.of(context).primaryColor, onTap: () => context.push('/tournaments'))),
+                  Expanded(child: _QuickActionBtn(icon: Icons.sports_cricket, label: 'View Matches', color: const Color(0xFF2563EB), onTap: () => context.push('/matches-list'))),
                   const SizedBox(width: 12),
-                  Expanded(child: _QuickActionBtn(icon: Icons.play_arrow, label: 'Start Scoring', color: Colors.orange, onTap: () => context.push('/matches-list'))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _QuickActionBtn(icon: Icons.emoji_events, label: '+ Tourn.', color: Colors.purple, onTap: () => context.push('/tournaments/new'))),
+                  Expanded(child: _QuickActionBtn(icon: Icons.emoji_events, label: 'Tournaments', color: const Color(0xFFD97706), onTap: () => context.push('/tournaments'))),
                 ],
               ),
               const SizedBox(height: 24),
             ],
-
-            // Live Now
-            const _SectionTitle(title: '🔴 LIVE NOW'),
-            liveMatchesAsync.when(
-              data: (matches) {
-                if (matches.isEmpty) return const Padding(padding: EdgeInsets.only(bottom: 24), child: Text('No live matches'));
-                return Column(children: matches.map((m) => LiveMatchCard(match: m)).toList());
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Text('Error: $e'),
-            ),
 
             // Upcoming Matches
             const _SectionTitle(title: '📅 UPCOMING MATCHES'),

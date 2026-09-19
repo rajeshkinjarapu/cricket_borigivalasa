@@ -20,34 +20,49 @@ class LiveScorerScreen extends ConsumerWidget {
     final i1 = ref.watch(inningsProvider((tournamentId: tournamentId, matchId: matchId, innings: 1)));
     final i2 = ref.watch(inningsProvider((tournamentId: tournamentId, matchId: matchId, innings: 2)));
 
-    return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      appBar: AppBar(
-        title: const Text('Live Scorer', style: TextStyle(fontWeight: FontWeight.bold)),
-        elevation: 0,
+    return i1.when(
+      loading: () => const Scaffold(
+        backgroundColor: Color(0xFFF1F5F9),
+        body: Center(child: CircularProgressIndicator()),
       ),
-      body: i1.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (inn1) {
-          if (inn1 == null) {
-            return InningsSetupScreen(tournamentId: tournamentId, matchId: matchId, inningsNumber: 1);
-          }
-          if (inn1.isComplete) {
-            return i2.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-              data: (inn2) {
-                if (inn2 == null) {
-                  return InningsSetupScreen(tournamentId: tournamentId, matchId: matchId, inningsNumber: 2, targetRuns: inn1.runs + 1);
-                }
-                return _LiveScorerEngine(tournamentId: tournamentId, matchId: matchId, innings: inn2);
-              },
-            );
-          }
-          return _LiveScorerEngine(tournamentId: tournamentId, matchId: matchId, innings: inn1);
-        },
+      error: (e, _) => Scaffold(
+        backgroundColor: const Color(0xFFF1F5F9),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF1E3A8A),
+          foregroundColor: Colors.white,
+          title: const Text('Live Scorer'),
+        ),
+        body: Center(child: Text('Error: $e')),
       ),
+      data: (inn1) {
+        if (inn1 == null) {
+          return InningsSetupScreen(tournamentId: tournamentId, matchId: matchId, inningsNumber: 1);
+        }
+        if (inn1.isComplete) {
+          return i2.when(
+            loading: () => const Scaffold(
+              backgroundColor: Color(0xFFF1F5F9),
+              body: Center(child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => Scaffold(
+              backgroundColor: const Color(0xFFF1F5F9),
+              appBar: AppBar(
+                backgroundColor: const Color(0xFF1E3A8A),
+                foregroundColor: Colors.white,
+                title: const Text('Live Scorer'),
+              ),
+              body: Center(child: Text('Error: $e')),
+            ),
+            data: (inn2) {
+              if (inn2 == null) {
+                return InningsSetupScreen(tournamentId: tournamentId, matchId: matchId, inningsNumber: 2, targetRuns: inn1.runs + 1);
+              }
+              return _LiveScorerEngine(tournamentId: tournamentId, matchId: matchId, innings: inn2);
+            },
+          );
+        }
+        return _LiveScorerEngine(tournamentId: tournamentId, matchId: matchId, innings: inn1);
+      },
     );
   }
 }
@@ -280,115 +295,158 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     final nonStriker = batRows.where((r) => r.playerId == live.nonStrikerId).firstOrNull;
     final currentBowler = bowlRows.where((r) => r.playerId == live.currentBowlerId).firstOrNull;
 
-    return SafeArea(
-      child: Column(
-        children: [
-          // 1. TOP SCOREBOARD
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor,
-              borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(32), bottomRight: Radius.circular(32)),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1F5F9),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E3A8A), // Royal Blue Top Header
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          'Live Scoring - ${live.battingTeamShort ?? live.battingTeamName}',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 1. TOP SCOREBOARD (Dark Slate Neutral Card - Not Blue)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A), // Dark Slate
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    live.battingTeamName.toUpperCase(),
+                    style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        '${live.runs}/${live.wickets}',
+                        style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: Colors.white, height: 1.0),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        '(${live.oversText} ov)',
+                        style: const TextStyle(fontSize: 18, color: Color(0xFFCBD5E1), fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text('CRR: ${live.runRate.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                      ),
+                      if (live.targetRuns != null) ...[
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF78350F),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text('Target: ${live.targetRuns}', style: const TextStyle(color: Color(0xFFFDE68A), fontWeight: FontWeight.w800, fontSize: 13)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              children: [
-                Text(live.battingTeamName, style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text('${live.runs}-${live.wickets}', style: const TextStyle(fontSize: 56, fontWeight: FontWeight.bold, color: Colors.white, height: 1.0)),
-                    const SizedBox(width: 12),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text('(${live.oversText})', style: const TextStyle(fontSize: 20, color: Colors.white70, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('CRR: ${live.runRate.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 16),
-                    if (live.targetRuns != null)
-                      Text('Target: ${live.targetRuns}', style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ],
-            ),
-          ),
 
-          // 2. MIDDLE AREA (BATSMEN & BOWLER)
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: _buildBatterCard(striker, isStriker: true)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildBatterCard(nonStriker, isStriker: false)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildBowlerCard(currentBowler),
-                const SizedBox(height: 24),
-                const Text('Current Over', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
-                const SizedBox(height: 8),
-                _buildCurrentOverTimeline(live),
-              ],
+            // 2. MIDDLE AREA (BATSMEN & BOWLER)
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: _buildBatterCard(striker, isStriker: true)),
+                      const SizedBox(width: 10),
+                      Expanded(child: _buildBatterCard(nonStriker, isStriker: false)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  _buildBowlerCard(currentBowler),
+                  const SizedBox(height: 16),
+                  const Text('Current Over', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF64748B), fontSize: 13)),
+                  const SizedBox(height: 6),
+                  _buildCurrentOverTimeline(live),
+                ],
+              ),
             ),
-          ),
 
-          // 3. SCORING KEYPAD
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    _runBtn(0), _runBtn(1), _runBtn(2), _runBtn(3), _runBtn(4, color: Colors.blue.shade600), _runBtn(6, color: Colors.indigo),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _actionBtn('WD', _wide, color: Colors.orange.shade700),
-                    _actionBtn('NB', _noball, color: Colors.orange.shade700),
-                    _actionBtn('BYE', () => _byes(isLegBye: false), color: Colors.grey.shade600),
-                    _actionBtn('LB', () => _byes(isLegBye: true), color: Colors.grey.shade600),
-                    _actionBtn('OUT', _wicket, color: Colors.red.shade700),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _undoLastBall,
-                        icon: const Icon(Icons.undo),
-                        label: const Text('UNDO'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.deepOrange,
-                          side: const BorderSide(color: Colors.deepOrange),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+            // 3. SCORING KEYPAD
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      _runBtn(0), _runBtn(1), _runBtn(2), _runBtn(3), _runBtn(4, color: const Color(0xFF059669)), _runBtn(6, color: const Color(0xFF7C3AED)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _actionBtn('WD', _wide, color: const Color(0xFFD97706)),
+                      _actionBtn('NB', _noball, color: const Color(0xFFD97706)),
+                      _actionBtn('BYE', () => _byes(isLegBye: false), color: const Color(0xFF64748B)),
+                      _actionBtn('LB', () => _byes(isLegBye: true), color: const Color(0xFF64748B)),
+                      _actionBtn('OUT', _wicket, color: const Color(0xFFDC2626)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _undoLastBall,
+                          icon: const Icon(Icons.undo_rounded, size: 18),
+                          label: const Text('UNDO BALL', style: TextStyle(fontWeight: FontWeight.w800)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFEA580C),
+                            side: const BorderSide(color: Color(0xFFEA580C), width: 1.5),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                )
-              ],
+                    ],
+                  )
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -396,10 +454,10 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   Widget _buildBatterCard(BattingScorecardRow? batter, {required bool isStriker}) {
     return Card(
       elevation: 0,
-      color: isStriker ? Colors.blue.shade50 : Colors.white,
+      color: isStriker ? const Color(0xFFF0FDF4) : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: isStriker ? Colors.blue.shade300 : Colors.grey.shade300, width: isStriker ? 2 : 1),
+        side: BorderSide(color: isStriker ? const Color(0xFF86EFAC) : const Color(0xFFE2E8F0), width: isStriker ? 1.5 : 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -410,26 +468,26 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               children: [
                 Expanded(
                   child: Text(
-                    batter?.playerName ?? 'Unknown',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isStriker ? Colors.blue.shade900 : Colors.black87),
+                    batter?.playerName ?? 'Selecting...',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: isStriker ? const Color(0xFF166534) : const Color(0xFF1E293B)),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (isStriker) const Icon(Icons.star, color: Colors.orange, size: 16),
+                if (isStriker) const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 18),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text('${batter?.runs ?? 0}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Text('${batter?.runs ?? 0}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: isStriker ? const Color(0xFF166534) : const Color(0xFF0F172A))),
                 const SizedBox(width: 4),
-                Text('(${batter?.balls ?? 0})', style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                Text('(${batter?.balls ?? 0}b)', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
               ],
             ),
             const SizedBox(height: 4),
-            Text('4s: ${batter?.fours ?? 0}  6s: ${batter?.sixes ?? 0}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            Text('4s: ${batter?.fours ?? 0}  6s: ${batter?.sixes ?? 0}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
           ],
         ),
       ),

@@ -12,6 +12,7 @@ final matchRepositoryProvider = Provider((_) => MatchRepository());
 final tournamentRepositoryProvider = Provider((_) => TournamentRepository());
 final tournamentListProvider = StreamProvider<List<Tournament>>((ref) =>
   ref.watch(tournamentRepositoryProvider).watchAll());
+final allTournamentsProvider = tournamentListProvider;
 final tournamentDetailProvider = StreamProvider.family<Tournament?, String>(
   (ref, id) => ref.watch(tournamentRepositoryProvider).watchById(id));
   

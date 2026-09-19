@@ -45,209 +45,366 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         ),
       );
       context.go('/login');
+    } else if (mounted) {
+      final errorState = ref.read(authControllerProvider).error;
+      final errorMsg = errorState?.toString() ?? 'Registration failed. Please try again.';
+      // Clean up Firebase exception messages to be user-friendly
+      String displayError = errorMsg;
+      if (errorMsg.contains('email-already-in-use')) displayError = 'This email/phone is already registered. Please login.';
+      else if (errorMsg.contains('invalid-email')) displayError = 'Please enter a valid email or phone number.';
+      else if (errorMsg.contains('weak-password')) displayError = 'Password is too weak. Please use a stronger password.';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(displayError),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
+  }
+
+  Widget _buildField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    TextInputType keyboard = TextInputType.text,
+    bool obscure = false,
+    Widget? suffix,
+    String? Function(String?)? validator,
+  }) {
+    const midBlue = Color(0xFF2563EB);
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboard,
+      obscureText: obscure,
+      style: const TextStyle(fontSize: 15),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade400),
+        prefixIcon: Icon(icon, color: Colors.grey.shade500),
+        suffixIcon: suffix,
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: midBlue, width: 2),
+        ),
+      ),
+      validator: validator,
+    );
+  }
+
+  Widget _smallDecor(Color c) {
+    return Container(
+      width: 6,
+      height: 6,
+      decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final l = ref.watch(authControllerProvider).isLoading;
-    final primaryOrange = const Color(0xFFF39C12);
+    final isLoading = ref.watch(authControllerProvider).isLoading;
+    const darkBlue = Color(0xFF1E3A8A);
+    const midBlue = Color(0xFF2563EB);
+    const accentGold = Color(0xFFFFB300);
+    const cream = Color(0xFFF8FAFC);
 
     return Scaffold(
       body: Container(
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFFFE0B2), Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.center,
+            colors: [Color(0xFF0F172A), Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // ─── Cricket Ball Decorative Top ───
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _smallDecor(accentGold),
+                      const SizedBox(width: 8),
+                      _smallDecor(Colors.white.withOpacity(0.4)),
+                      const SizedBox(width: 8),
+                      _smallDecor(accentGold),
+                    ],
+                  ),
                   const SizedBox(height: 20),
-                  // Title
+
+                  // ─── Logo ───
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0.6, end: 1.0),
+                    duration: const Duration(milliseconds: 900),
+                    curve: Curves.elasticOut,
+                    builder: (context, scale, _) => Transform.scale(
+                      scale: scale,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: accentGold, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: accentGold.withOpacity(0.35),
+                              blurRadius: 24,
+                              spreadRadius: 4,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // App Title
                   const Text(
-                    'Sign Up',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black87),
+                    'BORIGIVALASA',
+                    style: TextStyle(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 5,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Please provide the details below to\ncreate your account',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54, fontSize: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: accentGold,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'CRICKET',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: darkBlue,
+                        letterSpacing: 4,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 32),
 
-                  // Form Area
-                  Form(
-                    key: _f,
-                    child: Column(
-                      children: [
-                        // Full Name Field
-                        TextFormField(
-                          controller: _n,
-                          keyboardType: TextInputType.name,
-                          decoration: InputDecoration(
-                            hintText: 'Full Name',
-                            prefixIcon: const Icon(Icons.person_outline),
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: primaryOrange, width: 2),
-                            ),
-                          ),
-                          validator: (v) => (v == null || v.trim().length < 2) ? 'Enter your full name' : null,
+                  // Card
+                  Container(
+                    decoration: BoxDecoration(
+                      color: cream,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
                         ),
-                        const SizedBox(height: 16),
-
-                        // Mobile Number Field
-                        TextFormField(
-                          controller: _e,
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            hintText: 'Phone Number',
-                            prefixIcon: const Icon(Icons.phone_outlined),
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: primaryOrange, width: 2),
-                            ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(24),
+                    child: Form(
+                      key: _f,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: midBlue.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.person_add,
+                                    color: midBlue, size: 22),
+                              ),
+                              const SizedBox(width: 12),
+                              const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Create Account',
+                                      style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: darkBlue)),
+                                  Text('Register to continue',
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.grey)),
+                                ],
+                              ),
+                            ],
                           ),
-                          validator: (v) => (v == null || v.length < 10) ? 'Enter a valid 10-digit number' : null,
-                        ),
-                        const SizedBox(height: 16),
+                          const SizedBox(height: 24),
 
-                        // Password Field
-                        TextFormField(
-                          controller: _p,
-                          obscureText: _o,
-                          decoration: InputDecoration(
-                            hintText: 'New Password',
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              icon: Icon(_o ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                          // Full Name
+                          _buildField(
+                            controller: _n,
+                            hint: 'Full Name',
+                            icon: Icons.person_outline,
+                            validator: (v) => (v == null || v.trim().length < 2)
+                                ? 'Enter your full name'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Email or Phone Number
+                          _buildField(
+                            controller: _e,
+                            hint: 'Email or Phone Number',
+                            icon: Icons.email_outlined,
+                            keyboard: TextInputType.emailAddress,
+                            validator: (v) {
+                              if (v == null || v.isEmpty) return 'Required';
+                              if (v.contains('@')) return null;
+                              if (v.length < 10) return 'Enter valid 10-digit number';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Password
+                          _buildField(
+                            controller: _p,
+                            hint: 'New Password',
+                            icon: Icons.lock_outline,
+                            obscure: _o,
+                            suffix: IconButton(
+                              icon: Icon(
+                                _o ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                color: Colors.grey.shade500,
+                              ),
                               onPressed: () => setState(() => _o = !_o),
                             ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: primaryOrange, width: 2),
+                            validator: (v) => (v == null || v.length < 6)
+                                ? 'Min 6 chars required'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Terms Checkbox
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: Checkbox(
+                                  value: _agreed,
+                                  onChanged: (v) => setState(() => _agreed = v ?? false),
+                                  activeColor: midBlue,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4)),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: RichText(
+                                  text: const TextSpan(
+                                    text: 'I agree with the ',
+                                    style: TextStyle(color: Colors.black54, fontSize: 13),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Terms and Conditions',
+                                        style: TextStyle(
+                                            color: midBlue,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      TextSpan(text: ' and '),
+                                      TextSpan(
+                                        text: 'Privacy Policy',
+                                        style: TextStyle(
+                                            color: midBlue,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Register Button
+                          SizedBox(
+                            height: 54,
+                            child: ElevatedButton(
+                              onPressed: isLoading ? null : _submit,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: midBlue,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14)),
+                                elevation: 4,
+                                shadowColor: midBlue.withOpacity(0.5),
+                              ),
+                              child: isLoading
+                                  ? const SizedBox(
+                                      height: 22,
+                                      width: 22,
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white, strokeWidth: 2))
+                                  : const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.person_add_alt_1, size: 20),
+                                        SizedBox(width: 8),
+                                        Text('Register',
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 1)),
+                                      ],
+                                    ),
                             ),
                           ),
-                          validator: (v) => (v == null || v.length < 6) ? 'Min 6 chars required' : null,
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        // Terms Checkbox
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: Checkbox(
-                                value: _agreed,
-                                onChanged: (v) => setState(() => _agreed = v ?? false),
-                                activeColor: primaryOrange,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                                child: RichText(
-                                text: TextSpan(
-                                  text: 'I agree with the ',
-                                  style: const TextStyle(color: Colors.black54, fontSize: 13),
+                          const SizedBox(height: 20),
+
+                          // Back to login
+                          Center(
+                            child: InkWell(
+                              onTap: () => context.go('/login'),
+                              child: RichText(
+                                text: const TextSpan(
+                                  text: 'Have an account? ',
+                                  style: TextStyle(color: Colors.black54, fontSize: 13),
                                   children: [
                                     TextSpan(
-                                      text: 'Terms and Conditions',
-                                      style: TextStyle(color: primaryOrange, fontWeight: FontWeight.bold),
-                                    ),
-                                    const TextSpan(text: ' and '),
-                                    TextSpan(
-                                      text: 'Privacy Policy',
-                                      style: TextStyle(color: primaryOrange, fontWeight: FontWeight.bold),
+                                      text: 'Sign in',
+                                      style: TextStyle(
+                                          color: midBlue,
+                                          fontWeight: FontWeight.bold,
+                                          decoration: TextDecoration.underline),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Create Account Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton(
-                            onPressed: l ? null : _submit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryOrange,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              elevation: 0,
-                            ),
-                            child: l
-                              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
                           ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Sign in link
-                        InkWell(
-                          onTap: () => context.go('/login'),
-                          child: RichText(
-                            text: TextSpan(
-                              text: 'Have an account? ',
-                              style: const TextStyle(color: Colors.black54, fontSize: 14),
-                              children: [
-                                TextSpan(
-                                  text: 'Sign in',
-                                  style: TextStyle(color: primaryOrange, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],

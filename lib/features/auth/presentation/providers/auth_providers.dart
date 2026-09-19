@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/app_user.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -30,8 +31,27 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<void> signOut() async {
-    state = const AsyncValue.loading();
     await _r.signOut();
     state = const AsyncValue.data(null);
+  }
+
+  Future<bool> updateProfile({
+    String? displayName,
+    Uint8List? imageBytes,
+    String? fileExtension,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      await _r.updateProfile(
+        displayName: displayName,
+        imageBytes: imageBytes,
+        fileExtension: fileExtension,
+      );
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return false;
+    }
   }
 }

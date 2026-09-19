@@ -22,11 +22,20 @@ class AppTheme {
     ),
     textTheme: GoogleFonts.interTextTheme(),
     appBarTheme: const AppBarTheme(
-      centerTitle: true,
+      centerTitle: false,
       backgroundColor: _primary,
       foregroundColor: Colors.white,
       elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: _primary,
       iconTheme: IconThemeData(color: Colors.white),
+      actionsIconTheme: IconThemeData(color: Colors.white),
+      titleTextStyle: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        letterSpacing: -0.3,
+      ),
     ),
     tabBarTheme: TabBarThemeData(
       labelColor: Colors.white,

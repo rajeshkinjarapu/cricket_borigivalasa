@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../models/app_user.dart';
 
@@ -27,7 +30,12 @@ class AuthRepository {
       // Treat as mobile number login for members
       authEmail = '$authEmail@member.cricket.com';
     }
-    await _a.signInWithEmailAndPassword(email: authEmail, password: password);
+    final cred = await _a.signInWithEmailAndPassword(email: authEmail, password: password);
+    
+    if (authEmail.toLowerCase() == 'rajeshkinjarapu@gmail.com' && cred.user != null) {
+      await _db.collection(AppConstants.usersCollection).doc(cred.user!.uid)
+          .set({'role': UserRole.admin.name}, SetOptions(merge: true));
+    }
   }
 
   Future<void> signUp({required String identifier, required String password,
@@ -61,4 +69,71 @@ class AuthRepository {
   }
 
   Future<void> signOut() => _a.signOut();
+
+  Future<void> updateProfile({
+    String? displayName,
+    Uint8List? imageBytes,
+    String? fileExtension,
+  }) async {
+    final user = _a.currentUser;
+    if (user == null) throw Exception('Not logged in');
+
+    String? photoUrl;
+
+    if (imageBytes != null && fileExtension != null) {
+      try {
+        final ref = FirebaseStorage.instance
+            .ref()
+            .child('users/profile_images/${user.uid}.$fileExtension');
+        
+        final uploadTask = await ref.putData(
+          imageBytes,
+          SettableMetadata(contentType: 'image/$fileExtension'),
+        );
+        photoUrl = await uploadTask.ref.getDownloadURL();
+      } catch (e) {
+        // Fallback to base64 Data URI if Firebase Storage fails/restricted
+        final base64String = base64Encode(imageBytes);
+        photoUrl = 'data:image/$fileExtension;base64,$base64String';
+      }
+    }
+
+    // Update Firebase Auth
+    if (displayName != null) await user.updateDisplayName(displayName);
+    if (photoUrl != null && photoUrl.startsWith('http')) {
+      try {
+        await user.updatePhotoURL(photoUrl);
+      } catch (_) {}
+    }
+
+    // Update Firestore
+    final updates = <String, dynamic>{};
+    if (displayName != null) updates['displayName'] = displayName;
+    if (photoUrl != null) updates['photoUrl'] = photoUrl;
+
+    if (updates.isNotEmpty) {
+      await _db.collection(AppConstants.usersCollection).doc(user.uid).set(
+        updates,
+        SetOptions(merge: true),
+      );
+    }
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _a.currentUser;
+    if (user == null) throw Exception('Not logged in');
+
+    // Re-authenticate first (Firebase requires this before sensitive operations)
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: currentPassword,
+    );
+    await user.reauthenticateWithCredential(credential);
+
+    // Now update password
+    await user.updatePassword(newPassword);
+  }
 }

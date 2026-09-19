@@ -43,31 +43,42 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
       data: (t) {
         if (t == null) return Scaffold(appBar: AppBar(), body: const Center(child: Text('Tournament not found')));
         return Scaffold(
-          backgroundColor: Colors.grey.shade50,
+          backgroundColor: const Color(0xFFF1F5F9),
           body: NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return [
                 SliverAppBar(
-                  expandedHeight: 200,
+                  expandedHeight: 180,
                   pinned: true,
+                  backgroundColor: const Color(0xFF1E3A8A), // Royal Blue Header
+                  foregroundColor: Colors.white,
+                  elevation: 0,
                   flexibleSpace: FlexibleSpaceBar(
-                    title: Text(t.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      t.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
+                    ),
                     background: Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Theme.of(context).primaryColor, const Color(0xFF1A237E)],
+                          colors: [Color(0xFF1E3A8A), Color(0xFF0F172A)],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
                       ),
                       child: Center(
-                        child: Icon(Icons.emoji_events, size: 80, color: Colors.white.withOpacity(0.2)),
+                        child: Icon(Icons.emoji_events_rounded, size: 76, color: Colors.white.withOpacity(0.18)),
                       ),
                     ),
                   ),
                   actions: [
                     if (isAdmin)
                       PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, color: Colors.white),
                         onSelected: (v) async {
                           if (v == 'edit') context.push('/tournaments/${t.id}/edit');
                           else if (v == 'delete') {
@@ -103,15 +114,64 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                   delegate: _SliverAppBarDelegate(
                     TabBar(
                       controller: _tabController,
-                      labelColor: Theme.of(context).primaryColor,
-                      unselectedLabelColor: Colors.grey,
-                      indicatorColor: Theme.of(context).primaryColor,
-                      isScrollable: true,
+                      dividerColor: Colors.transparent,
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      indicator: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(9),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      labelColor: const Color(0xFF1E3A8A),
+                      unselectedLabelColor: const Color(0xFF64748B),
+                      labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                       tabs: const [
-                        Tab(text: 'Overview'),
-                        Tab(text: 'Teams'),
-                        Tab(text: 'Matches'),
-                        Tab(text: 'Standings'),
+                        Tab(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.info_outline, size: 15),
+                              SizedBox(width: 4),
+                              Text('Overview'),
+                            ],
+                          ),
+                        ),
+                        Tab(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.groups_rounded, size: 15),
+                              SizedBox(width: 4),
+                              Text('Teams'),
+                            ],
+                          ),
+                        ),
+                        Tab(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.sports_cricket, size: 15),
+                              SizedBox(width: 4),
+                              Text('Matches'),
+                            ],
+                          ),
+                        ),
+                        Tab(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.leaderboard_rounded, size: 15),
+                              SizedBox(width: 4),
+                              Text('Standings'),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -128,17 +188,21 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                   children: [
                     Card(
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(18),
                         child: Column(
                           children: [
                             _InfoRow(icon: Icons.calendar_month, title: 'Dates', value: '${DateFormat('MMM d').format(t.startDate)} - ${t.endDate != null ? DateFormat('MMM d, yyyy').format(t.endDate!) : 'TBD'}'),
-                            const Divider(height: 24),
+                            const Divider(height: 24, color: Color(0xFFF1F5F9)),
                             _InfoRow(icon: Icons.place, title: 'Venue', value: t.venue ?? 'Not specified'),
-                            const Divider(height: 24),
+                            const Divider(height: 24, color: Color(0xFFF1F5F9)),
                             _InfoRow(icon: Icons.sports_cricket, title: 'Format', value: t.format.label),
-                            const Divider(height: 24),
+                            const Divider(height: 24, color: Color(0xFFF1F5F9)),
                             _InfoRow(icon: Icons.info_outline, title: 'Status', value: t.status.label),
                           ],
                         ),
@@ -171,11 +235,11 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: Colors.grey, size: 20),
+        Icon(icon, color: const Color(0xFF64748B), size: 20),
         const SizedBox(width: 12),
-        Text(title, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+        Text(title, style: const TextStyle(color: Color(0xFF64748B), fontSize: 14, fontWeight: FontWeight.w500)),
         const Spacer(),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF1E293B))),
       ],
     );
   }
@@ -186,15 +250,25 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar _tabBar;
 
   @override
-  double get minExtent => _tabBar.preferredSize.height;
+  double get minExtent => 60.0;
   @override
-  double get maxExtent => _tabBar.preferredSize.height;
+  double get maxExtent => 60.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
       color: Colors.white,
-      child: _tabBar,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: _tabBar,
+      ),
     );
   }
 

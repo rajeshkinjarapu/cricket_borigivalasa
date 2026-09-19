@@ -8,6 +8,8 @@ final teamsProvider = StreamProvider<List<Team>>((ref) {
   return ref.watch(teamRepositoryProvider).watchAll();
 });
 
+final allTeamsProvider = teamsProvider;
+
 final tournamentTeamsProvider = StreamProvider.family<List<Team>, String>((ref, tournamentId) {
   return ref.watch(teamRepositoryProvider).watchByTournament(tournamentId);
 });

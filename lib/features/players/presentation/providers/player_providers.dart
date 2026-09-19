@@ -4,6 +4,10 @@ import '../../data/repositories/player_repository.dart';
 
 final playerRepositoryProvider = Provider((ref) => PlayerRepository());
 
+final allPlayersProvider = StreamProvider<List<Player>>((ref) {
+  return ref.watch(playerRepositoryProvider).watchAll();
+});
+
 final teamPlayersProvider = StreamProvider.family<List<Player>, String>((ref, teamId) {
   return ref.watch(playerRepositoryProvider).watchByTeam(teamId);
 });

@@ -88,8 +88,10 @@ class _MatchCard extends StatelessWidget {
         onTap: () {
           if (isCompleted) {
             context.push('/tournaments/$tournamentId/matches/${match.id}/summary');
-          } else {
+          } else if (match.status == MatchStatus.live) {
             context.push('/tournaments/$tournamentId/matches/${match.id}');
+          } else {
+            context.push('/tournaments/$tournamentId/matches/${match.id}/squads');
           }
         },
         child: Padding(

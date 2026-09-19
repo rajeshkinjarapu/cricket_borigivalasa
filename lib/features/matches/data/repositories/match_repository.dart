@@ -99,22 +99,39 @@ class MatchRepository {
     });
   }
 
-  // Cross-tournament feed for Dashboard
+  // Cross-tournament feed for Dashboard & Global Matches
   Stream<List<Match>> getLiveMatches() {
     return _db
         .collectionGroup(AppConstants.matchesCollection)
-        .where('status', isEqualTo: MatchStatus.live.name)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => _parseDoc(d)).toList());
+        .map((snap) => snap.docs
+            .map((d) => _parseDoc(d))
+            .where((m) => m.status == MatchStatus.live)
+            .toList());
   }
 
   Stream<List<Match>> getUpcomingMatches() {
     return _db
         .collectionGroup(AppConstants.matchesCollection)
-        .where('status', isEqualTo: MatchStatus.scheduled.name)
-        .orderBy('matchDate')
-        .limit(10)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => _parseDoc(d)).toList());
+        .map((snap) {
+      final list = snap.docs
+          .map((d) => _parseDoc(d))
+          .where((m) => m.status == MatchStatus.scheduled)
+          .toList();
+      list.sort((a, b) => a.matchDate.compareTo(b.matchDate));
+      return list.take(15).toList();
+    });
+  }
+
+  Stream<List<Match>> getAllMatches() {
+    return _db
+        .collectionGroup(AppConstants.matchesCollection)
+        .snapshots()
+        .map((snap) {
+      final list = snap.docs.map((d) => _parseDoc(d)).toList();
+      list.sort((a, b) => b.matchDate.compareTo(a.matchDate));
+      return list;
+    });
   }
 }
