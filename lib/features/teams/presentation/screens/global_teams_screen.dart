@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -18,6 +19,15 @@ class GlobalTeamsScreen extends ConsumerStatefulWidget {
 
 class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
   String _searchQuery = '';
+
+  final List<List<Color>> _teamGradients = const [
+    [Color(0xFF1E3A8A), Color(0xFF3B82F6)], // Royal Blue
+    [Color(0xFFB45309), Color(0xFFF59E0B)], // Amber Gold
+    [Color(0xFF047857), Color(0xFF10B981)], // Emerald Green
+    [Color(0xFF6D28D9), Color(0xFF8B5CF6)], // Purple
+    [Color(0xFFBE123C), Color(0xFFF43F5E)], // Rose Crimson
+    [Color(0xFF0369A1), Color(0xFF0EA5E9)], // Sky Blue
+  ];
 
   ImageProvider? _getImageProvider(String? url) {
     if (url == null || url.isEmpty) return null;
@@ -41,9 +51,19 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E3A8A), // Royal Blue Header
+        backgroundColor: const Color(0xFF1E3A8A), // Uniform Royal Blue Header
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              Navigator.of(context).maybePop();
+            }
+          },
+        ),
         title: const Text(
           'Teams & Clubs',
           style: TextStyle(
@@ -64,42 +84,46 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
       ),
       body: Column(
         children: [
-          // ── Search Header ──
+          // ── Search & Summary Section ──
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: TextField(
-              onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
-              decoration: InputDecoration(
-                hintText: 'Search teams or captain...',
-                hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
-                prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () => setState(() => _searchQuery = ''),
-                      )
-                    : null,
-                filled: true,
-                fillColor: const Color(0xFFF1F5F9),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            child: Column(
+              children: [
+                TextField(
+                  onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
+                  decoration: InputDecoration(
+                    hintText: 'Search teams or captain...',
+                    hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
+                    prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () => setState(() => _searchQuery = ''),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+                    ),
+                  ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
-                ),
-              ),
+              ],
             ),
           ),
 
-          // ── Teams List (One by One) ──
+          // ── Teams List ──
           Expanded(
             child: teamsAsync.when(
               loading: () => const Center(
@@ -166,14 +190,15 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.all(16).copyWith(bottom: 90),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final team = filtered[index];
                     final playersList = allPlayersAsync.value ?? [];
                     final teamPlayersCount = playersList.where((p) => p.teamId == team.id).length;
+                    final gradient = _teamGradients[index % _teamGradients.length];
 
-                    return _buildTeamListCard(context, team, teamPlayersCount, isAdmin);
+                    return _buildTeamListCard(context, team, teamPlayersCount, isAdmin, gradient);
                   },
                 );
               },
@@ -185,7 +210,7 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
           ? FloatingActionButton.extended(
               heroTag: 'fab_global_teams',
               onPressed: () => context.push('/teams/new'),
-              backgroundColor: const Color(0xFF1E3A8A),
+              backgroundColor: const Color(0xFF16A34A), // Emerald Green
               foregroundColor: Colors.white,
               elevation: 4,
               icon: const Icon(Icons.add_rounded),
@@ -198,41 +223,61 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
     );
   }
 
-  Widget _buildTeamListCard(BuildContext context, Team team, int playerCount, bool isAdmin) {
+  Widget _buildTeamListCard(
+    BuildContext context,
+    Team team,
+    int playerCount,
+    bool isAdmin,
+    List<Color> gradient,
+  ) {
     final imageProvider = _getImageProvider(team.logoUrl);
+    final primaryColor = gradient.first;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            color: primaryColor.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: InkWell(
           onTap: () => context.push('/teams/${team.id}'),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                // Team Logo / Photo
+                // ── Vibrant Team Logo / Avatar ──
                 Container(
                   width: 58,
                   height: 58,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E3A8A).withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFF1E3A8A).withOpacity(0.2), width: 1.5),
+                    gradient: imageProvider == null
+                        ? LinearGradient(
+                            colors: gradient,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    borderRadius: BorderRadius.circular(16), // Modern Squircle
+                    border: Border.all(color: primaryColor.withOpacity(0.25), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryColor.withOpacity(0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                     image: imageProvider != null
                         ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
                         : null,
@@ -246,7 +291,8 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w900,
-                              color: Color(0xFF1E3A8A),
+                              color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         )
@@ -254,7 +300,7 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                 ),
                 const SizedBox(width: 14),
 
-                // Team Details
+                // ── Team Details ──
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,24 +312,25 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                               team.name,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
-                                fontSize: 16,
+                                fontSize: 15.5,
                                 color: Color(0xFF0F172A),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
+                              color: primaryColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                              border: Border.all(color: primaryColor.withOpacity(0.2)),
                             ),
                             child: Text(
                               team.shortName.isNotEmpty ? team.shortName : 'TEAM',
-                              style: const TextStyle(
-                                color: Color(0xFF334155),
+                              style: TextStyle(
+                                color: primaryColor,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.5,
@@ -294,41 +341,53 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                       ),
                       const SizedBox(height: 6),
 
-                      // Captain & Player Count Info
+                      // Captain & Squad Size Info
                       Row(
                         children: [
-                          const Icon(Icons.person_outline_rounded, size: 14, color: Color(0xFF64748B)),
-                          const SizedBox(width: 4),
+                          // Captain info
+                          const Icon(Icons.star_rounded, size: 15, color: Color(0xFFD97706)),
+                          const SizedBox(width: 3),
                           Expanded(
                             child: Text(
-                              'Captain: ${team.captainName?.isNotEmpty == true ? team.captainName! : 'Not Assigned'}',
+                              team.captainName?.isNotEmpty == true
+                                  ? 'Capt: ${team.captainName!}'
+                                  : 'No Captain assigned',
                               style: const TextStyle(
-                                fontSize: 12.5,
+                                fontSize: 12,
                                 color: Color(0xFF64748B),
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w600,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 8),
+
+                          // Players Count Pill
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
-                              borderRadius: BorderRadius.circular(6),
+                              color: playerCount > 0 ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: playerCount > 0 ? const Color(0xFF86EFAC) : const Color(0xFFCBD5E1),
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.groups_rounded, size: 13, color: Color(0xFF2563EB)),
+                                Icon(
+                                  Icons.groups_rounded,
+                                  size: 13,
+                                  color: playerCount > 0 ? const Color(0xFF15803D) : const Color(0xFF64748B),
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   '$playerCount Players',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF2563EB),
+                                    fontWeight: FontWeight.w800,
+                                    color: playerCount > 0 ? const Color(0xFF15803D) : const Color(0xFF64748B),
                                   ),
                                 ),
                               ],
@@ -340,28 +399,32 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                   ),
                 ),
 
-                // Trailing Arrow or Admin Menu
+                // ── Admin Menu / Chevron ──
                 if (isAdmin)
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert, size: 20, color: Color(0xFF94A3B8)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     onSelected: (action) async {
                       if (action == 'view') {
                         context.push('/teams/${team.id}');
                       } else if (action == 'edit') {
-                        context.push('/teams/new?teamId=${team.id}');
+                        context.push('/teams/${team.id}/edit');
                       } else if (action == 'delete') {
-                        final ok = await showConfirmDialog(
-                          context,
-                          title: 'Delete Team?',
-                          message: 'Are you sure you want to delete ${team.name}?',
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => ConfirmDialog(
+                            title: 'Delete Team?',
+                            content: 'Are you sure you want to delete ${team.name}? This cannot be undone.',
+                            confirmText: 'Delete',
+                            isDestructive: true,
+                          ),
                         );
-                        if (ok) {
+                        if (confirm == true) {
                           await ref.read(teamControllerProvider.notifier).delete(team.id);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('${team.name} deleted'),
+                                content: Text('${team.name} deleted successfully.'),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -369,12 +432,12 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                         }
                       }
                     },
-                    itemBuilder: (_) => [
+                    itemBuilder: (ctx) => [
                       const PopupMenuItem(
                         value: 'view',
                         child: Row(
                           children: [
-                            Icon(Icons.groups_rounded, color: Color(0xFF1E3A8A), size: 16),
+                            Icon(Icons.visibility_outlined, size: 18, color: Color(0xFF1E3A8A)),
                             SizedBox(width: 8),
                             Text('View Squad'),
                           ],
@@ -384,7 +447,7 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit_outlined, color: Color(0xFF2563EB), size: 16),
+                            Icon(Icons.edit_outlined, size: 18, color: Color(0xFF2563EB)),
                             SizedBox(width: 8),
                             Text('Edit Team'),
                           ],
@@ -394,9 +457,9 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_outline, color: Colors.red, size: 16),
+                            Icon(Icons.delete_outline, size: 18, color: Colors.red),
                             SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
+                            Text('Delete Team', style: TextStyle(color: Colors.red)),
                           ],
                         ),
                       ),
@@ -404,8 +467,8 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                   )
                 else
                   const Padding(
-                    padding: EdgeInsets.only(left: 8),
-                    child: Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+                    padding: EdgeInsets.only(left: 6),
+                    child: Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 22),
                   ),
               ],
             ),
