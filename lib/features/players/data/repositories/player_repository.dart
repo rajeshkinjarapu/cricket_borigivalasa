@@ -15,17 +15,14 @@ class PlayerRepository {
   }
 
   Stream<List<Player>> watchByTeam(String teamId) {
-    return _db
-        .collection('players')
-        .where('teamId', isEqualTo: teamId)
-        .snapshots()
-        .map((snapshot) {
-          final list = snapshot.docs
-              .map((doc) => Player.fromJson({...doc.data(), 'id': doc.id}))
-              .toList();
-          list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-          return list;
-        });
+    return _db.collection('players').snapshots().map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => Player.fromJson({...doc.data(), 'id': doc.id}))
+          .where((p) => p.teamId == teamId || p.teamIds.contains(teamId))
+          .toList();
+      list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      return list;
+    });
   }
 
   Stream<Player?> watchById(String id) {
@@ -43,5 +40,38 @@ class PlayerRepository {
 
   Future<void> delete(String id) async {
     await _db.collection('players').doc(id).delete();
+  }
+
+  Future<void> addPlayerToTeam(String playerId, String teamId) async {
+    final docRef = _db.collection('players').doc(playerId);
+    final doc = await docRef.get();
+    if (!doc.exists) return;
+    final data = doc.data()!;
+    final currentTeamId = data['teamId'] as String? ?? '';
+    final rawList = (data['teamIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+    final currentTeamIds = {...rawList};
+    if (currentTeamId.isNotEmpty) currentTeamIds.add(currentTeamId);
+    currentTeamIds.add(teamId);
+    await docRef.update({
+      'teamId': currentTeamId.isEmpty ? teamId : currentTeamId,
+      'teamIds': currentTeamIds.toList(),
+    });
+  }
+
+  Future<void> removePlayerFromTeam(String playerId, String teamId) async {
+    final docRef = _db.collection('players').doc(playerId);
+    final doc = await docRef.get();
+    if (!doc.exists) return;
+    final data = doc.data()!;
+    final currentTeamId = data['teamId'] as String? ?? '';
+    final rawList = (data['teamIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+    final currentTeamIds = {...rawList};
+    if (currentTeamId.isNotEmpty) currentTeamIds.add(currentTeamId);
+    currentTeamIds.remove(teamId);
+    final newPrimary = currentTeamIds.isNotEmpty ? currentTeamIds.first : '';
+    await docRef.update({
+      'teamId': currentTeamId == teamId ? newPrimary : currentTeamId,
+      'teamIds': currentTeamIds.toList(),
+    });
   }
 }

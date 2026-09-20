@@ -50,6 +50,7 @@ class Player {
   final String id;
   final String name;
   final String teamId;
+  final List<String> teamIds;
   final PlayerRole role;
   final BattingStyle battingStyle;
   final BowlingStyle bowlingStyle;
@@ -63,6 +64,7 @@ class Player {
     required this.id,
     required this.name,
     required this.teamId,
+    this.teamIds = const [],
     required this.role,
     this.battingStyle = BattingStyle.rightHand,
     this.bowlingStyle = BowlingStyle.none,
@@ -75,10 +77,15 @@ class Player {
         createdAt = createdAt ?? DateTime.now();
 
   factory Player.fromJson(Map<String, dynamic> json) {
+    final tId = json['teamId'] as String? ?? '';
+    final tIds = (json['teamIds'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+        (tId.isNotEmpty ? [tId] : <String>[]);
+
     return Player(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
-      teamId: json['teamId'] as String? ?? '',
+      teamId: tId,
+      teamIds: tIds,
       role: PlayerRole.values.firstWhere(
         (e) => e.name == (json['role'] as String?),
         orElse: () => PlayerRole.batter,
@@ -104,6 +111,7 @@ class Player {
       'id': id,
       'name': name,
       'teamId': teamId,
+      'teamIds': teamIds.isNotEmpty ? teamIds : (teamId.isNotEmpty ? [teamId] : []),
       'role': role.name,
       'battingStyle': battingStyle.name,
       'bowlingStyle': bowlingStyle.name,
@@ -119,6 +127,7 @@ class Player {
     String? id,
     String? name,
     String? teamId,
+    List<String>? teamIds,
     PlayerRole? role,
     BattingStyle? battingStyle,
     BowlingStyle? bowlingStyle,
@@ -132,6 +141,7 @@ class Player {
       id: id ?? this.id,
       name: name ?? this.name,
       teamId: teamId ?? this.teamId,
+      teamIds: teamIds ?? this.teamIds,
       role: role ?? this.role,
       battingStyle: battingStyle ?? this.battingStyle,
       bowlingStyle: bowlingStyle ?? this.bowlingStyle,

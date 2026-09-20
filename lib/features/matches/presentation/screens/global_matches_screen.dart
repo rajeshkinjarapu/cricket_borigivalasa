@@ -57,7 +57,7 @@ class _GlobalMatchesScreenState extends ConsumerState<GlobalMatchesScreen>
           if (canScore)
             IconButton(
               icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
-              tooltip: 'Schedule Match',
+              tooltip: 'Create Match',
               onPressed: () => context.push('/matches/new'),
             ),
           const SizedBox(width: 8),
@@ -211,7 +211,7 @@ class _GlobalMatchesScreenState extends ConsumerState<GlobalMatchesScreen>
           ),
         ],
       ),
-      floatingActionButton: isAdmin
+      floatingActionButton: canScore
           ? FloatingActionButton.extended(
               heroTag: 'fab_global_matches',
               onPressed: () => context.push('/matches/new'),
@@ -220,7 +220,7 @@ class _GlobalMatchesScreenState extends ConsumerState<GlobalMatchesScreen>
               elevation: 4,
               icon: const Icon(Icons.add_rounded),
               label: const Text(
-                'Schedule Match',
+                'Create Match',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
             )

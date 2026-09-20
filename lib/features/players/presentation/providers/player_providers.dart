@@ -123,4 +123,22 @@ class PlayerController extends StateNotifier<AsyncValue<void>> {
       return false;
     }
   }
+
+  Future<bool> addPlayerToTeam(String playerId, String teamId) async {
+    try {
+      await _repo.addPlayerToTeam(playerId, teamId);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> removePlayerFromTeam(String playerId, String teamId) async {
+    try {
+      await _repo.removePlayerFromTeam(playerId, teamId);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 }
