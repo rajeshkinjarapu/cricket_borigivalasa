@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/cricket_enums.dart';
-import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../players/presentation/providers/player_providers.dart';
 import '../../data/models/team.dart';
@@ -412,11 +411,25 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                       } else if (action == 'delete') {
                         final confirm = await showDialog<bool>(
                           context: context,
-                          builder: (ctx) => ConfirmDialog(
-                            title: 'Delete Team?',
-                            content: 'Are you sure you want to delete ${team.name}? This cannot be undone.',
-                            confirmText: 'Delete',
-                            isDestructive: true,
+                          builder: (ctx) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            title: const Text('Delete Team?', style: TextStyle(fontWeight: FontWeight.bold)),
+                            content: Text('Are you sure you want to delete ${team.name}? This cannot be undone.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                child: const Text('Delete'),
+                              ),
+                            ],
                           ),
                         );
                         if (confirm == true) {
