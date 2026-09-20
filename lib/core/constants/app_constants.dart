@@ -12,10 +12,16 @@ class AppConstants {
   static const String pointsTableCollection = 'points_table';
 }
 
-enum UserRole { admin, member }
+enum UserRole { admin, scorer, member }
 
 extension UserRoleX on UserRole {
-  String get label => name;
+  String get label => this == UserRole.admin
+      ? 'Administrator'
+      : this == UserRole.scorer
+          ? 'Scorer'
+          : 'Member';
   bool get isAdmin => this == UserRole.admin;
+  bool get isScorer => this == UserRole.scorer;
   bool get isMember => this == UserRole.member;
+  bool get canScore => this == UserRole.admin || this == UserRole.scorer;
 }

@@ -36,7 +36,8 @@ class _GlobalMatchesScreenState extends ConsumerState<GlobalMatchesScreen>
     final liveMatchesAsync = ref.watch(liveMatchesProvider);
     final upcomingMatchesAsync = ref.watch(upcomingMatchesProvider);
     final allMatchesAsync = ref.watch(allMatchesProvider);
-    final isAdmin = ref.watch(currentUserProvider)?.role == UserRole.admin;
+    final currentUser = ref.watch(currentUserProvider);
+    final canScore = currentUser?.role == UserRole.admin || currentUser?.role == UserRole.scorer;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -52,6 +53,15 @@ class _GlobalMatchesScreenState extends ConsumerState<GlobalMatchesScreen>
             color: Colors.white,
           ),
         ),
+        actions: [
+          if (canScore)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
+              tooltip: 'Schedule Match',
+              onPressed: () => context.push('/matches/new'),
+            ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [

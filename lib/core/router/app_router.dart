@@ -52,13 +52,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       final user = authAsync.value;
       if (user == null) return onAuthRoute ? null : '/login';
-      final home = user.role == UserRole.admin ? '/admin' : '/member';
+      final isAdmin = user.role == UserRole.admin;
+      final isScorer = user.role == UserRole.scorer;
+      final home = isAdmin ? '/admin' : '/member';
       if (loc == '/splash' || onAuthRoute) return home;
-      final adminOnly = loc.endsWith('/new') || loc.endsWith('/edit') ||
-        loc.endsWith('/scoring') || loc.startsWith('/members');
-      if (adminOnly && user.role != UserRole.admin) return home;
-      if (loc.startsWith('/admin') && user.role != UserRole.admin) return home;
-      if (loc.startsWith('/member') && user.role != UserRole.member) return home;
+
+      final adminOnly = loc.startsWith('/admin') || loc.startsWith('/members');
+      if (adminOnly && !isAdmin) return home;
+
+      final matchScoringOnly = loc.endsWith('/scoring') || loc.startsWith('/matches/new');
+      if (matchScoringOnly && !isAdmin && !isScorer) return home;
       return null;
     },
     routes: [

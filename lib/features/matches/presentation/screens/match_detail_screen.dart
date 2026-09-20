@@ -240,7 +240,9 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
       tournamentId: widget.tournamentId,
       matchId: widget.matchId,
     )));
-    final isAdmin = ref.watch(currentUserProvider)?.role == UserRole.admin;
+    final currentUser = ref.watch(currentUserProvider);
+    final isAdmin = currentUser?.role == UserRole.admin;
+    final canScore = currentUser?.role == UserRole.admin || currentUser?.role == UserRole.scorer;
 
     return matchAsync.when(
       loading: () => const Scaffold(
@@ -362,12 +364,12 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
 
                       // ── SCHEDULED MATCH STATE (TOSS SETUP) ──
                       if (match.status == MatchStatus.scheduled) ...[
-                        if (!isTossDone && isAdmin)
+                        if (!isTossDone && canScore)
                           _buildTossSetupCard(context, match, teamAPlayers.length, teamBPlayers.length, hasEnoughPlayers),
                         if (isTossDone)
                           _buildTossRecordedCard(context, match, tossWinnerName, battingFirstTeam),
                         const SizedBox(height: 16),
-                        if (isTossDone && isAdmin)
+                        if (isTossDone && canScore)
                           ElevatedButton.icon(
                             onPressed: () {
                               if (!hasEnoughPlayers) {
@@ -395,7 +397,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                       if (match.status == MatchStatus.live) ...[
                         _buildLiveStatusBanner(),
                         const SizedBox(height: 14),
-                        if (isAdmin)
+                        if (canScore)
                           ElevatedButton.icon(
                             onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring'),
                             icon: const Icon(Icons.edit_note_rounded, size: 24),

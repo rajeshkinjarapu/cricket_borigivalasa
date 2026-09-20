@@ -1,9 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/widgets/confirm_dialog.dart';
+import '../../../../core/constants/cricket_enums.dart';
 import '../../../auth/data/models/app_user.dart';
+import '../../../players/data/models/player.dart';
+import '../../../players/presentation/providers/player_providers.dart';
 import '../providers/member_providers.dart';
 
 class MemberManagementScreen extends ConsumerStatefulWidget {
@@ -15,11 +20,25 @@ class MemberManagementScreen extends ConsumerStatefulWidget {
 
 class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen> {
   String _searchQuery = '';
-  String _selectedFilter = 'all'; // 'all', 'admin', 'member'
+  String _selectedFilter = 'all'; // 'all', 'admin', 'scorer', 'member'
+
+  ImageProvider? _getImageProvider(String? photoUrl) {
+    if (photoUrl == null || photoUrl.isEmpty) return null;
+    try {
+      if (photoUrl.startsWith('data:image') || photoUrl.length > 500) {
+        final base64String = photoUrl.contains(',') ? photoUrl.split(',').last : photoUrl;
+        return MemoryImage(base64Decode(base64String));
+      }
+      return NetworkImage(photoUrl);
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final membersAsync = ref.watch(memberListProvider);
+    final playersAsync = ref.watch(allPlayersProvider);
     final repo = ref.read(memberRepositoryProvider);
     final currentUid = repo.currentUid;
 
@@ -29,11 +48,21 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
         backgroundColor: const Color(0xFF1E3A8A), // Royal Blue Header
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              Navigator.of(context).maybePop();
+            }
+          },
+        ),
         title: const Text(
-          'Registered Members',
+          'Members & Scorers',
           style: TextStyle(
             fontWeight: FontWeight.w800,
-            fontSize: 19,
+            fontSize: 20,
             color: Colors.white,
           ),
         ),
@@ -50,9 +79,15 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                 TextField(
                   onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
                   decoration: InputDecoration(
-                    hintText: 'Search by name or email/phone...',
+                    hintText: 'Search members, players, or phone...',
                     hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
                     prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () => setState(() => _searchQuery = ''),
+                          )
+                        : null,
                     filled: true,
                     fillColor: const Color(0xFFF1F5F9),
                     contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
@@ -73,14 +108,19 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                 const SizedBox(height: 10),
 
                 // Filter Chips
-                Row(
-                  children: [
-                    _buildFilterChip('All', 'all'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Admins', 'admin'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Members', 'member'),
-                  ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('All Members & Players', 'all'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('👑 Admins', 'admin'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('✍️ Scorers', 'scorer'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('🏏 Members', 'member'),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -103,9 +143,13 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                 ),
               ),
               data: (users) {
+                final players = playersAsync.value ?? [];
+
+                // Filter registered users
                 final filtered = users.where((u) {
                   // Role Filter
                   if (_selectedFilter == 'admin' && u.role != UserRole.admin) return false;
+                  if (_selectedFilter == 'scorer' && u.role != UserRole.scorer) return false;
                   if (_selectedFilter == 'member' && u.role != UserRole.member) return false;
 
                   // Search Filter
@@ -143,8 +187,8 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                           const SizedBox(height: 16),
                           Text(
                             _searchQuery.isNotEmpty
-                                ? 'No members found matching "$_searchQuery"'
-                                : 'No registered members found.',
+                                ? 'No users found matching "$_searchQuery"'
+                                : 'No members registered yet.',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Color(0xFF64748B),
@@ -165,6 +209,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                     final u = filtered[index];
                     final isSelf = u.uid == currentUid;
                     final isAdmin = u.role == UserRole.admin;
+                    final isScorer = u.role == UserRole.scorer;
 
                     // Clean phone vs email display
                     String displayContact = u.email;
@@ -174,46 +219,76 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                       isPhone = true;
                     }
 
+                    // Matching player if any
+                    Player? linkedPlayer;
+                    for (final p in players) {
+                      if (p.phoneNumber == displayContact ||
+                          p.name.toLowerCase() == u.displayName.toLowerCase()) {
+                        linkedPlayer = p;
+                        break;
+                      }
+                    }
+
+                    final imageProvider = _getImageProvider(u.photoUrl ?? linkedPlayer?.profilePicUrl);
+
                     return Card(
                       margin: const EdgeInsets.only(bottom: 10),
-                      elevation: 0.6,
+                      elevation: 0.8,
                       color: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                         side: BorderSide(
-                          color: isAdmin ? const Color(0xFFFEF3C7) : const Color(0xFFE2E8F0),
-                          width: isAdmin ? 1.2 : 1,
+                          color: isAdmin
+                              ? const Color(0xFFFDE68A)
+                              : isScorer
+                                  ? const Color(0xFFDDD6FE)
+                                  : const Color(0xFFE2E8F0),
+                          width: isAdmin || isScorer ? 1.5 : 1,
                         ),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Row(
                           children: [
-                            // Avatar
+                            // Avatar / Squircle
                             Container(
-                              width: 48,
-                              height: 48,
+                              width: 50,
+                              height: 50,
                               decoration: BoxDecoration(
-                                shape: BoxShape.circle,
+                                borderRadius: BorderRadius.circular(14),
                                 color: isAdmin
                                     ? const Color(0xFFFFFBEB)
-                                    : const Color(0xFFEFF6FF),
+                                    : isScorer
+                                        ? const Color(0xFFF5F3FF)
+                                        : const Color(0xFFEFF6FF),
                                 border: Border.all(
                                   color: isAdmin
                                       ? const Color(0xFFF59E0B)
-                                      : const Color(0xFF3B82F6),
+                                      : isScorer
+                                          ? const Color(0xFF8B5CF6)
+                                          : const Color(0xFF3B82F6),
                                   width: 1.5,
                                 ),
+                                image: imageProvider != null
+                                    ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
+                                    : null,
                               ),
-                              child: (u.photoUrl != null && u.photoUrl!.isNotEmpty)
-                                  ? ClipOval(
-                                      child: Image.network(
-                                        u.photoUrl!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => _buildAvatarInitial(u),
+                              child: imageProvider == null
+                                  ? Center(
+                                      child: Text(
+                                        u.displayName.isNotEmpty ? u.displayName[0].toUpperCase() : 'M',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 20,
+                                          color: isAdmin
+                                              ? const Color(0xFFB45309)
+                                              : isScorer
+                                                  ? const Color(0xFF6D28D9)
+                                                  : const Color(0xFF1E3A8A),
+                                        ),
                                       ),
                                     )
-                                  : _buildAvatarInitial(u),
+                                  : null,
                             ),
                             const SizedBox(width: 12),
 
@@ -228,8 +303,8 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                         child: Text(
                                           u.displayName.isNotEmpty ? u.displayName : 'Unnamed Member',
                                           style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 15.5,
                                             color: Color(0xFF0F172A),
                                           ),
                                           maxLines: 1,
@@ -257,7 +332,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                   ),
                                   const SizedBox(height: 3),
 
-                                  // Email / Phone
+                                  // Contact Info
                                   Row(
                                     children: [
                                       Icon(
@@ -272,6 +347,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                           style: const TextStyle(
                                             color: Color(0xFF64748B),
                                             fontSize: 12,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -289,12 +365,16 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                         decoration: BoxDecoration(
                                           color: isAdmin
                                               ? const Color(0xFFFEF3C7)
-                                              : const Color(0xFFF1F5F9),
+                                              : isScorer
+                                                  ? const Color(0xFFEDE9FE)
+                                                  : const Color(0xFFF1F5F9),
                                           borderRadius: BorderRadius.circular(6),
                                           border: Border.all(
                                             color: isAdmin
                                                 ? const Color(0xFFFDE68A)
-                                                : const Color(0xFFE2E8F0),
+                                                : isScorer
+                                                    ? const Color(0xFFDDD6FE)
+                                                    : const Color(0xFFE2E8F0),
                                           ),
                                         ),
                                         child: Row(
@@ -303,19 +383,29 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                             Icon(
                                               isAdmin
                                                   ? Icons.workspace_premium_rounded
-                                                  : Icons.sports_cricket_rounded,
+                                                  : isScorer
+                                                      ? Icons.edit_note_rounded
+                                                      : Icons.sports_cricket_rounded,
                                               size: 12,
                                               color: isAdmin
                                                   ? const Color(0xFFB45309)
-                                                  : const Color(0xFF475569),
+                                                  : isScorer
+                                                      ? const Color(0xFF6D28D9)
+                                                      : const Color(0xFF475569),
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              isAdmin ? 'ADMIN' : 'MEMBER',
+                                              isAdmin
+                                                  ? 'ADMIN'
+                                                  : isScorer
+                                                      ? 'OFFICIAL SCORER'
+                                                      : 'MEMBER',
                                               style: TextStyle(
                                                 color: isAdmin
                                                     ? const Color(0xFFB45309)
-                                                    : const Color(0xFF475569),
+                                                    : isScorer
+                                                        ? const Color(0xFF6D28D9)
+                                                        : const Color(0xFF475569),
                                                 fontWeight: FontWeight.w800,
                                                 fontSize: 10,
                                                 letterSpacing: 0.5,
@@ -324,10 +414,28 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                           ],
                                         ),
                                       ),
+                                      if (linkedPlayer != null) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFDCFCE7),
+                                            borderRadius: BorderRadius.circular(5),
+                                          ),
+                                          child: Text(
+                                            linkedPlayer.role.label,
+                                            style: const TextStyle(
+                                              color: Color(0xFF15803D),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                       if (u.createdAt != null) ...[
-                                        const SizedBox(width: 8),
+                                        const Spacer(),
                                         Text(
-                                          DateFormat('dd MMM yyyy').format(u.createdAt!),
+                                          DateFormat('MMM d, yyyy').format(u.createdAt!),
                                           style: const TextStyle(
                                             color: Color(0xFF94A3B8),
                                             fontSize: 11,
@@ -345,58 +453,106 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                               icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF64748B)),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               onSelected: (action) async {
-                                if (action == 'promote') {
+                                if (action == 'make_scorer') {
+                                  await repo.updateRole(u.uid, UserRole.scorer);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('${u.displayName} is now an Official Scorer. They can create matches & record scores!'),
+                                        backgroundColor: const Color(0xFF7C3AED),
+                                      ),
+                                    );
+                                  }
+                                } else if (action == 'make_admin') {
                                   await repo.updateRole(u.uid, UserRole.admin);
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('${u.displayName} promoted to Admin')),
+                                      SnackBar(
+                                        content: Text('${u.displayName} promoted to Administrator!'),
+                                        backgroundColor: const Color(0xFFD97706),
+                                      ),
                                     );
                                   }
-                                } else if (action == 'demote') {
+                                } else if (action == 'make_member') {
                                   if (isSelf) return;
                                   await repo.updateRole(u.uid, UserRole.member);
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('${u.displayName} changed to Member')),
+                                      SnackBar(
+                                        content: Text('${u.displayName} role set to Member.'),
+                                        backgroundColor: const Color(0xFF16A34A),
+                                      ),
                                     );
                                   }
                                 } else if (action == 'remove') {
                                   if (isSelf) return;
-                                  final ok = await showConfirmDialog(
-                                    context,
-                                    title: 'Remove Member?',
-                                    message: 'Are you sure you want to remove ${u.displayName}?',
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                      title: const Text('Remove User?', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      content: Text('Are you sure you want to remove ${u.displayName}?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, false),
+                                          child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () => Navigator.pop(ctx, true),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          ),
+                                          child: const Text('Remove'),
+                                        ),
+                                      ],
+                                    ),
                                   );
-                                  if (ok) {
+                                  if (confirm == true) {
                                     await repo.removeUser(u.uid);
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('${u.displayName} removed')),
+                                        SnackBar(
+                                          content: Text('${u.displayName} removed successfully.'),
+                                          backgroundColor: Colors.red,
+                                        ),
                                       );
                                     }
                                   }
                                 }
                               },
                               itemBuilder: (_) => [
-                                if (u.role == UserRole.member)
+                                if (u.role != UserRole.scorer)
                                   const PopupMenuItem(
-                                    value: 'promote',
+                                    value: 'make_scorer',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit_note_rounded, color: Color(0xFF7C3AED), size: 18),
+                                        SizedBox(width: 8),
+                                        Text('Grant Scorer Role (Create & Score)'),
+                                      ],
+                                    ),
+                                  ),
+                                if (u.role != UserRole.admin)
+                                  const PopupMenuItem(
+                                    value: 'make_admin',
                                     child: Row(
                                       children: [
                                         Icon(Icons.shield_rounded, color: Color(0xFFD97706), size: 18),
                                         SizedBox(width: 8),
-                                        Text('Make Admin'),
+                                        Text('Make Administrator'),
                                       ],
                                     ),
-                                  )
-                                else if (!isSelf)
+                                  ),
+                                if (u.role != UserRole.member && !isSelf)
                                   const PopupMenuItem(
-                                    value: 'demote',
+                                    value: 'make_member',
                                     child: Row(
                                       children: [
                                         Icon(Icons.person_rounded, color: Color(0xFF2563EB), size: 18),
                                         SizedBox(width: 8),
-                                        Text('Demote to Member'),
+                                        Text('Set as Normal Member'),
                                       ],
                                     ),
                                   ),
@@ -427,40 +583,26 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
     );
   }
 
-  Widget _buildAvatarInitial(AppUser u) {
-    final initial = u.displayName.isNotEmpty ? u.displayName[0].toUpperCase() : 'M';
-    final isAdmin = u.role == UserRole.admin;
-    return Center(
-      child: Text(
-        initial,
-        style: TextStyle(
-          color: isAdmin ? const Color(0xFFB45309) : const Color(0xFF1E3A8A),
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-        ),
-      ),
-    );
-  }
-
   Widget _buildFilterChip(String label, String value) {
     final bool isSelected = _selectedFilter == value;
     return GestureDetector(
       onTap: () => setState(() => _selectedFilter = value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFFE2E8F0),
+            color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFFCBD5E1),
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF64748B),
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-            fontSize: 12,
+            color: isSelected ? Colors.white : const Color(0xFF334155),
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+            fontSize: 12.5,
           ),
         ),
       ),
