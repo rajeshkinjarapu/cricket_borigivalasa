@@ -127,21 +127,41 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
 
   Future<void> _recordBall(BallEvent ball) async {
     if (_isProcessing) return;
+
+    final match = ref.read(matchDetailProvider((
+      tournamentId: widget.tournamentId,
+      matchId: widget.matchId,
+    ))).value;
+    final maxOvers = (match != null && match.totalOvers > 0)
+        ? match.totalOvers
+        : ref.read(matchMaxOversProvider((tournamentId: widget.tournamentId, matchId: widget.matchId)));
+
+    final live = ref.read(inningsProvider(_k)).value ?? widget.innings;
+    final isCompleteNow = live.isComplete ||
+        (live.targetRuns != null && live.runs >= live.targetRuns) ||
+        (live.legalBalls >= maxOvers * 6) ||
+        (live.wickets >= (playersPerSide - 1)) ||
+        (match?.status == MatchStatus.completed);
+
+    if (isCompleteNow) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Innings / Match is already completed! No additional balls allowed.'),
+            backgroundColor: Color(0xFFDC2626),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isProcessing = true);
     try {
-      final match = ref.read(matchDetailProvider((
-        tournamentId: widget.tournamentId,
-        matchId: widget.matchId,
-      ))).value;
-      final maxOvers = (match != null && match.totalOvers > 0)
-          ? match.totalOvers
-          : ref.read(matchMaxOversProvider((tournamentId: widget.tournamentId, matchId: widget.matchId)));
-
       await ref.read(scoringRepositoryProvider).recordBall(
         tournamentId: widget.tournamentId,
         matchId: widget.matchId,
         inningsNumber: widget.innings.inningsNumber,
-        innings: widget.innings,
+        innings: live,
         ball: ball,
         maxOvers: maxOvers,
         playersPerSide: playersPerSide,
@@ -527,7 +547,30 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
         ? match.totalOvers
         : ref.watch(matchMaxOversProvider((tournamentId: widget.tournamentId, matchId: widget.matchId)));
 
-    final overEnd = live.legalBalls > 0 && live.legalBalls % 6 == 0 && live.legalBalls < maxOvers * 6 && !live.isComplete;
+    final isMatchOver = match?.status == MatchStatus.completed ||
+        (live.inningsNumber == 2 &&
+            (live.isComplete ||
+                (live.targetRuns != null && live.runs >= live.targetRuns) ||
+                live.legalBalls >= maxOvers * 6 ||
+                live.wickets >= (playersPerSide - 1)));
+
+    if (isMatchOver && match != null && match.status != MatchStatus.completed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(scoringRepositoryProvider).finalizeMatch(
+            tournamentId: widget.tournamentId,
+            matchId: widget.matchId,
+            maxOvers: maxOvers,
+            playersPerSide: playersPerSide,
+          );
+        }
+      });
+    }
+
+    final isInnings1Complete = live.inningsNumber == 1 &&
+        (live.isComplete || live.legalBalls >= maxOvers * 6 || live.wickets >= (playersPerSide - 1));
+
+    final overEnd = live.legalBalls > 0 && live.legalBalls % 6 == 0 && live.legalBalls < maxOvers * 6 && !live.isComplete && !isMatchOver;
     if (overEnd && _promptedOverNumber != (live.legalBalls ~/ 6)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _handleOverCompletion(live);
@@ -563,9 +606,9 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Live Scoring Console',
-              style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800, color: Colors.white),
+            Text(
+              isMatchOver ? 'Match Completed' : 'Live Scoring Console',
+              style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800, color: Colors.white),
             ),
             Text(
               '${live.battingTeamName} vs ${live.bowlingTeamName} • Innings ${live.inningsNumber}',
@@ -601,16 +644,18 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
-            tooltip: 'Rotate Strike',
-            onPressed: () => _swapStrike(live),
-          ),
-          IconButton(
-            icon: const Icon(Icons.sports_baseball_rounded, color: Colors.white),
-            tooltip: 'Change Bowler',
-            onPressed: () => _manualChangeBowler(live),
-          ),
+          if (!isMatchOver) ...[
+            IconButton(
+              icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
+              tooltip: 'Rotate Strike',
+              onPressed: () => _swapStrike(live),
+            ),
+            IconButton(
+              icon: const Icon(Icons.sports_baseball_rounded, color: Colors.white),
+              tooltip: 'Change Bowler',
+              onPressed: () => _manualChangeBowler(live),
+            ),
+          ],
           IconButton(
             icon: const Icon(Icons.settings_suggest_rounded, color: Colors.white),
             tooltip: 'Match Settings / Overs',
@@ -645,8 +690,13 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               ),
             ),
 
-            // ── TACTILE ERGONOMIC SCORING KEYPAD CONSOLE ──
-            _buildScoringKeypad(live),
+            // ── TACTILE ERGONOMIC SCORING KEYPAD OR COMPLETION PANELS ──
+            if (isMatchOver)
+              _buildMatchCompletedPanel(context, match, live)
+            else if (isInnings1Complete)
+              _buildInnings1CompletedPanel(context, live, maxOvers)
+            else
+              _buildScoringKeypad(live),
           ],
         ),
       ),
@@ -659,9 +709,9 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   Widget _buildHeroScoreboardCard(Innings live, int maxOvers, int totalExtras, int projectedScore) {
     final crr = live.runRate;
     final totalBalls = maxOvers * 6;
-    final ballsRemaining = totalBalls - live.legalBalls;
+    final ballsRemaining = (totalBalls - live.legalBalls).clamp(0, 9999);
     final target = live.targetRuns;
-    final runsNeeded = target != null ? target - live.runs : null;
+    final runsNeeded = target != null ? (target - live.runs).clamp(0, 9999) : null;
     final rrr = (runsNeeded != null && ballsRemaining > 0 && runsNeeded > 0)
         ? (runsNeeded / ballsRemaining) * 6
         : null;
@@ -802,10 +852,18 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
             child: Row(
               children: [
                 Expanded(child: _buildScoreStatItem('CRR', crr.toStringAsFixed(2), color: const Color(0xFF38BDF8))),
-                if (target != null && runsNeeded != null) ...[
+                if (target != null) ...[
                   Container(width: 1, height: 20, color: Colors.white12),
-                  Expanded(child: _buildScoreStatItem('NEED', '$runsNeeded off $ballsRemaining b', color: const Color(0xFFFDE047))),
-                  if (rrr != null) ...[
+                  Expanded(
+                    child: _buildScoreStatItem(
+                      'NEED',
+                      live.runs >= target
+                          ? 'TARGET WON 🎉'
+                          : (ballsRemaining == 0 ? '$runsNeeded off 0 b' : '$runsNeeded off $ballsRemaining b'),
+                      color: const Color(0xFFFDE047),
+                    ),
+                  ),
+                  if (rrr != null && live.runs < target) ...[
                     Container(width: 1, height: 20, color: Colors.white12),
                     Expanded(child: _buildScoreStatItem('RRR', rrr.toStringAsFixed(2), color: const Color(0xFFF87171))),
                   ],
@@ -1445,6 +1503,215 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMatchCompletedPanel(BuildContext context, dynamic match, Innings live) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final String result = match?.resultText ??
+        (live.runs >= (live.targetRuns ?? 0)
+            ? '${live.battingTeamName} won the match 🎉'
+            : '${live.bowlingTeamName} won the match 🎉');
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomInset > 0 ? bottomInset + 8 : 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFEF3C7), Color(0xFFFFFBEB), Colors.white],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFD97706).withOpacity(0.18),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.emoji_events_rounded, color: Color(0xFFD97706), size: 28),
+              const SizedBox(width: 8),
+              const Text(
+                'MATCH COMPLETED',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF92400E),
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            result,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/summary');
+              },
+              icon: const Icon(Icons.assessment_rounded, size: 20),
+              label: const Text(
+                'VIEW FULL MATCH SUMMARY',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E3A8A),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}');
+                  },
+                  icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                  label: const Text('Match Details', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF475569),
+                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isProcessing ? null : _undoLastBall,
+                  icon: const Icon(Icons.undo_rounded, size: 16, color: Color(0xFFEA580C)),
+                  label: const Text('Undo Last Ball', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFEA580C))),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFFDBA74)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInnings1CompletedPanel(BuildContext context, Innings live, int maxOvers) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final targetRuns = live.runs + 1;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomInset > 0 ? bottomInset + 8 : 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFEFF6FF), Color(0xFFF8FAFC), Colors.white],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFF3B82F6), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1E3A8A).withOpacity(0.12),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.flag_rounded, color: Color(0xFF1E3A8A), size: 24),
+              const SizedBox(width: 8),
+              const Text(
+                '1st INNINGS COMPLETED',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF1E3A8A),
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${live.battingTeamName}: ${live.runs}/${live.wickets} (${live.oversText} ov)',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Target for ${live.bowlingTeamName}: $targetRuns runs in $maxOvers ov',
+            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                // Ensure 1st innings is marked complete in Firestore
+                await ref.read(scoringRepositoryProvider).initInnings(
+                  tournamentId: widget.tournamentId,
+                  matchId: widget.matchId,
+                  inningsNumber: 1,
+                  battingTeam: Team(id: live.battingTeamId, name: live.battingTeamName, shortName: live.battingTeamShort, tournamentIds: [widget.tournamentId]),
+                  bowlingTeam: Team(id: live.bowlingTeamId, name: live.bowlingTeamName, shortName: live.bowlingTeamShort, tournamentIds: [widget.tournamentId]),
+                  openingStriker: Player(id: live.openingStrikerId, name: live.openingStrikerName),
+                  openingNonStriker: Player(id: live.openingNonStrikerId, name: live.openingNonStrikerName),
+                  openingBowler: Player(id: live.currentBowlerId ?? '', name: live.currentBowlerName ?? ''),
+                );
+              },
+              icon: const Icon(Icons.play_arrow_rounded, size: 22),
+              label: const Text('START 2nd INNINGS', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF16A34A),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _isProcessing ? null : _undoLastBall,
+            icon: const Icon(Icons.undo_rounded, size: 15, color: Color(0xFFEA580C)),
+            label: const Text('Undo Last Ball', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFEA580C))),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFFDBA74)),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
       ),
     );
   }

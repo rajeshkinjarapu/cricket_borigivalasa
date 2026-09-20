@@ -116,6 +116,21 @@ class ScoringRepository {
       required String matchId, required int inningsNumber,
       required Innings innings, required BallEvent ball,
       required int maxOvers, required int playersPerSide}) async {
+    // 1. Guard against recording balls on already completed innings/matches
+    final currentInnSnap = await _innRef(tournamentId, matchId, inningsNumber).get();
+    if (currentInnSnap.exists && currentInnSnap.data() != null) {
+      final data = currentInnSnap.data()!;
+      final currentLegal = (data['legalBalls'] as num?)?.toInt() ?? 0;
+      final currentRuns = (data['runs'] as num?)?.toInt() ?? 0;
+      final currentWkts = (data['wickets'] as num?)?.toInt() ?? 0;
+      final isComp = data['isComplete'] as bool? ?? false;
+      final target = (data['targetRuns'] as num?)?.toInt() ?? innings.targetRuns;
+
+      if (isComp || currentLegal >= maxOvers * 6 || (target != null && currentRuns >= target) || currentWkts >= playersPerSide - 1) {
+        throw Exception('Innings is already completed. No more balls can be bowled.');
+      }
+    }
+
     final oversSnap = await _oversRef(tournamentId, matchId, inningsNumber)
       .orderBy('overNumber').get();
     final allBalls = <BallEvent>[];
@@ -184,44 +199,46 @@ class ScoringRepository {
     await b.commit();
 
     if (complete != null) {
-      await _checkAndFinalizeMatch(
-        tournamentId: tournamentId,
-        matchId: matchId,
-        inningsNumber: inningsNumber,
-        innings: innings,
-        snap: snap,
-      );
+      if (inningsNumber == 1) {
+        await _matchRef(tournamentId, matchId).update({
+          'status': 'live',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await finalizeMatch(
+          tournamentId: tournamentId,
+          matchId: matchId,
+          maxOvers: maxOvers,
+          playersPerSide: playersPerSide,
+        );
+      }
     }
   }
 
-  Future<void> _checkAndFinalizeMatch({
+  Future<void> finalizeMatch({
     required String tournamentId,
     required String matchId,
-    required int inningsNumber,
-    required Innings innings,
-    required InningsSnapshot snap,
+    int? maxOvers,
+    int playersPerSide = 11,
   }) async {
-    final matchDocRef = _matchRef(tournamentId, matchId);
-    if (inningsNumber == 1) {
-      // 1st innings complete: update match status to live if not already
-      await matchDocRef.update({
-        'status': 'live',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return;
-    }
-
-    // 2nd innings complete: determine winner and finalize match
     final inn1Doc = await _innRef(tournamentId, matchId, 1).get();
-    if (!inn1Doc.exists) return;
-    final inn1Runs = (inn1Doc.data()?['runs'] as num?)?.toInt() ?? 0;
-    final inn1TeamId = inn1Doc.data()?['battingTeamId'] as String? ?? '';
-    final inn1TeamName = inn1Doc.data()?['battingTeamName'] as String? ?? 'Team A';
+    final inn2Doc = await _innRef(tournamentId, matchId, 2).get();
+    if (!inn1Doc.exists || !inn2Doc.exists) return;
 
-    final inn2Runs = snap.runs;
-    final inn2Wickets = snap.wickets;
-    final inn2TeamId = innings.battingTeamId;
-    final inn2TeamName = innings.battingTeamName;
+    final inn1Data = inn1Doc.data()!;
+    final inn2Data = inn2Doc.data()!;
+
+    final inn1Runs = (inn1Data['runs'] as num?)?.toInt() ?? 0;
+    final inn1Wickets = (inn1Data['wickets'] as num?)?.toInt() ?? 0;
+    final inn1Legal = (inn1Data['legalBalls'] as num?)?.toInt() ?? 0;
+    final inn1TeamId = inn1Data['battingTeamId'] as String? ?? '';
+    final inn1TeamName = inn1Data['battingTeamName'] as String? ?? 'Team 1';
+
+    final inn2Runs = (inn2Data['runs'] as num?)?.toInt() ?? 0;
+    final inn2Wickets = (inn2Data['wickets'] as num?)?.toInt() ?? 0;
+    final inn2Legal = (inn2Data['legalBalls'] as num?)?.toInt() ?? 0;
+    final inn2TeamId = inn2Data['battingTeamId'] as String? ?? '';
+    final inn2TeamName = inn2Data['battingTeamName'] as String? ?? 'Team 2';
 
     String? winnerId;
     String resultText;
@@ -229,7 +246,8 @@ class ScoringRepository {
 
     if (inn2Runs > inn1Runs) {
       winnerId = inn2TeamId;
-      resultText = '$inn2TeamName won by ${10 - inn2Wickets} wickets';
+      final wktsRemaining = (playersPerSide - 1) - inn2Wickets;
+      resultText = '$inn2TeamName won by $wktsRemaining wickets';
     } else if (inn1Runs > inn2Runs) {
       winnerId = inn1TeamId;
       resultText = '$inn1TeamName won by ${inn1Runs - inn2Runs} runs';
@@ -238,26 +256,36 @@ class ScoringRepository {
       resultText = 'Match Tied';
     }
 
-    await matchDocRef.update({
+    await _matchRef(tournamentId, matchId).update({
       'status': 'completed',
       'winnerTeamId': winnerId,
       'resultText': resultText,
       'isTie': isTie,
+      'completedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
       'liveScore': {
         'inn1': {
           'teamId': inn1TeamId,
+          'teamName': inn1TeamName,
           'runs': inn1Runs,
-          'wickets': (inn1Doc.data()?['wickets'] as num?)?.toInt() ?? 0,
-          'legalBalls': (inn1Doc.data()?['legalBalls'] as num?)?.toInt() ?? 0,
+          'wickets': inn1Wickets,
+          'legalBalls': inn1Legal,
+          'overs': '${inn1Legal ~/ 6}.${inn1Legal % 6}',
         },
         'inn2': {
           'teamId': inn2TeamId,
+          'teamName': inn2TeamName,
           'runs': inn2Runs,
           'wickets': inn2Wickets,
-          'legalBalls': snap.legalBalls,
+          'legalBalls': inn2Legal,
+          'overs': '${inn2Legal ~/ 6}.${inn2Legal % 6}',
         },
       },
-      'completedAt': FieldValue.serverTimestamp(),
+    });
+
+    await _innRef(tournamentId, matchId, 2).update({
+      'isComplete': true,
+      'completionReason': inn2Runs > inn1Runs ? 'Target achieved' : 'Overs complete',
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
@@ -390,6 +418,10 @@ class ScoringRepository {
     final String oversText = '${s.legalBalls ~/ 6}.${s.legalBalls % 6}';
     b.set(_matchRef(tournamentId, matchId), {
       'status': 'live',
+      'winnerTeamId': FieldValue.delete(),
+      'resultText': FieldValue.delete(),
+      'isTie': FieldValue.delete(),
+      'completedAt': FieldValue.delete(),
       'liveScore': {
         'inn$inningsNumber': {
           'teamId': innings.battingTeamId,
