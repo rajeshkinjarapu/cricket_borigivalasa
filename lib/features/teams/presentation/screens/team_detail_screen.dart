@@ -57,7 +57,8 @@ class TeamDetailScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _AddPlayersModalSheet(team: team),
+      useSafeArea: true,
+      builder: (ctx) => AddPlayersModalSheet(team: team),
     );
   }
 
