@@ -32,7 +32,6 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
   TossDecision? _selectedDecision;
   bool _isSavingToss = false;
   bool _isDeleting = false;
-  int _selectedSquadTabIndex = 0; // 0 for Team A, 1 for Team B
 
   ImageProvider? _getImageProvider(String? url) {
     if (url == null || url.isEmpty) return null;
@@ -44,19 +43,6 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
       return NetworkImage(url);
     } catch (_) {
       return null;
-    }
-  }
-
-  Color _getRoleColor(PlayerRole role) {
-    switch (role) {
-      case PlayerRole.batter:
-        return const Color(0xFF2563EB); // Blue
-      case PlayerRole.bowler:
-        return const Color(0xFF16A34A); // Green
-      case PlayerRole.allRounder:
-        return const Color(0xFF9333EA); // Purple
-      case PlayerRole.wicketKeeper:
-        return const Color(0xFFD97706); // Amber
     }
   }
 

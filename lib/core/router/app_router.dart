@@ -291,7 +291,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ],
     ),
-    GoRoute(path: '/players', builder: (_, __) => const GlobalPlayersScreen()),
+    GoRoute(
+      path: '/players',
+      builder: (_, __) => const GlobalPlayersScreen(),
+      routes: [
+        GoRoute(
+          path: 'new',
+          builder: (_, __) => const PlayerFormScreen(),
+        ),
+        GoRoute(
+          path: ':playerId/edit',
+          builder: (_, s) => PlayerFormScreen(
+            playerId: s.pathParameters['playerId'],
+          ),
+        ),
+      ],
+    ),
     GoRoute(path: '/matches/new', builder: (_, __) => const MatchFormScreen()),
     GoRoute(path: '/members', builder: (_, __) => const MemberManagementScreen()),
     GoRoute(path: '/notifications', builder: (_, __) => const NotificationScreen()),

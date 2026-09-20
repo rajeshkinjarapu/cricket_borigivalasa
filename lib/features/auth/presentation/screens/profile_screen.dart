@@ -752,7 +752,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     const SizedBox(width: 8),
                     InkWell(
-                      onTap: () => _showChangeEmailDialog(user.email),
+                      onTap: () => _showEditEmailDialog(user.email),
                       borderRadius: BorderRadius.circular(6),
                       child: Container(
                         padding: const EdgeInsets.symmetric(

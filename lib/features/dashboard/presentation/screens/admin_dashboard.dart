@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../members/presentation/providers/member_providers.dart';
 import '../../widgets/dashboard_tile.dart';
 import '../providers/dashboard_providers.dart';
 import '../widgets/live_match_card.dart';
@@ -28,7 +29,7 @@ class AdminDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final u = ref.watch(currentUserProvider);
     final totalTeams = ref.watch(totalTeamsCountProvider);
-    final totalPlayers = ref.watch(totalPlayersCountProvider);
+    final totalMembers = ref.watch(memberListProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -169,8 +170,8 @@ class AdminDashboard extends ConsumerWidget {
                   label: 'Members',
                   icon: Icons.people_alt_rounded,
                   color: const Color(0xFF16A34A),
-                  value: totalPlayers.when(
-                      data: (v) => '$v',
+                  value: totalMembers.when(
+                      data: (list) => '${list.length}',
                       loading: () => '...',
                       error: (_, __) => '-'),
                 ),
