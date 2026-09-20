@@ -775,9 +775,20 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFCBD5E1), letterSpacing: 0.5)),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFCBD5E1), letterSpacing: 0.5),
+        ),
         const SizedBox(height: 2),
-        Text(val, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: color)),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            val,
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: color),
+          ),
+        ),
       ],
     );
   }
@@ -1063,11 +1074,11 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   // ─────────────────────────────────────────────────────────────────────────────
   Widget _buildThisOverSection(Innings live) {
     final currentOverNum = (live.legalBalls ~/ 6) + 1;
-    final ballsAsync = ref.watch(ballsForOverProvider((
+    final ballsAsync = ref.watch(currentOverBallsProvider((
       tournamentId: widget.tournamentId,
       matchId: widget.matchId,
       innings: live.inningsNumber,
-      over: currentOverNum,
+      overNumber: currentOverNum,
     )));
 
     return Container(
