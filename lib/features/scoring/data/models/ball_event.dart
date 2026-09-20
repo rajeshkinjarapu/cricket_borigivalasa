@@ -1,4 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/constants/cricket_enums.dart';
+
+DateTime? _parseDateTime(dynamic value) {
+  if (value == null) return null;
+  if (value is Timestamp) return value.toDate();
+  if (value is DateTime) return value;
+  if (value is String) return DateTime.tryParse(value);
+  if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+  return null;
+}
 
 class BallEvent {
   final int batRuns;
@@ -62,7 +72,7 @@ class BallEvent {
       bowlerName: json['bowlerName'] as String? ?? '',
       newBatsmanId: json['newBatsmanId'] as String?,
       newBatsmanName: json['newBatsmanName'] as String?,
-      timestamp: DateTime.parse(json['timestamp'] as String? ?? DateTime.now().toIso8601String()),
+      timestamp: _parseDateTime(json['timestamp']) ?? DateTime.now(),
     );
   }
 
