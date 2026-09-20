@@ -990,11 +990,58 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           shadowColor:
                               const Color(0xFFDC2626).withOpacity(0.4),
                         ),
-                        onPressed: () async {
-                          await ref
-                              .read(authControllerProvider.notifier)
-                              .signOut();
-                          if (context.mounted) context.go('/login');
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (dialogCtx) => AlertDialog(
+                              backgroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                              title: const Row(
+                                children: [
+                                  Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 24),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'Sign Out',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              content: const Text(
+                                'Are you sure you want to sign out of your account?',
+                                style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogCtx),
+                                  child: const Text(
+                                    'Cancel',
+                                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    Navigator.pop(dialogCtx);
+                                    await ref.read(authControllerProvider.notifier).signOut();
+                                    ref.invalidate(authStateProvider);
+                                    ref.invalidate(currentUserProvider);
+                                    if (context.mounted) {
+                                      context.go('/login');
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFDC2626),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  child: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          );
                         },
                       ),
                     ),

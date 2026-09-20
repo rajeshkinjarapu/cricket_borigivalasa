@@ -287,10 +287,8 @@ class _GlobalMatchesScreenState extends ConsumerState<GlobalMatchesScreen>
               if (m.tournamentId.isNotEmpty) {
                 if (m.status == MatchStatus.completed) {
                   context.push('/tournaments/${m.tournamentId}/matches/${m.id}/summary');
-                } else if (m.status == MatchStatus.live) {
-                  context.push('/tournaments/${m.tournamentId}/matches/${m.id}');
                 } else {
-                  context.push('/tournaments/${m.tournamentId}/matches/${m.id}/squads');
+                  context.push('/tournaments/${m.tournamentId}/matches/${m.id}');
                 }
               }
             },

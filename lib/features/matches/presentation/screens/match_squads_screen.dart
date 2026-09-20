@@ -104,30 +104,28 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
 
         final bothReady = teamAPlayers.length >= 11 && teamBPlayers.length >= 11;
 
-        // Auto navigate to toss page when both teams have 11 players
-        if (bothReady && !_hasAutoNavigated) {
-          _hasAutoNavigated = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              context.pushReplacement(
-                '/tournaments/${widget.tournamentId}/matches/${widget.matchId}',
-              );
-            }
-          });
-        }
-
         return Scaffold(
           backgroundColor: const Color(0xFFF1F5F9),
           appBar: AppBar(
             backgroundColor: const Color(0xFF1E3A8A),
             foregroundColor: Colors.white,
             elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}');
+                }
+              },
+            ),
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Playing XI',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19, color: Colors.white),
+                  'Match Squads & Playing XI',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: Colors.white),
                 ),
                 Text(
                   '${match.teamA} vs ${match.teamB}',
@@ -182,7 +180,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                   ),
                   label: Text(
                     bothReady
-                        ? 'PROCEED TO TOSS'
+                        ? 'PROCEED TO MATCH & TOSS'
                         : 'Need 11 Players Each (${teamAPlayers.length}/11 & ${teamBPlayers.length}/11)',
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.3),
                   ),
@@ -192,6 +190,29 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     elevation: bothReady ? 3 : 0,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.pushReplacement(
+                        '/tournaments/${widget.tournamentId}/matches/${widget.matchId}',
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                  label: const Text(
+                    'BACK TO MATCH CENTER',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: const BorderSide(color: Color(0xFF1E3A8A), width: 1.2),
+                    foregroundColor: const Color(0xFF1E3A8A),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 const SizedBox(height: 32),

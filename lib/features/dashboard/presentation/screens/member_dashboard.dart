@@ -18,7 +18,6 @@ class MemberDashboard extends ConsumerWidget {
 
     final liveMatchesAsync = ref.watch(liveMatchesProvider);
     final upcomingMatchesAsync = ref.watch(upcomingMatchesProvider);
-    final tournamentsAsync = ref.watch(activeTournamentsProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -122,16 +121,28 @@ class MemberDashboard extends ConsumerWidget {
             ),
 
             // Quick Actions
-            if (isScorer) ...[
-              Row(
-                children: [
-                  Expanded(child: _QuickActionBtn(icon: Icons.sports_cricket, label: 'View Matches', color: const Color(0xFF2563EB), onTap: () => context.push('/matches-list'))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _QuickActionBtn(icon: Icons.emoji_events, label: 'Tournaments', color: const Color(0xFFD97706), onTap: () => context.push('/tournaments'))),
-                ],
-              ),
-              const SizedBox(height: 24),
-            ],
+            Row(
+              children: [
+                Expanded(
+                  child: _QuickActionBtn(
+                    icon: Icons.sports_cricket,
+                    label: 'View Matches',
+                    color: const Color(0xFF2563EB),
+                    onTap: () => context.push('/matches-list'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _QuickActionBtn(
+                    icon: Icons.leaderboard_rounded,
+                    label: 'My Stats',
+                    color: const Color(0xFF7C3AED),
+                    onTap: () => context.push('/stats'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
 
             // Upcoming Matches
             const _SectionTitle(title: '📅 UPCOMING MATCHES'),
@@ -143,24 +154,7 @@ class MemberDashboard extends ConsumerWidget {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Text('Error: $e'),
             ),
-            const SizedBox(height: 8),
-
-            // Tournaments — only show if admin has created at least one
-            tournamentsAsync.when(
-              data: (tournaments) {
-                if (tournaments.isEmpty) return const SizedBox.shrink();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _SectionTitle(title: '🏆 ACTIVE TOURNAMENTS'),
-                    ...tournaments.map((t) => _TournamentChip(tournament: t)),
-                    const SizedBox(height: 8),
-                  ],
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+            const SizedBox(height: 16),
 
             // Leaderboard
             const _SectionTitle(title: '🏅 LEADERBOARD'),
@@ -168,60 +162,6 @@ class MemberDashboard extends ConsumerWidget {
             const SizedBox(height: 24),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _TournamentChip extends StatelessWidget {
-  final tournament;
-  const _TournamentChip({required this.tournament});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1E3A8A).withOpacity(0.25),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.emoji_events_rounded, color: Color(0xFFFFD700), size: 26),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tournament.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                  ),
-                ),
-                Text(
-                  '${tournament.teamsCount} Teams • ${tournament.status.name.toUpperCase()}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: Colors.white70),
-        ],
       ),
     );
   }

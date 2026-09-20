@@ -12,198 +12,307 @@ class AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final currentLocation = GoRouterState.of(context).matchedLocation;
+    final bool isAdmin = user?.role == UserRole.admin;
 
     return Drawer(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF0A192F),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topRight: Radius.circular(20),
-          bottomRight: Radius.circular(20),
+          topRight: Radius.circular(24),
+          bottomRight: Radius.circular(24),
         ),
       ),
-      child: Column(
-        children: [
-          // ── Header Section ──
-          _buildDrawerHeader(context, user),
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF0A192F), // Deep Navy
+              Color(0xFF0F2464), // Royal Navy
+              Color(0xFF1E3A8A), // Cricket Blue
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            // ── Top Header with App Title & Logged-in User Info ──
+            _buildDrawerHeader(context, user, isAdmin),
 
-          // ── Navigation Items (Grouped) ──
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              children: [
-                // Group 1: MAIN
-                _buildSectionHeader('MAIN'),
-                _buildNavItem(
-                  context: context,
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  route: user?.role == UserRole.admin ? '/admin' : '/member',
-                  currentLocation: currentLocation,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.go(user?.role == UserRole.admin ? '/admin' : '/member');
-                  },
-                ),
-                _buildNavItem(
-                  context: context,
-                  icon: Icons.sports_cricket_rounded,
-                  label: 'Matches',
-                  route: '/matches-list',
-                  currentLocation: currentLocation,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/matches-list');
-                  },
-                ),
-
-                const SizedBox(height: 12),
-                const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                const SizedBox(height: 12),
-
-                // Group 2: MANAGEMENT
-                _buildSectionHeader('MANAGEMENT'),
-                _buildNavItem(
-                  context: context,
-                  icon: Icons.emoji_events_rounded,
-                  label: 'Tournaments',
-                  route: '/tournaments',
-                  currentLocation: currentLocation,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/tournaments');
-                  },
-                ),
-                _buildNavItem(
-                  context: context,
-                  icon: Icons.groups_rounded,
-                  label: 'Teams & Clubs',
-                  route: '/teams',
-                  currentLocation: currentLocation,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/teams');
-                  },
-                ),
-                _buildNavItem(
-                  context: context,
-                  icon: Icons.person_search_rounded,
-                  label: 'Players & Squads',
-                  route: '/players',
-                  currentLocation: currentLocation,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/players');
-                  },
-                ),
-                if (user?.role == UserRole.admin)
+            // ── Navigation Items List ──
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                children: [
+                  // ── Group 1: MAIN ──
+                  _buildSectionHeader('MAIN'),
                   _buildNavItem(
                     context: context,
-                    icon: Icons.manage_accounts_rounded,
-                    label: 'Manage Members',
-                    route: '/members',
+                    icon: Icons.home_rounded,
+                    label: 'Home',
+                    route: isAdmin ? '/admin' : '/member',
                     currentLocation: currentLocation,
                     onTap: () {
                       Navigator.pop(context);
-                      context.push('/members');
+                      context.go(isAdmin ? '/admin' : '/member');
                     },
                   ),
-                _buildNavItem(
-                  context: context,
-                  icon: Icons.analytics_rounded,
-                  label: 'Stats & Overview',
-                  route: '/stats',
-                  currentLocation: currentLocation,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/stats');
-                  },
-                ),
+                  _buildNavItem(
+                    context: context,
+                    icon: Icons.sports_cricket_rounded,
+                    label: 'Matches',
+                    route: '/matches-list',
+                    currentLocation: currentLocation,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/matches-list');
+                    },
+                  ),
+                  _buildNavItem(
+                    context: context,
+                    icon: Icons.sensors_rounded,
+                    label: 'Live Matches',
+                    route: '/live-matches',
+                    currentLocation: currentLocation,
+                    accentColor: const Color(0xFFEF4444),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/live-matches');
+                    },
+                  ),
 
-                const SizedBox(height: 12),
-                const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 10),
+                  Divider(height: 1, color: Colors.white.withOpacity(0.12)),
+                  const SizedBox(height: 10),
 
-                // Group 3: ACCOUNT & SETTINGS
-                _buildSectionHeader('ACCOUNT'),
-                _buildNavItem(
-                  context: context,
-                  icon: Icons.notifications_rounded,
-                  label: 'Notifications',
-                  route: '/notifications',
-                  currentLocation: currentLocation,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/notifications');
-                  },
-                ),
-                _buildNavItem(
-                  context: context,
-                  icon: Icons.account_circle_rounded,
-                  label: 'My Profile',
-                  route: '/profile',
-                  currentLocation: currentLocation,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/profile');
-                  },
-                ),
-              ],
+                  // ── Group 2: MANAGEMENT ──
+                  _buildSectionHeader('MANAGEMENT'),
+                  
+                  // ONLY ADMIN sees Tournaments
+                  if (isAdmin)
+                    _buildNavItem(
+                      context: context,
+                      icon: Icons.emoji_events_rounded,
+                      label: 'Tournaments',
+                      route: '/tournaments',
+                      currentLocation: currentLocation,
+                      accentColor: const Color(0xFFF59E0B),
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/tournaments');
+                      },
+                    ),
+
+                  _buildNavItem(
+                    context: context,
+                    icon: Icons.groups_rounded,
+                    label: 'Teams & Clubs',
+                    route: '/teams',
+                    currentLocation: currentLocation,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/teams');
+                    },
+                  ),
+                  _buildNavItem(
+                    context: context,
+                    icon: Icons.person_search_rounded,
+                    label: 'Players & Squads',
+                    route: '/players',
+                    currentLocation: currentLocation,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/players');
+                    },
+                  ),
+                  if (isAdmin)
+                    _buildNavItem(
+                      context: context,
+                      icon: Icons.manage_accounts_rounded,
+                      label: 'Manage Members',
+                      route: '/members',
+                      currentLocation: currentLocation,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/members');
+                      },
+                    ),
+                  _buildNavItem(
+                    context: context,
+                    icon: Icons.leaderboard_rounded,
+                    label: 'Stats & Standings',
+                    route: '/stats',
+                    currentLocation: currentLocation,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/stats');
+                    },
+                  ),
+
+                  const SizedBox(height: 10),
+                  Divider(height: 1, color: Colors.white.withOpacity(0.12)),
+                  const SizedBox(height: 10),
+
+                  // ── Group 3: ACCOUNT ──
+                  _buildSectionHeader('ACCOUNT'),
+                  _buildNavItem(
+                    context: context,
+                    icon: Icons.notifications_rounded,
+                    label: 'Notifications',
+                    route: '/notifications',
+                    currentLocation: currentLocation,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/notifications');
+                    },
+                  ),
+                  _buildNavItem(
+                    context: context,
+                    icon: Icons.account_circle_rounded,
+                    label: 'My Profile',
+                    route: '/profile',
+                    currentLocation: currentLocation,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/profile');
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          // ── Footer Section ──
-          _buildDrawerFooter(context, ref),
-        ],
+            // ── Footer with App Version & Sign Out Button ──
+            _buildDrawerFooter(context, ref),
+          ],
+        ),
       ),
     );
   }
 
-  // ── Header Widget (Simple Clean Minimalist Header) ──
-  Widget _buildDrawerHeader(BuildContext context, AppUser? user) {
+  // ── Header Widget (Rich Cricket Blue Header) ──
+  Widget _buildDrawerHeader(BuildContext context, AppUser? user, bool isAdmin) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 52, 20, 18),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
+      padding: const EdgeInsets.fromLTRB(20, 52, 20, 20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        border: Border(
+          bottom: BorderSide(color: Colors.white.withOpacity(0.12), width: 1),
+        ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: const Icon(
-              Icons.sports_cricket_rounded,
-              color: Color(0xFF1E3A8A),
-              size: 26,
-            ),
-          ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Borigivalasa Cricket',
-                  style: TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+          // App Title + Logo
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF38BDF8), Color(0xFF2563EB)],
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF38BDF8).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 2),
-                Text(
-                  'Tournament & Scoring App',
-                  style: TextStyle(
-                    color: Color(0xFF64748B),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                child: const Icon(
+                  Icons.sports_cricket_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Borigivalasa Cricket',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Tournament & Scoring App',
+                      style: TextStyle(
+                        color: Color(0xFF93C5FD),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // User Profile Quick Bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withOpacity(0.15)),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: const Color(0xFF38BDF8),
+                  backgroundImage: user?.photoUrl != null && user!.photoUrl!.isNotEmpty
+                      ? NetworkImage(user.photoUrl!)
+                      : null,
+                  child: user?.photoUrl == null || user!.photoUrl!.isEmpty
+                      ? Text(
+                          (user?.displayName.isNotEmpty ?? false)
+                              ? user!.displayName[0].toUpperCase()
+                              : 'U',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user?.displayName ?? 'User',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        isAdmin ? '👑 Administrator' : '🏏 Club Member',
+                        style: TextStyle(
+                          color: isAdmin ? const Color(0xFFFBBF24) : const Color(0xFF6EE7B7),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -217,20 +326,20 @@ class AppDrawer extends ConsumerWidget {
   // ── Section Header ──
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 12, top: 4, bottom: 6),
+      padding: const EdgeInsets.only(left: 10, top: 6, bottom: 6),
       child: Text(
         title,
         style: const TextStyle(
-          color: Color(0xFF94A3B8), // slate-400
+          color: Color(0xFF60A5FA), // Sky Blue Accent
           fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.1,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.2,
         ),
       ),
     );
   }
 
-  // ── Active/Inactive Navigation Item ──
+  // ── Navigation Item (Blue Glassmorphic Active Pill) ──
   Widget _buildNavItem({
     required BuildContext context,
     required IconData icon,
@@ -238,25 +347,26 @@ class AppDrawer extends ConsumerWidget {
     required String route,
     required String currentLocation,
     required VoidCallback onTap,
+    Color? accentColor,
   }) {
     final bool isActive = currentLocation == route ||
         (route != '/admin' && route != '/member' && currentLocation.startsWith(route));
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.5),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Material(
         color: isActive
-            ? const Color(0xFF1E3A8A).withOpacity(0.09)
+            ? Colors.white.withOpacity(0.18)
             : Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           side: isActive
-              ? BorderSide(color: const Color(0xFF1E3A8A).withOpacity(0.25), width: 1.2)
+              ? BorderSide(color: (accentColor ?? const Color(0xFF38BDF8)).withOpacity(0.6), width: 1.5)
               : BorderSide.none,
         ),
         child: ListTile(
           onTap: onTap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
           dense: true,
           leading: Container(
@@ -264,14 +374,14 @@ class AppDrawer extends ConsumerWidget {
             height: 36,
             decoration: BoxDecoration(
               color: isActive
-                  ? const Color(0xFF1E3A8A)
-                  : const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(9),
+                  ? (accentColor ?? const Color(0xFF2563EB))
+                  : Colors.white.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
               boxShadow: isActive
                   ? [
                       BoxShadow(
-                        color: const Color(0xFF1E3A8A).withOpacity(0.35),
-                        blurRadius: 6,
+                        color: (accentColor ?? const Color(0xFF2563EB)).withOpacity(0.4),
+                        blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
                     ]
@@ -279,23 +389,24 @@ class AppDrawer extends ConsumerWidget {
             ),
             child: Icon(
               icon,
-              color: isActive ? Colors.white : const Color(0xFF475569),
-              size: 19,
+              color: isActive ? Colors.white : (accentColor ?? const Color(0xFF93C5FD)),
+              size: 20,
             ),
           ),
           title: Text(
             label,
             style: TextStyle(
-              color: isActive ? const Color(0xFF1E3A8A) : const Color(0xFF334155),
-              fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+              color: isActive ? Colors.white : const Color(0xFFE2E8F0),
+              fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
               fontSize: 14,
+              letterSpacing: 0.2,
             ),
           ),
           trailing: isActive
-              ? const Icon(
+              ? Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 13,
-                  color: Color(0xFF1E3A8A),
+                  color: accentColor ?? const Color(0xFF38BDF8),
                 )
               : null,
         ),
@@ -303,14 +414,14 @@ class AppDrawer extends ConsumerWidget {
     );
   }
 
-  // ── Footer Section ──
+  // ── Footer Section with Sign Out ──
   Widget _buildDrawerFooter(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF8FAFC),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.25),
         border: Border(
-          top: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+          top: BorderSide(color: Colors.white.withOpacity(0.12), width: 1),
         ),
       ),
       child: Column(
@@ -321,23 +432,16 @@ class AppDrawer extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E3A8A).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Icon(
-                      Icons.sports_cricket_rounded,
-                      size: 14,
-                      color: Color(0xFF1E3A8A),
-                    ),
+                  Icon(
+                    Icons.sports_cricket_rounded,
+                    size: 14,
+                    color: Colors.white.withOpacity(0.6),
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
+                  const SizedBox(width: 6),
+                  Text(
                     'Borigivalasa Cricket',
                     style: TextStyle(
-                      color: Color(0xFF475569),
+                      color: Colors.white.withOpacity(0.7),
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -345,16 +449,16 @@ class AppDrawer extends ConsumerWidget {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
+                  color: Colors.white.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Text(
                   'v1.0.0',
                   style: TextStyle(
-                    color: Color(0xFF64748B),
-                    fontSize: 10.5,
+                    color: Color(0xFF93C5FD),
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -366,23 +470,26 @@ class AppDrawer extends ConsumerWidget {
           // Sign Out Button
           SizedBox(
             width: double.infinity,
-            height: 42,
-            child: OutlinedButton.icon(
+            height: 44,
+            child: ElevatedButton.icon(
               onPressed: () => _confirmSignOut(context, ref),
-              icon: const Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 18),
+              icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
               label: const Text(
                 'Sign Out',
                 style: TextStyle(
-                  color: Color(0xFFDC2626),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13.5,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  letterSpacing: 0.3,
                 ),
               ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.2),
-                backgroundColor: const Color(0xFFFEF2F2),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+                elevation: 3,
+                shadowColor: const Color(0xFFDC2626).withOpacity(0.5),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
@@ -396,12 +503,20 @@ class AppDrawer extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Row(
           children: [
-            Icon(Icons.logout_rounded, color: Color(0xFFDC2626)),
-            SizedBox(width: 8),
-            Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 24),
+            SizedBox(width: 10),
+            Text(
+              'Sign Out',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Color(0xFF0F172A),
+              ),
+            ),
           ],
         ),
         content: const Text(
@@ -411,18 +526,26 @@ class AppDrawer extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+            ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(dialogCtx);
               Navigator.pop(context); // close drawer
-              ref.read(authControllerProvider.notifier).signOut();
+              await ref.read(authControllerProvider.notifier).signOut();
+              ref.invalidate(authStateProvider);
+              ref.invalidate(currentUserProvider);
+              if (context.mounted) {
+                context.go('/login');
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold)),
           ),

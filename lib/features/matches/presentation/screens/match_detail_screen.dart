@@ -374,9 +374,9 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                       _buildVsHeroCard(context, match, teamA, teamB, teamAPlayers.length, teamBPlayers.length),
                       const SizedBox(height: 16),
 
-                      // ── SQUAD VALIDATION WARNING BANNER IF INCOMPLETE ──
-                      if (!hasEnoughPlayers)
-                        _buildSquadWarningCard(context, match, teamAPlayers.length, teamBPlayers.length),
+                      // ── DEDICATED SQUADS & PLAYING XI NAVIGATION CARD ──
+                      if (match.status == MatchStatus.scheduled)
+                        _buildSquadsNavigationCard(context, match, teamA, teamB, teamAPlayers.length, teamBPlayers.length),
 
                       // ── SCHEDULED MATCH STATE (TOSS SETUP) ──
                       if (match.status == MatchStatus.scheduled) ...[
@@ -527,64 +527,162 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     );
   }
 
-  // ── SQUAD WARNING CARD ──
-  Widget _buildSquadWarningCard(BuildContext context, Match match, int countA, int countB) {
+  // ── DEDICATED SQUADS & PLAYING XI NAVIGATION CARD ──
+  Widget _buildSquadsNavigationCard(
+    BuildContext context,
+    Match match,
+    Team? teamA,
+    Team? teamB,
+    int countA,
+    int countB,
+  ) {
+    final bool isReady = countA >= 11 && countB >= 11;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFDE68A)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isReady ? const Color(0xFF86EFAC) : const Color(0xFFFED7AA),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 22),
-              SizedBox(width: 8),
-              Text(
-                'Squad Players Required',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF92400E)),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E3A8A).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.groups_rounded,
+                      color: Color(0xFF1E3A8A),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Match Squads & Playing XI',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isReady ? const Color(0xFFDCFCE7) : const Color(0xFFFFEDD5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  isReady ? 'READY (11/11)' : 'NEEDS SQUAD ($countA/11 & $countB/11)',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    color: isReady ? const Color(0xFF166534) : const Color(0xFF9A3412),
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          const Text(
-            'Both teams need at least 2 registered players before you can record toss and start match scoring.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF78350F), height: 1.3),
+          const SizedBox(height: 12),
+          // Squad counts overview
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        match.teamA,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '$countA / 11 Players in squad',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: countA >= 11 ? const Color(0xFF16A34A) : const Color(0xFFEA580C),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('vs', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        match.teamB,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '$countB / 11 Players in squad',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: countB >= 11 ? const Color(0xFF16A34A) : const Color(0xFFEA580C),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (countA < 2)
-                ElevatedButton.icon(
-                  onPressed: () => context.push('/teams/${match.teamAId}'),
-                  icon: const Icon(Icons.person_add_rounded, size: 16),
-                  label: Text('Add to ${match.teamA} ($countA)'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E3A8A),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
-                  ),
-                ),
-              if (countB < 2)
-                ElevatedButton.icon(
-                  onPressed: () => context.push('/teams/${match.teamBId}'),
-                  icon: const Icon(Icons.person_add_rounded, size: 16),
-                  label: Text('Add to ${match.teamB} ($countB)'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E3A8A),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
-                  ),
-                ),
-            ],
+          // Action button to open dedicated squad page
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads');
+              },
+              icon: const Icon(Icons.person_search_rounded, size: 18),
+              label: const Text(
+                'OPEN SQUADS & SELECT PLAYERS (NEXT PAGE)',
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                backgroundColor: const Color(0xFF1E3A8A),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
           ),
         ],
       ),
