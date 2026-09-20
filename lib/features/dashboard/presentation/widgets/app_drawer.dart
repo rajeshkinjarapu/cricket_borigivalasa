@@ -167,7 +167,7 @@ class AppDrawer extends ConsumerWidget {
                       context.push('/players');
                     },
                   ),
-                  if (isAdmin)
+                  if (isAdmin) ...[
                     _buildNavItem(
                       context: context,
                       icon: Icons.manage_accounts_rounded,
@@ -179,6 +179,18 @@ class AppDrawer extends ConsumerWidget {
                         context.push('/members');
                       },
                     ),
+                    _buildNavItem(
+                      context: context,
+                      icon: Icons.edit_note_rounded,
+                      label: 'Official Scorers',
+                      route: '/members?filter=scorer',
+                      currentLocation: currentLocation,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/members?filter=scorer');
+                      },
+                    ),
+                  ],
                   _buildNavItem(
                     context: context,
                     icon: Icons.leaderboard_rounded,

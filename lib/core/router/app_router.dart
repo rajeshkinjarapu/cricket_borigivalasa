@@ -311,7 +311,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       ],
     ),
     GoRoute(path: '/matches/new', builder: (_, __) => const MatchFormScreen()),
-    GoRoute(path: '/members', builder: (_, __) => const MemberManagementScreen()),
+    GoRoute(
+      path: '/members',
+      builder: (_, s) => MemberManagementScreen(
+        initialFilter: s.uri.queryParameters['filter'] ?? 'all',
+      ),
+    ),
     GoRoute(path: '/notifications', builder: (_, __) => const NotificationScreen()),
     ],
     errorBuilder: (context, state) => Scaffold(

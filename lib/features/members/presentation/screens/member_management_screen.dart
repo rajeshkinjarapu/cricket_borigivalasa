@@ -39,7 +39,12 @@ class UnifiedMember {
 }
 
 class MemberManagementScreen extends ConsumerStatefulWidget {
-  const MemberManagementScreen({super.key});
+  final String initialFilter;
+
+  const MemberManagementScreen({
+    super.key,
+    this.initialFilter = 'all',
+  });
 
   @override
   ConsumerState<MemberManagementScreen> createState() => _MemberManagementScreenState();
@@ -47,7 +52,13 @@ class MemberManagementScreen extends ConsumerStatefulWidget {
 
 class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen> {
   String _searchQuery = '';
-  String _selectedFilter = 'all'; // 'all', 'admin', 'scorer', 'member'
+  late String _selectedFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFilter = widget.initialFilter;
+  }
 
   ImageProvider? _getImageProvider(String? photoUrl) {
     if (photoUrl == null || photoUrl.isEmpty) return null;
