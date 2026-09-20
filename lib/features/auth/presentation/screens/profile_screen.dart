@@ -16,8 +16,8 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen>
     with SingleTickerProviderStateMixin {
   bool _isUploadingPhoto = false;
-  late AnimationController _animController;
-  late Animation<double> _fadeAnim;
+  AnimationController? _animController;
+  Animation<double>? _fadeAnim;
 
   @override
   void initState() {
@@ -25,13 +25,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     _animController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 600));
     _fadeAnim =
-        CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _animController.forward();
+        CurvedAnimation(parent: _animController!, curve: Curves.easeOut);
+    _animController!.forward();
   }
 
   @override
   void dispose() {
-    _animController.dispose();
+    _animController?.dispose();
     super.dispose();
   }
 
@@ -713,7 +713,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           // ── Body Content ──
           SliverToBoxAdapter(
             child: FadeTransition(
-              opacity: _fadeAnim,
+              opacity: _fadeAnim ?? const AlwaysStoppedAnimation(1.0),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 child: Column(

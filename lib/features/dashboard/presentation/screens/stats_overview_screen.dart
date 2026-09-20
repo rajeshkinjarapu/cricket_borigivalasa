@@ -6,121 +6,102 @@ import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../players/data/models/player.dart';
 import '../../../players/presentation/providers/player_providers.dart';
 
-class StatsOverviewScreen extends ConsumerStatefulWidget {
+class StatsOverviewScreen extends ConsumerWidget {
   const StatsOverviewScreen({super.key});
 
   @override
-  ConsumerState<StatsOverviewScreen> createState() => _StatsOverviewScreenState();
-}
-
-class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final playerAsync = ref.watch(loggedInPlayerProvider);
     final user = ref.watch(currentUserProvider);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: const Text(
-          'My Stats',
-          style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.3),
-        ),
-        elevation: 0,
-        backgroundColor: const Color(0xFF0F172A),
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            tooltip: 'View Profile',
-            onPressed: () => context.go('/profile'),
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          title: const Text(
+            'My Stats',
+            style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.3),
           ),
-        ],
-      ),
-      body: playerAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Color(0xFF0F172A)),
+          elevation: 0,
+          backgroundColor: const Color(0xFF0F172A),
+          foregroundColor: Colors.white,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.person_outline),
+              tooltip: 'View Profile',
+              onPressed: () => context.go('/profile'),
+            ),
+          ],
         ),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
-                const SizedBox(height: 12),
-                Text('Failed to load stats: $e', textAlign: TextAlign.center),
-              ],
+        body: playerAsync.when(
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: Color(0xFF0F172A)),
+          ),
+          error: (e, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                  const SizedBox(height: 12),
+                  Text('Failed to load stats: $e', textAlign: TextAlign.center),
+                ],
+              ),
             ),
           ),
-        ),
-        data: (player) {
-          final effectivePlayer = player ??
-              Player(
-                id: user?.uid ?? 'guest',
-                name: user?.displayName.isNotEmpty == true
-                    ? user!.displayName
-                    : 'Player',
-                teamId: '',
-                role: PlayerRole.allRounder,
-                battingStyle: BattingStyle.rightHand,
-                bowlingStyle: BowlingStyle.rightArmMedium,
-                profilePicUrl: user?.photoUrl,
-                stats: PlayerStats(),
-              );
+          data: (player) {
+            final effectivePlayer = player ??
+                Player(
+                  id: user?.uid ?? 'guest',
+                  name: user?.displayName.isNotEmpty == true
+                      ? user!.displayName
+                      : 'Player',
+                  teamId: '',
+                  role: PlayerRole.allRounder,
+                  battingStyle: BattingStyle.rightHand,
+                  bowlingStyle: BowlingStyle.rightArmMedium,
+                  profilePicUrl: user?.photoUrl,
+                  stats: PlayerStats(),
+                );
 
-          return NestedScrollView(
-            headerSliverBuilder: (context, innerBoxIsScrolled) => [
-              SliverToBoxAdapter(
-                child: _buildHeroProfileHeader(effectivePlayer),
-              ),
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _SliverTabBarDelegate(
-                  TabBar(
-                    controller: _tabController,
-                    labelColor: const Color(0xFF0F172A),
-                    unselectedLabelColor: const Color(0xFF64748B),
-                    indicatorColor: const Color(0xFF2563EB),
-                    indicatorWeight: 3,
-                    labelStyle: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+            return NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                SliverToBoxAdapter(
+                  child: _buildHeroProfileHeader(effectivePlayer),
+                ),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SliverTabBarDelegate(
+                    const TabBar(
+                      labelColor: Color(0xFF0F172A),
+                      unselectedLabelColor: Color(0xFF64748B),
+                      indicatorColor: Color(0xFF2563EB),
+                      indicatorWeight: 3,
+                      labelStyle: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      tabs: [
+                        Tab(icon: Icon(Icons.sports_cricket, size: 18), text: 'BATTING'),
+                        Tab(icon: Icon(Icons.sports_baseball, size: 18), text: 'BOWLING'),
+                        Tab(icon: Icon(Icons.military_tech_rounded, size: 18), text: 'CAREER'),
+                      ],
                     ),
-                    tabs: const [
-                      Tab(icon: Icon(Icons.sports_cricket, size: 18), text: 'BATTING'),
-                      Tab(icon: Icon(Icons.sports_baseball, size: 18), text: 'BOWLING'),
-                      Tab(icon: Icon(Icons.military_tech_rounded, size: 18), text: 'CAREER'),
-                    ],
                   ),
                 ),
-              ),
-            ],
-            body: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildBattingTab(effectivePlayer),
-                _buildBowlingTab(effectivePlayer),
-                _buildCareerTab(effectivePlayer),
               ],
-            ),
-          );
-        },
+              body: TabBarView(
+                children: [
+                  _buildBattingTab(effectivePlayer),
+                  _buildBowlingTab(effectivePlayer),
+                  _buildCareerTab(context, effectivePlayer),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -503,7 +484,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
   }
 
   // ─── Career Tab ───
-  Widget _buildCareerTab(Player player) {
+  Widget _buildCareerTab(BuildContext context, Player player) {
     final stats = player.stats;
     final allRounderPoints = stats.runsScored + (stats.wicketsTaken * 20);
 
