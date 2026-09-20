@@ -611,15 +611,15 @@ class TeamDetailScreen extends ConsumerWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Add Players Modal Sheet (Dual Mode: Select Existing OR Manual Entry)
 // ─────────────────────────────────────────────────────────────────────────────
-class _AddPlayersModalSheet extends ConsumerStatefulWidget {
-  const _AddPlayersModalSheet({required this.team});
+class AddPlayersModalSheet extends ConsumerStatefulWidget {
+  const AddPlayersModalSheet({super.key, required this.team});
   final Team team;
 
   @override
-  ConsumerState<_AddPlayersModalSheet> createState() => _AddPlayersModalSheetState();
+  ConsumerState<AddPlayersModalSheet> createState() => _AddPlayersModalSheetState();
 }
 
-class _AddPlayersModalSheetState extends ConsumerState<_AddPlayersModalSheet>
+class _AddPlayersModalSheetState extends ConsumerState<AddPlayersModalSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 

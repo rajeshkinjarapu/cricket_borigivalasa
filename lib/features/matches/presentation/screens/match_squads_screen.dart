@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -10,6 +9,7 @@ import '../../../players/data/models/player.dart';
 import '../../../players/presentation/providers/player_providers.dart';
 import '../../../teams/data/models/team.dart';
 import '../../../teams/presentation/providers/team_providers.dart';
+import '../../../teams/presentation/screens/team_detail_screen.dart';
 import '../../data/models/match.dart';
 import '../providers/match_providers.dart';
 
@@ -54,6 +54,16 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
       case PlayerRole.wicketKeeper:
         return const Color(0xFFD97706); // Amber
     }
+  }
+
+  void _openAddPlayersModal(BuildContext context, Team? team, String teamId, String teamName) {
+    final effectiveTeam = team ?? Team(id: teamId, name: teamName, shortName: teamName.isNotEmpty ? teamName[0] : 'T');
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => AddPlayersModalSheet(team: effectiveTeam),
+    );
   }
 
   @override
@@ -102,7 +112,12 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
         final teamAPlayers = teamAPlayersAsync.value ?? [];
         final teamBPlayers = teamBPlayersAsync.value ?? [];
 
-        final bothReady = teamAPlayers.length >= 11 && teamBPlayers.length >= 11;
+        final activeTeamName = _selectedSquadTabIndex == 0 ? match.teamA : match.teamB;
+        final activeTeamId = _selectedSquadTabIndex == 0 ? match.teamAId : match.teamBId;
+        final activeTeam = _selectedSquadTabIndex == 0 ? teamA : teamB;
+        final activePlayers = _selectedSquadTabIndex == 0 ? teamAPlayers : teamBPlayers;
+
+        final bool bothReady = teamAPlayers.length >= 11 && teamBPlayers.length >= 11;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF1F5F9),
@@ -124,596 +139,455 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Match Squads & Playing XI',
+                  'Select Playing 11',
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: Colors.white),
                 ),
                 Text(
                   '${match.teamA} vs ${match.teamB}',
-                  style: const TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500),
+                  style: const TextStyle(fontSize: 11.5, color: Colors.white70, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ── Progress indicator ──
-                _buildXIProgressBanner(
-                  teamAName: match.teamA,
-                  teamBName: match.teamB,
-                  countA: teamAPlayers.length,
-                  countB: teamBPlayers.length,
-                  bothReady: bothReady,
+          body: Column(
+            children: [
+              // ── Clean Top Team Selector Tabs ──
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    // Tab 1: Team A
+                    Expanded(
+                      child: _buildTeamTab(
+                        title: match.teamA,
+                        count: teamAPlayers.length,
+                        isSelected: _selectedSquadTabIndex == 0,
+                        onTap: () => setState(() => _selectedSquadTabIndex = 0),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Tab 2: Team B
+                    Expanded(
+                      child: _buildTeamTab(
+                        title: match.teamB,
+                        count: teamBPlayers.length,
+                        isSelected: _selectedSquadTabIndex == 1,
+                        onTap: () => setState(() => _selectedSquadTabIndex = 1),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
+              ),
 
-                // ── 2 TABS PLAYING XI SECTION ──
-                _buildPlaying11TabsSection(
-                  context: context,
-                  match: match,
-                  teamA: teamA,
-                  teamB: teamB,
-                  teamAPlayers: teamAPlayers,
-                  teamBPlayers: teamBPlayers,
-                  isAdmin: canManage,
+              // ── Active Team Squad Content ──
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  children: [
+                    // Squad Header with "+ Add Players"
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '$activeTeamName (${activePlayers.length}/11)',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        if (canManage)
+                          ElevatedButton.icon(
+                            onPressed: () => _openAddPlayersModal(context, activeTeam, activeTeamId, activeTeamName),
+                            icon: const Icon(Icons.person_add_rounded, size: 14),
+                            label: const Text('Add Players'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF16A34A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Players List or Empty View
+                    if (activePlayers.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.person_search_rounded, size: 48, color: Color(0xFF94A3B8)),
+                            const SizedBox(height: 10),
+                            Text(
+                              'No players added to $activeTeamName yet.',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            if (canManage)
+                              ElevatedButton.icon(
+                                onPressed: () => _openAddPlayersModal(context, activeTeam, activeTeamId, activeTeamName),
+                                icon: const Icon(Icons.person_add_rounded, size: 16),
+                                label: Text('Add Players to $activeTeamName'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF16A34A),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              ),
+                          ],
+                        ),
+                      )
+                    else
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: activePlayers.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          itemBuilder: (ctx, idx) {
+                            final player = activePlayers[idx];
+                            final roleColor = _getRoleColor(player.role);
+                            final playerImage = _getImageProvider(player.profilePicUrl);
+                            final isCaptain = activeTeam != null &&
+                                (activeTeam.captainId == player.id ||
+                                    (activeTeam.captainName != null &&
+                                        activeTeam.captainName!.toLowerCase() == player.name.toLowerCase()));
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                              child: Row(
+                                children: [
+                                  // Player Number
+                                  Container(
+                                    width: 24,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      '${idx + 1}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+
+                                  // Avatar
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: roleColor.withOpacity(0.12),
+                                      border: Border.all(color: roleColor.withOpacity(0.3), width: 1.5),
+                                      image: playerImage != null
+                                          ? DecorationImage(image: playerImage, fit: BoxFit.cover)
+                                          : null,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: playerImage == null
+                                        ? Text(
+                                            player.name.isNotEmpty ? player.name[0].toUpperCase() : 'P',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 15,
+                                              color: roleColor,
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 12),
+
+                                  // Name & Role
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                player.name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 14,
+                                                  color: Color(0xFF0F172A),
+                                                ),
+                                              ),
+                                            ),
+                                            if (isCaptain) ...[
+                                              const SizedBox(width: 6),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFFEF3C7),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  border: Border.all(color: const Color(0xFFFDE68A)),
+                                                ),
+                                                child: const Text(
+                                                  'CAPTAIN',
+                                                  style: TextStyle(
+                                                    color: Color(0xFFB45309),
+                                                    fontSize: 9.5,
+                                                    fontWeight: FontWeight.w900,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                            if (player.jerseyNumber != null) ...[
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                '#${player.jerseyNumber}',
+                                                style: const TextStyle(
+                                                  color: Color(0xFF64748B),
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 11.5,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                              decoration: BoxDecoration(
+                                                color: roleColor.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                player.role.label,
+                                                style: TextStyle(
+                                                  color: roleColor,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ),
+                                            if (player.phoneNumber != null && player.phoneNumber!.isNotEmpty) ...[
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: Text(
+                                                  '📞 ${player.phoneNumber}',
+                                                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  // Quick Options Menu
+                                  if (canManage)
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF94A3B8)),
+                                      onSelected: (v) async {
+                                        if (v == 'captain' && activeTeam != null) {
+                                          await ref.read(teamControllerProvider.notifier).update(
+                                                activeTeam.copyWith(captainId: player.id, captainName: player.name),
+                                              );
+                                        } else if (v == 'remove') {
+                                          await ref
+                                              .read(playerControllerProvider.notifier)
+                                              .removePlayerFromTeam(player.id, activeTeamId);
+                                        }
+                                      },
+                                      itemBuilder: (_) => [
+                                        PopupMenuItem(
+                                          value: 'captain',
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.star_rounded, color: Color(0xFFFFB300), size: 18),
+                                              const SizedBox(width: 8),
+                                              Text(isCaptain ? 'Captain (Active)' : 'Make Captain'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'remove',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.person_remove_rounded, color: Colors.red, size: 18),
+                                              SizedBox(width: 8),
+                                              Text('Remove from Squad', style: TextStyle(color: Colors.red)),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 24),
+              ),
 
-                // ── PROCEED TO TOSS BUTTON ──
-                ElevatedButton.icon(
-                  onPressed: bothReady
-                      ? () {
-                          context.pushReplacement(
-                            '/tournaments/${widget.tournamentId}/matches/${widget.matchId}',
-                          );
+              // ── Bottom Fixed Action Bar ──
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 10,
+                      offset: const Offset(0, -3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: bothReady
+                          ? () {
+                              context.pushReplacement(
+                                '/tournaments/${widget.tournamentId}/matches/${widget.matchId}',
+                              );
+                            }
+                          : () {
+                              final incompleteTeam = teamAPlayers.length < 11 ? teamA : teamB;
+                              final incompleteId = teamAPlayers.length < 11 ? match.teamAId : match.teamBId;
+                              final incompleteName = teamAPlayers.length < 11 ? match.teamA : match.teamB;
+                              _openAddPlayersModal(context, incompleteTeam, incompleteId, incompleteName);
+                            },
+                      icon: Icon(
+                        bothReady ? Icons.how_to_vote_rounded : Icons.person_add_alt_1_rounded,
+                        size: 20,
+                      ),
+                      label: Text(
+                        bothReady
+                            ? 'CONFIRM PLAYING 11 & PROCEED TO TOSS'
+                            : 'Need 11 Players (${teamAPlayers.length}/11 & ${teamBPlayers.length}/11)',
+                        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: bothReady ? const Color(0xFF16A34A) : const Color(0xFF1E3A8A),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextButton(
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}');
                         }
-                      : null,
-                  icon: Icon(
-                    bothReady ? Icons.how_to_vote_rounded : Icons.lock_outline_rounded,
-                    size: 22,
-                  ),
-                  label: Text(
-                    bothReady
-                        ? 'CONFIRM PLAYING 11 & PROCEED TO TOSS'
-                        : 'Need 11 Players Each (${teamAPlayers.length}/11 & ${teamBPlayers.length}/11)',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.3),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: bothReady ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    elevation: bothReady ? 3 : 0,
-                  ),
+                      },
+                      child: const Text(
+                        'Back to Match Center',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    if (context.canPop()) {
-                      context.pop();
-                    } else {
-                      context.pushReplacement(
-                        '/tournaments/${widget.tournamentId}/matches/${widget.matchId}',
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                  label: const Text(
-                    'BACK TO MATCH CENTER',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: const BorderSide(color: Color(0xFF1E3A8A), width: 1.2),
-                    foregroundColor: const Color(0xFF1E3A8A),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 32),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildXIProgressBanner({
-    required String teamAName,
-    required String teamBName,
-    required int countA,
-    required int countB,
-    required bool bothReady,
+  Widget _buildTeamTab({
+    required String title,
+    required int count,
+    required bool isSelected,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: bothReady ? const Color(0xFFDCFCE7) : const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: bothReady ? const Color(0xFF86EFAC) : const Color(0xFFBFD9FE),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            bothReady ? Icons.check_circle_rounded : Icons.group_add_rounded,
-            color: bothReady ? const Color(0xFF16A34A) : const Color(0xFF1E3A8A),
-            size: 22,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  bothReady ? 'Both XIs are ready! Proceeding to toss...' : 'Select Playing XI for each team',
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
-                    color: bothReady ? const Color(0xFF15803D) : const Color(0xFF1E3A8A),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    _buildTeamProgress(teamAName, countA),
-                    const SizedBox(width: 12),
-                    _buildTeamProgress(teamBName, countB),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    final isComplete = count >= 11;
 
-  Widget _buildTeamProgress(String teamName, int count) {
-    final done = count >= 11;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-          size: 14,
-          color: done ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '${teamName.split(' ').first}: $count/11',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: done ? const Color(0xFF16A34A) : const Color(0xFF64748B),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFFE2E8F0),
+            width: 1.5,
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildPlaying11TabsSection({
-    required BuildContext context,
-    required Match match,
-    required Team? teamA,
-    required Team? teamB,
-    required List<Player> teamAPlayers,
-    required List<Player> teamBPlayers,
-    required bool isAdmin,
-  }) {
-    final activeTeamName = _selectedSquadTabIndex == 0 ? match.teamA : match.teamB;
-    final activeTeamId = _selectedSquadTabIndex == 0 ? match.teamAId : match.teamBId;
-    final activeTeam = _selectedSquadTabIndex == 0 ? teamA : teamB;
-    final activePlayers = _selectedSquadTabIndex == 0 ? teamAPlayers : teamBPlayers;
-
-    final logoA = _getImageProvider(teamA?.logoUrl);
-    final logoB = _getImageProvider(teamB?.logoUrl);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header title
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.groups_rounded, color: Color(0xFF1E3A8A), size: 22),
-                    SizedBox(width: 8),
-                    Text(
-                      'Match Squads',
-                      style: TextStyle(
-                        fontSize: 16.5,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                  ],
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: isSelected ? Colors.white : const Color(0xFF334155),
                 ),
-                if (isAdmin)
-                  TextButton.icon(
-                    onPressed: () => context.push('/teams/$activeTeamId'),
-                    icon: const Icon(Icons.manage_accounts_rounded, size: 17, color: Color(0xFF1E3A8A)),
-                    label: const Text(
-                      'Manage',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF1E3A8A)),
-                    ),
-                  ),
-              ],
+              ),
             ),
-          ),
-
-          // ── 2 Tabs Switcher ──
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 14),
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                // Tab 1: Team A
-                Expanded(
-                  child: InkWell(
-                    onTap: () => setState(() => _selectedSquadTabIndex = 0),
-                    borderRadius: BorderRadius.circular(11),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: _selectedSquadTabIndex == 0 ? const Color(0xFF1E3A8A) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(11),
-                        boxShadow: _selectedSquadTabIndex == 0
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFF1E3A8A).withOpacity(0.25),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircleAvatar(
-                            radius: 11,
-                            backgroundColor: _selectedSquadTabIndex == 0 ? Colors.white.withOpacity(0.2) : const Color(0xFFCBD5E1),
-                            backgroundImage: logoA,
-                            child: logoA == null
-                                ? Text(
-                                    match.teamA.isNotEmpty ? match.teamA[0].toUpperCase() : 'A',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: _selectedSquadTabIndex == 0 ? Colors.white : const Color(0xFF334155),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              match.teamA,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: _selectedSquadTabIndex == 0 ? Colors.white : const Color(0xFF475569),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                            decoration: BoxDecoration(
-                              color: _selectedSquadTabIndex == 0
-                                  ? Colors.white.withOpacity(0.25)
-                                  : const Color(0xFFE2E8F0),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '${teamAPlayers.length}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: _selectedSquadTabIndex == 0 ? Colors.white : const Color(0xFF1E293B),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-
-                // Tab 2: Team B
-                Expanded(
-                  child: InkWell(
-                    onTap: () => setState(() => _selectedSquadTabIndex = 1),
-                    borderRadius: BorderRadius.circular(11),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: _selectedSquadTabIndex == 1 ? const Color(0xFF1E3A8A) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(11),
-                        boxShadow: _selectedSquadTabIndex == 1
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFF1E3A8A).withOpacity(0.25),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircleAvatar(
-                            radius: 11,
-                            backgroundColor: _selectedSquadTabIndex == 1 ? Colors.white.withOpacity(0.2) : const Color(0xFFCBD5E1),
-                            backgroundImage: logoB,
-                            child: logoB == null
-                                ? Text(
-                                    match.teamB.isNotEmpty ? match.teamB[0].toUpperCase() : 'B',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: _selectedSquadTabIndex == 1 ? Colors.white : const Color(0xFF334155),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              match.teamB,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: _selectedSquadTabIndex == 1 ? Colors.white : const Color(0xFF475569),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                            decoration: BoxDecoration(
-                              color: _selectedSquadTabIndex == 1
-                                  ? Colors.white.withOpacity(0.25)
-                                  : const Color(0xFFE2E8F0),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '${teamBPlayers.length}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: _selectedSquadTabIndex == 1 ? Colors.white : const Color(0xFF1E293B),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // ── Selected Squad Player List ──
-          if (activePlayers.isEmpty)
+            const SizedBox(width: 6),
             Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                color: isSelected
+                    ? Colors.white.withOpacity(0.22)
+                    : (isComplete ? const Color(0xFFDCFCE7) : const Color(0xFFE2E8F0)),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Column(
-                children: [
-                  const Icon(Icons.person_search_rounded, size: 44, color: Color(0xFF94A3B8)),
-                  const SizedBox(height: 8),
-                  Text(
-                    'No players registered in $activeTeamName yet.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 13.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 14),
-                  if (isAdmin)
-                    ElevatedButton.icon(
-                      onPressed: () => context.push('/teams/$activeTeamId'),
-                      icon: const Icon(Icons.person_add_rounded, size: 16),
-                      label: Text('Add Players to $activeTeamName'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF16A34A),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        elevation: 0,
-                      ),
-                    ),
-                ],
+              child: Text(
+                '$count/11',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  color: isSelected
+                      ? Colors.white
+                      : (isComplete ? const Color(0xFF16A34A) : const Color(0xFF475569)),
+                ),
               ),
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
-              itemCount: activePlayers.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
-              itemBuilder: (ctx, idx) {
-                final player = activePlayers[idx];
-                final roleColor = _getRoleColor(player.role);
-                final playerImage = _getImageProvider(player.profilePicUrl);
-                final isCaptain = activeTeam != null &&
-                    (activeTeam.captainId == player.id ||
-                        (activeTeam.captainName != null &&
-                            activeTeam.captainName!.toLowerCase() == player.name.toLowerCase()));
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-                  child: Row(
-                    children: [
-                      // Player Number / Index
-                      Container(
-                        width: 24,
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${idx + 1}',
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF94A3B8),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // Player Avatar
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: roleColor.withOpacity(0.1),
-                          border: Border.all(color: roleColor.withOpacity(0.3), width: 1.5),
-                          image: playerImage != null
-                              ? DecorationImage(image: playerImage, fit: BoxFit.cover)
-                              : null,
-                        ),
-                        alignment: Alignment.center,
-                        child: playerImage == null
-                            ? Text(
-                                player.name.isNotEmpty ? player.name[0].toUpperCase() : 'P',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 17,
-                                  color: roleColor,
-                                ),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 12),
-
-                      // Player Details
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    player.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 14,
-                                      color: Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                ),
-                                if (isCaptain) ...[
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFEF3C7),
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(color: const Color(0xFFFDE68A)),
-                                    ),
-                                    child: const Text(
-                                      'C',
-                                      style: TextStyle(
-                                        color: Color(0xFFB45309),
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                if (player.jerseyNumber != null) ...[
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '#${player.jerseyNumber}',
-                                    style: const TextStyle(
-                                      color: Color(0xFF64748B),
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            const SizedBox(height: 3),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                  decoration: BoxDecoration(
-                                    color: roleColor.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(5),
-                                  ),
-                                  child: Text(
-                                    player.role.label,
-                                    style: TextStyle(
-                                      color: roleColor,
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    '${player.battingStyle.label}${player.phoneNumber != null && player.phoneNumber!.isNotEmpty ? " • 📞 ${player.phoneNumber}" : ""}',
-                                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
