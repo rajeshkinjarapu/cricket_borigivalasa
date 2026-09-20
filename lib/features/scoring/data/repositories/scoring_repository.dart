@@ -367,6 +367,22 @@ class ScoringRepository {
     }
   }
 
+  Future<void> swapStrike({
+    required String tournamentId,
+    required String matchId,
+    required int inningsNumber,
+    required Innings innings,
+  }) async {
+    if (innings.strikerId == null || innings.nonStrikerId == null) return;
+    await _innRef(tournamentId, matchId, inningsNumber).update({
+      'strikerId': innings.nonStrikerId,
+      'strikerName': innings.nonStrikerName,
+      'nonStrikerId': innings.strikerId,
+      'nonStrikerName': innings.strikerName,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Map<String, int> _computeMaidens(List<BallEvent> balls) {
     final overs = <String, List<BallEvent>>{};
     int legal = 0;
