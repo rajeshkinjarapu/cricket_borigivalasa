@@ -329,7 +329,7 @@ class _TournamentList extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          t.venue ?? 'Borigivalasa Cricket Ground',
+                          t.venue ?? 'Chintathota Cricket Ground',
                           style: const TextStyle(
                             color: Color(0xFF64748B),
                             fontSize: 12.5,

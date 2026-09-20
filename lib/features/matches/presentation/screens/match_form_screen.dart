@@ -36,7 +36,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
   final _teamBNameController = TextEditingController();
 
   final _oversController = TextEditingController(text: '20');
-  final _venueController = TextEditingController(text: 'Borigivalasa Cricket Ground');
+  final _venueController = TextEditingController(text: 'Chintathota Cricket Ground');
   DateTime _matchDate = DateTime.now();
 
   bool _isSaving = false;

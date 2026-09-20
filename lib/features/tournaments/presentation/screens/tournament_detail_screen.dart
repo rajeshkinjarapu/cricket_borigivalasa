@@ -386,7 +386,7 @@ class _TournamentDetailScreenState extends ConsumerState<TournamentDetailScreen>
                                 icon: Icons.place_rounded,
                                 iconColor: const Color(0xFFDC2626),
                                 title: 'Venue',
-                                value: t.venue != null && t.venue!.isNotEmpty ? t.venue! : 'Borigivalasa Ground',
+                                value: t.venue != null && t.venue!.isNotEmpty ? t.venue! : 'Chintathota Cricket Ground',
                               ),
                               const Divider(height: 20, color: Color(0xFFF1F5F9)),
                               _InfoRow(
