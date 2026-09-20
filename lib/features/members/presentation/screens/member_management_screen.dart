@@ -62,13 +62,16 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
     }
   }
 
-  void _showAddMemberModal(BuildContext context) {
+  void _showAddModal(BuildContext context, {bool defaultToScorer = false}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => const _AddMemberModalSheet(),
+      builder: (ctx) => _AddMemberOrScorerModalSheet(
+        initialRole: defaultToScorer ? UserRole.scorer : UserRole.member,
+        initialTab: defaultToScorer ? 0 : 2,
+      ),
     );
   }
 
@@ -78,6 +81,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
     final playersAsync = ref.watch(allPlayersProvider);
     final repo = ref.read(memberRepositoryProvider);
     final currentUid = repo.currentUid;
+    final isScorerView = _selectedFilter == 'scorer';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -95,33 +99,33 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
             }
           },
         ),
-        title: const Text(
-          'Members & Scorers',
-          style: TextStyle(
+        title: Text(
+          isScorerView ? 'Official Scorers' : 'Members & Scorers',
+          style: const TextStyle(
             fontWeight: FontWeight.w800,
-            fontSize: 20,
+            fontSize: 19,
             color: Colors.white,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
-            tooltip: 'Add Member',
-            onPressed: () => _showAddMemberModal(context),
+            icon: Icon(isScorerView ? Icons.edit_note_rounded : Icons.person_add_alt_1_rounded, color: Colors.white),
+            tooltip: isScorerView ? 'Add Scorer' : 'Add Member',
+            onPressed: () => _showAddModal(context, defaultToScorer: isScorerView),
           ),
           const SizedBox(width: 8),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'fab_add_member',
-        onPressed: () => _showAddMemberModal(context),
-        backgroundColor: const Color(0xFF16A34A),
+        heroTag: 'fab_add_member_or_scorer',
+        onPressed: () => _showAddModal(context, defaultToScorer: isScorerView),
+        backgroundColor: isScorerView ? const Color(0xFF7C3AED) : const Color(0xFF16A34A),
         foregroundColor: Colors.white,
         elevation: 4,
-        icon: const Icon(Icons.person_add_rounded),
-        label: const Text(
-          'Add Member',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        icon: Icon(isScorerView ? Icons.edit_note_rounded : Icons.person_add_rounded),
+        label: Text(
+          isScorerView ? 'Add Scorer' : 'Add Member',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
       ),
       body: Column(
@@ -136,7 +140,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                 TextField(
                   onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
                   decoration: InputDecoration(
-                    hintText: 'Search members, players, or phone...',
+                    hintText: isScorerView ? 'Search scorers by name or phone...' : 'Search members, players, or phone...',
                     hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
                     prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20),
                     suffixIcon: _searchQuery.isNotEmpty
@@ -301,30 +305,46 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.people_outline_rounded,
-                                size: 48, color: Color(0xFF94A3B8)),
+                            child: Icon(
+                              isScorerView ? Icons.edit_note_rounded : Icons.people_outline_rounded,
+                              size: 48,
+                              color: isScorerView ? const Color(0xFF7C3AED) : const Color(0xFF94A3B8),
+                            ),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            _searchQuery.isNotEmpty
-                                ? 'No members found matching "$_searchQuery"'
-                                : 'No members or players found.',
+                            isScorerView
+                                ? 'No Official Scorers appointed yet.'
+                                : (_searchQuery.isNotEmpty
+                                    ? 'No members found matching "$_searchQuery"'
+                                    : 'No members or players found.'),
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Color(0xFF64748B),
                               fontSize: 15,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 8),
+                          if (isScorerView)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 24),
+                              child: Text(
+                                'Appoint scorers from players, members, or register new ones. Scorers can create matches and score live.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12.5),
+                              ),
+                            ),
+                          const SizedBox(height: 16),
                           ElevatedButton.icon(
-                            onPressed: () => _showAddMemberModal(context),
-                            icon: const Icon(Icons.person_add_rounded, size: 16),
-                            label: const Text('Add New Member'),
+                            onPressed: () => _showAddModal(context, defaultToScorer: isScorerView),
+                            icon: Icon(isScorerView ? Icons.edit_note_rounded : Icons.person_add_rounded, size: 18),
+                            label: Text(isScorerView ? 'Appoint / Add Scorer' : 'Add New Member'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF16A34A),
+                              backgroundColor: isScorerView ? const Color(0xFF7C3AED) : const Color(0xFF16A34A),
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
                         ],
@@ -756,28 +776,49 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Add Member / Scorer Modal Sheet
+// Add / Appoint Member or Scorer Modal Sheet (3 Tabs: Players, Members, Register New)
 // ─────────────────────────────────────────────────────────────────────────────
-class _AddMemberModalSheet extends ConsumerStatefulWidget {
-  const _AddMemberModalSheet();
+class _AddMemberOrScorerModalSheet extends ConsumerStatefulWidget {
+  const _AddMemberOrScorerModalSheet({
+    this.initialRole = UserRole.scorer,
+    this.initialTab = 0,
+  });
+
+  final UserRole initialRole;
+  final int initialTab;
 
   @override
-  ConsumerState<_AddMemberModalSheet> createState() => _AddMemberModalSheetState();
+  ConsumerState<_AddMemberOrScorerModalSheet> createState() => _AddMemberOrScorerModalSheetState();
 }
 
-class _AddMemberModalSheetState extends ConsumerState<_AddMemberModalSheet> {
+class _AddMemberOrScorerModalSheetState extends ConsumerState<_AddMemberOrScorerModalSheet>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  // Tab 1 & 2 search queries
+  String _playerSearch = '';
+  String _memberSearch = '';
+
+  // Tab 3 form state
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-
-  UserRole _selectedRole = UserRole.member;
+  late UserRole _selectedRole;
   bool _alsoCreatePlayer = true;
   PlayerRole _playerRole = PlayerRole.allRounder;
   String? _photoBase64;
   bool _isSaving = false;
 
   @override
+  void initState() {
+    super.initState();
+    _selectedRole = widget.initialRole;
+    _tabController = TabController(length: 3, vsync: this, initialIndex: widget.initialTab);
+  }
+
+  @override
   void dispose() {
+    _tabController.dispose();
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
     super.dispose();
@@ -804,7 +845,7 @@ class _AddMemberModalSheetState extends ConsumerState<_AddMemberModalSheet> {
     }
   }
 
-  Future<void> _submit() async {
+  Future<void> _submitNewRegistration() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
@@ -812,7 +853,6 @@ class _AddMemberModalSheetState extends ConsumerState<_AddMemberModalSheet> {
       final name = _nameCtrl.text.trim();
       final phone = _phoneCtrl.text.trim();
 
-      // 1. Create member in Auth + Firestore
       final createdUid = await ref.read(memberRepositoryProvider).createMember(
         name: name,
         phoneNumber: phone,
@@ -820,7 +860,6 @@ class _AddMemberModalSheetState extends ConsumerState<_AddMemberModalSheet> {
         photoUrl: _photoBase64,
       );
 
-      // 2. Optionally create player profile in club pool
       if (_alsoCreatePlayer) {
         final newPlayer = Player(
           id: createdUid ?? '',
@@ -838,7 +877,7 @@ class _AddMemberModalSheetState extends ConsumerState<_AddMemberModalSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Member $name added successfully!'),
+            content: Text('${_selectedRole == UserRole.scorer ? "Scorer" : "Member"} $name registered successfully!'),
             backgroundColor: const Color(0xFF16A34A),
           ),
         );
@@ -847,7 +886,7 @@ class _AddMemberModalSheetState extends ConsumerState<_AddMemberModalSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add member: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -857,25 +896,18 @@ class _AddMemberModalSheetState extends ConsumerState<_AddMemberModalSheet> {
 
   @override
   Widget build(BuildContext context) {
-    ImageProvider? photoPreview;
-    if (_photoBase64 != null) {
-      try {
-        final base64String = _photoBase64!.contains(',')
-            ? _photoBase64!.split(',').last
-            : _photoBase64!;
-        photoPreview = MemoryImage(base64Decode(base64String));
-      } catch (_) {}
-    }
+    final allPlayersAsync = ref.watch(allPlayersProvider);
+    final allMembersAsync = ref.watch(memberListProvider);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.88,
+      height: MediaQuery.of(context).size.height * 0.90,
       decoration: const BoxDecoration(
         color: Color(0xFFF8FAFC),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
-          // Drag Handle & Header
+          // Drag Handle
           const SizedBox(height: 12),
           Container(
             width: 44,
@@ -887,6 +919,7 @@ class _AddMemberModalSheetState extends ConsumerState<_AddMemberModalSheet> {
           ),
           const SizedBox(height: 12),
 
+          // Header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -896,7 +929,7 @@ class _AddMemberModalSheetState extends ConsumerState<_AddMemberModalSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Add New Member / Scorer',
+                        'Appoint / Add Scorer & Member',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -904,9 +937,9 @@ class _AddMemberModalSheetState extends ConsumerState<_AddMemberModalSheet> {
                         ),
                       ),
                       Text(
-                        'Register a new app user or official scorer',
+                        'Select from existing players, members, or register a new one',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                           color: Color(0xFF64748B),
                         ),
@@ -921,220 +954,56 @@ class _AddMemberModalSheetState extends ConsumerState<_AddMemberModalSheet> {
               ],
             ),
           ),
-          const Divider(height: 16),
+          const SizedBox(height: 10),
 
-          Expanded(
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-                children: [
-                  // Photo Picker
-                  Center(
-                    child: Stack(
-                      children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE2E8F0),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFF1E3A8A), width: 2),
-                            image: photoPreview != null
-                                ? DecorationImage(image: photoPreview, fit: BoxFit.cover)
-                                : null,
-                          ),
-                          child: photoPreview == null
-                              ? const Icon(Icons.person_outline_rounded, size: 40, color: Color(0xFF94A3B8))
-                              : null,
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: InkWell(
-                            onTap: _pickPhoto,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF1E3A8A),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Full Name
-                  TextFormField(
-                    controller: _nameCtrl,
-                    decoration: InputDecoration(
-                      labelText: 'Member Full Name *',
-                      hintText: 'e.g. Suresh Kumar',
-                      prefixIcon: const Icon(Icons.person_rounded, size: 20),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Please enter member name' : null,
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Mobile Number
-                  TextFormField(
-                    controller: _phoneCtrl,
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(
-                      labelText: 'Mobile Number *',
-                      hintText: 'e.g. 9876543210',
-                      prefixIcon: const Icon(Icons.phone_android_rounded, size: 20),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Please enter mobile number';
-                      if (v.trim().length < 5) return 'Please enter a valid mobile number';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFBFDBFE)),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.info_outline, size: 16, color: Color(0xFF2563EB)),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Automatic Login: User ID & Password will both be set to this Mobile Number.',
-                            style: TextStyle(fontSize: 11.5, color: Color(0xFF1E40AF), fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Role Selection
-                  const Text(
-                    'Select User Role *',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155)),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildRoleSelectTile(
-                          title: '🏏 Member',
-                          subtitle: 'View Matches & Stats',
-                          role: UserRole.member,
-                          selectedColor: const Color(0xFF2563EB),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildRoleSelectTile(
-                          title: '✍️ Scorer',
-                          subtitle: 'Create & Live Score',
-                          role: UserRole.scorer,
-                          selectedColor: const Color(0xFF7C3AED),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _buildRoleSelectTile(
-                    title: '👑 Administrator',
-                    subtitle: 'Full Control (Teams, Matches, Members & Scoring)',
-                    role: UserRole.admin,
-                    selectedColor: const Color(0xFFD97706),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Also create as Club Player Checkbox
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: _alsoCreatePlayer,
-                              activeColor: const Color(0xFF1E3A8A),
-                              onChanged: (val) => setState(() => _alsoCreatePlayer = val ?? true),
-                            ),
-                            const Expanded(
-                              child: Text(
-                                'Also add as Player to Club Roster',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (_alsoCreatePlayer) ...[
-                          const Divider(height: 1),
-                          const SizedBox(height: 8),
-                          const Text('Playing Role:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 6,
-                            children: PlayerRole.values.map((r) {
-                              final isSelected = _playerRole == r;
-                              return ChoiceChip(
-                                label: Text(r.label),
-                                selected: isSelected,
-                                onSelected: (s) => setState(() => _playerRole = r),
-                                selectedColor: const Color(0xFF1E3A8A).withOpacity(0.15),
-                                labelStyle: TextStyle(
-                                  color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFF475569),
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                  fontSize: 11.5,
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Submit Button
-                  SizedBox(
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: _isSaving ? null : _submit,
-                      icon: _isSaving
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Icon(Icons.check_circle_rounded),
-                      label: Text(
-                        _isSaving ? 'Creating Member...' : 'Save & Add Member',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF16A34A),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
+          // ── 3 Tabs ──
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: const Color(0xFF1E3A8A),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1E3A8A).withOpacity(0.25),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
+              labelColor: Colors.white,
+              unselectedLabelColor: const Color(0xFF475569),
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              tabs: const [
+                Tab(text: 'From Players'),
+                Tab(text: 'From Members'),
+                Tab(text: 'Register New'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // ── Tab Bar Views ──
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // ── TAB 1: From Existing Players ──
+                _buildPlayersTab(allPlayersAsync),
+
+                // ── TAB 2: From Existing Members ──
+                _buildMembersTab(allMembersAsync),
+
+                // ── TAB 3: Register New Scorer / Member Form ──
+                _buildRegisterNewTab(),
+              ],
             ),
           ),
         ],
@@ -1142,58 +1011,395 @@ class _AddMemberModalSheetState extends ConsumerState<_AddMemberModalSheet> {
     );
   }
 
-  Widget _buildRoleSelectTile({
-    required String title,
-    required String subtitle,
-    required UserRole role,
-    required Color selectedColor,
-  }) {
-    final isSelected = _selectedRole == role;
+  // ── Tab 1: Select Player to make Scorer ──
+  Widget _buildPlayersTab(AsyncValue<List<Player>> playersAsync) {
+    return playersAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF1E3A8A))),
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (players) {
+        final filtered = players.where((p) {
+          if (_playerSearch.isEmpty) return true;
+          return p.name.toLowerCase().contains(_playerSearch.toLowerCase()) ||
+              (p.phoneNumber ?? '').contains(_playerSearch);
+        }).toList();
 
-    return InkWell(
-      onTap: () => setState(() => _selectedRole = role),
-      borderRadius: BorderRadius.circular(12),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? selectedColor.withOpacity(0.08) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? selectedColor : const Color(0xFFE2E8F0),
-            width: isSelected ? 1.8 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return Column(
           children: [
-            Row(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: TextField(
+                onChanged: (val) => setState(() => _playerSearch = val.trim()),
+                decoration: InputDecoration(
+                  hintText: 'Search club players by name or phone...',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            Expanded(
+              child: filtered.isEmpty
+                  ? const Center(child: Text('No players found.', style: TextStyle(color: Color(0xFF64748B))))
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      itemCount: filtered.length,
+                      itemBuilder: (ctx, i) {
+                        final p = filtered[i];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFFEFF6FF),
+                              child: Text(
+                                p.name.isNotEmpty ? p.name[0].toUpperCase() : 'P',
+                                style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            subtitle: Text(
+                              '${p.role.label} • 📞 ${p.phoneNumber ?? "No phone"}',
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            ),
+                            trailing: ElevatedButton.icon(
+                              onPressed: () async {
+                                await ref.read(memberRepositoryProvider).createMember(
+                                  name: p.name,
+                                  phoneNumber: p.phoneNumber ?? p.name,
+                                  role: UserRole.scorer,
+                                  photoUrl: p.profilePicUrl,
+                                );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('${p.name} is now an Official Scorer!'),
+                                      backgroundColor: const Color(0xFF7C3AED),
+                                    ),
+                                  );
+                                  Navigator.pop(context);
+                                }
+                              },
+                              icon: const Icon(Icons.edit_note_rounded, size: 16),
+                              label: const Text('Make Scorer'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF7C3AED),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ── Tab 2: Select Member to make Scorer ──
+  Widget _buildMembersTab(AsyncValue<List<AppUser>> membersAsync) {
+    return membersAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF1E3A8A))),
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (members) {
+        final filtered = members.where((m) {
+          if (_memberSearch.isEmpty) return true;
+          return m.displayName.toLowerCase().contains(_memberSearch.toLowerCase()) ||
+              m.email.toLowerCase().contains(_memberSearch.toLowerCase());
+        }).toList();
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: TextField(
+                onChanged: (val) => setState(() => _memberSearch = val.trim()),
+                decoration: InputDecoration(
+                  hintText: 'Search registered members...',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            Expanded(
+              child: filtered.isEmpty
+                  ? const Center(child: Text('No members found.', style: TextStyle(color: Color(0xFF64748B))))
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      itemCount: filtered.length,
+                      itemBuilder: (ctx, i) {
+                        final m = filtered[i];
+                        final isAlreadyScorer = m.role == UserRole.scorer;
+
+                        String displayContact = m.email;
+                        if (m.email.endsWith('@member.cricket.com')) {
+                          displayContact = m.email.replaceAll('@member.cricket.com', '');
+                        }
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFFF3E8FF),
+                              child: Text(
+                                m.displayName.isNotEmpty ? m.displayName[0].toUpperCase() : 'M',
+                                style: const TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            title: Text(m.displayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            subtitle: Text(
+                              'Role: ${m.role.name.toUpperCase()} • $displayContact',
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            ),
+                            trailing: isAlreadyScorer
+                                ? Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEDE9FE),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text('Already Scorer', style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.bold, fontSize: 11)),
+                                  )
+                                : ElevatedButton.icon(
+                                    onPressed: () async {
+                                      await ref.read(memberRepositoryProvider).updateRole(m.uid, UserRole.scorer);
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('${m.displayName} is now an Official Scorer!'),
+                                            backgroundColor: const Color(0xFF7C3AED),
+                                          ),
+                                        );
+                                        Navigator.pop(context);
+                                      }
+                                    },
+                                    icon: const Icon(Icons.edit_note_rounded, size: 16),
+                                    label: const Text('Make Scorer'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF7C3AED),
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ── Tab 3: Register New User / Scorer Form ──
+  Widget _buildRegisterNewTab() {
+    ImageProvider? photoPreview;
+    if (_photoBase64 != null) {
+      try {
+        final base64String = _photoBase64!.contains(',')
+            ? _photoBase64!.split(',').last
+            : _photoBase64!;
+        photoPreview = MemoryImage(base64Decode(base64String));
+      } catch (_) {}
+    }
+
+    return Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        children: [
+          // Photo Picker
+          Center(
+            child: Stack(
               children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13.5,
-                      color: isSelected ? selectedColor : const Color(0xFF0F172A),
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF1E3A8A), width: 2),
+                    image: photoPreview != null
+                        ? DecorationImage(image: photoPreview, fit: BoxFit.cover)
+                        : null,
+                  ),
+                  child: photoPreview == null
+                      ? const Icon(Icons.person_outline_rounded, size: 36, color: Color(0xFF94A3B8))
+                      : null,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: InkWell(
+                    onTap: _pickPhoto,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF1E3A8A),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 13),
                     ),
                   ),
                 ),
-                if (isSelected)
-                  Icon(Icons.check_circle_rounded, color: selectedColor, size: 16),
               ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 11,
-                color: isSelected ? selectedColor.withOpacity(0.8) : const Color(0xFF64748B),
-                fontWeight: FontWeight.w500,
+          ),
+          const SizedBox(height: 14),
+
+          // Name
+          TextFormField(
+            controller: _nameCtrl,
+            decoration: InputDecoration(
+              labelText: 'Full Name *',
+              hintText: 'e.g. Suresh Kumar',
+              prefixIcon: const Icon(Icons.person_rounded, size: 20),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            validator: (v) => v == null || v.trim().isEmpty ? 'Please enter name' : null,
+          ),
+          const SizedBox(height: 12),
+
+          // Phone Number
+          TextFormField(
+            controller: _phoneCtrl,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: 'Mobile Number *',
+              hintText: 'e.g. 9876543210',
+              prefixIcon: const Icon(Icons.phone_android_rounded, size: 20),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Please enter mobile number';
+              if (v.trim().length < 5) return 'Please enter a valid mobile number';
+              return null;
+            },
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline, size: 14, color: Color(0xFF2563EB)),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Auto-Login: User ID & Password will both be set to this Mobile Number.',
+                    style: TextStyle(fontSize: 11, color: Color(0xFF1E40AF), fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Role selection
+          const Text('Assign Role *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: ChoiceChip(
+                  label: const Center(child: Text('✍️ Official Scorer')),
+                  selected: _selectedRole == UserRole.scorer,
+                  onSelected: (s) => setState(() => _selectedRole = UserRole.scorer),
+                  selectedColor: const Color(0xFF7C3AED).withOpacity(0.15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ChoiceChip(
+                  label: const Center(child: Text('🏏 Member')),
+                  selected: _selectedRole == UserRole.member,
+                  onSelected: (s) => setState(() => _selectedRole = UserRole.member),
+                  selectedColor: const Color(0xFF2563EB).withOpacity(0.15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Also create as Player
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                Checkbox(
+                  value: _alsoCreatePlayer,
+                  activeColor: const Color(0xFF1E3A8A),
+                  onChanged: (val) => setState(() => _alsoCreatePlayer = val ?? true),
+                ),
+                const Expanded(
+                  child: Text(
+                    'Also add to Club Players roster',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Submit
+          SizedBox(
+            height: 46,
+            child: ElevatedButton.icon(
+              onPressed: _isSaving ? null : _submitNewRegistration,
+              icon: _isSaving
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Icon(Icons.check_circle_rounded),
+              label: Text(
+                _isSaving ? 'Registering...' : 'Register & Assign Role',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _selectedRole == UserRole.scorer ? const Color(0xFF7C3AED) : const Color(0xFF16A34A),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
