@@ -100,6 +100,7 @@ class _LiveScorerEngine extends ConsumerStatefulWidget {
 
 class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   bool _isProcessing = false;
+  int? _promptedOverNumber;
   InningsKey get _k => (tournamentId: widget.tournamentId, matchId: widget.matchId, innings: widget.innings.inningsNumber);
 
   Future<void> _recordBall(BallEvent ball) async {
@@ -128,7 +129,10 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
 
   Future<void> _undoLastBall() async {
     if (_isProcessing) return;
-    setState(() => _isProcessing = true);
+    setState(() {
+      _isProcessing = true;
+      _promptedOverNumber = null;
+    });
     try {
       await ref.read(scoringRepositoryProvider).undoLastBall(
         tournamentId: widget.tournamentId,
@@ -255,19 +259,22 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     }
   }
 
-  Future<void> _handleOverCompletion() async {
+  Future<void> _handleOverCompletion(Innings live) async {
     final maxOvers = ref.read(maxOversProvider(widget.tournamentId));
-    final inn = widget.innings;
-    if (inn.legalBalls >= maxOvers * 6 || inn.legalBalls == 0 || inn.legalBalls % 6 != 0) return;
+    if (live.legalBalls >= maxOvers * 6 || live.legalBalls == 0 || live.legalBalls % 6 != 0) return;
 
-    final players = ref.read(teamPlayersProvider(inn.bowlingTeamId)).value ?? [];
+    final completedOver = live.legalBalls ~/ 6;
+    if (_promptedOverNumber == completedOver) return;
+    _promptedOverNumber = completedOver;
+
+    final players = ref.read(teamPlayersProvider(live.bowlingTeamId)).value ?? [];
     if (players.isEmpty) return;
 
     final b = await showOverEndSheet(
       context,
-      completedOver: inn.legalBalls ~/ 6,
+      completedOver: completedOver,
       bowlingTeamPlayers: players,
-      excludeBowlerId: inn.currentBowlerId,
+      excludeBowlerId: live.currentBowlerId,
     );
 
     if (b == null) return;
@@ -275,7 +282,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     await ref.read(scoringRepositoryProvider).setCurrentBowler(
       tournamentId: widget.tournamentId,
       matchId: widget.matchId,
-      inningsNumber: inn.inningsNumber,
+      inningsNumber: live.inningsNumber,
       bowler: b,
     );
   }
@@ -318,6 +325,47 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
       newBatsmanName: r.newBatsmanName,
       timestamp: DateTime.now(),
     ));
+  }
+
+  Future<int?> _customRuns() async {
+    final opts = [0, 1, 2, 3, 4, 5, 6, 7];
+    return showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Select Batsman Runs',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: opts.map((r) => SizedBox(
+                width: 68,
+                height: 68,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, r),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E3A8A),
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Text('$r', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                ),
+              )).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _runs(int r) async {
@@ -433,9 +481,9 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     ))).value;
 
     final overEnd = live.legalBalls > 0 && live.legalBalls % 6 == 0 && live.legalBalls < maxOvers * 6 && !live.isComplete;
-    if (overEnd) {
+    if (overEnd && _promptedOverNumber != (live.legalBalls ~/ 6)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _handleOverCompletion();
+        if (mounted) _handleOverCompletion(live);
       });
     }
 
@@ -470,11 +518,11 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
           children: [
             const Text(
               'Live Scoring Console',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.5, color: Colors.white),
+              style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800, color: Colors.white),
             ),
             Text(
-              '${match?.teamA ?? ''} vs ${match?.teamB ?? ''} • Innings ${live.inningsNumber}',
-              style: const TextStyle(fontSize: 11.5, color: Colors.white70, fontWeight: FontWeight.w500),
+              '${live.battingTeamName} vs ${live.bowlingTeamName} • Innings ${live.inningsNumber}',
+              style: const TextStyle(fontSize: 11, color: Color(0xFF93C5FD), fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -581,21 +629,21 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    live.battingTeamName.toUpperCase(),
+                    live.battingTeamName,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 15,
+                      fontSize: 17,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 0.8,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF334155),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.white12),
                 ),
                 child: Text(
@@ -667,28 +715,27 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
 
           // Match Situation Row (Target / CRR / RRR / Extras)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.25),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildScoreStatItem('CRR', crr.toStringAsFixed(2), color: const Color(0xFF60A5FA)),
+                Expanded(child: _buildScoreStatItem('CRR', crr.toStringAsFixed(2), color: const Color(0xFF60A5FA))),
                 if (target != null && runsNeeded != null) ...[
                   Container(width: 1, height: 20, color: Colors.white12),
-                  _buildScoreStatItem('NEED', '$runsNeeded off $ballsRemaining b', color: const Color(0xFFFDE68A)),
+                  Expanded(child: _buildScoreStatItem('NEED', '$runsNeeded off $ballsRemaining b', color: const Color(0xFFFDE68A))),
                   if (rrr != null) ...[
                     Container(width: 1, height: 20, color: Colors.white12),
-                    _buildScoreStatItem('RRR', rrr.toStringAsFixed(2), color: const Color(0xFFF87171)),
+                    Expanded(child: _buildScoreStatItem('RRR', rrr.toStringAsFixed(2), color: const Color(0xFFF87171))),
                   ],
                 ] else ...[
                   Container(width: 1, height: 20, color: Colors.white12),
-                  _buildScoreStatItem('PROJ', '$projectedScore', color: const Color(0xFF34D399)),
+                  Expanded(child: _buildScoreStatItem('PROJ', '$projectedScore', color: const Color(0xFF34D399))),
                 ],
                 Container(width: 1, height: 20, color: Colors.white12),
-                _buildScoreStatItem('EXTRAS', '$totalExtras (w$live.wides n$live.noballs)', color: const Color(0xFFCBD5E1)),
+                Expanded(child: _buildScoreStatItem('EXTRAS', '$totalExtras (w${live.wides} nb${live.noballs})', color: const Color(0xFFCBD5E1))),
               ],
             ),
           ),
@@ -701,9 +748,9 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8), letterSpacing: 0.5)),
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8), letterSpacing: 0.5)),
         const SizedBox(height: 2),
-        Text(val, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: color)),
+        Text(val, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: color)),
       ],
     );
   }
