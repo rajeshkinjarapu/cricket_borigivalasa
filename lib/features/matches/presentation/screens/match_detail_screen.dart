@@ -60,7 +60,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
       if (ok) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Toss recorded! Please select Playing Squads.'),
+            content: Text('Toss recorded! Proceed to select playing squads.'),
             backgroundColor: Color(0xFF16A34A),
           ),
         );
@@ -73,7 +73,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     final confirmed = await showConfirmDialog(
       context,
       title: 'Delete Match?',
-      message: 'Are you sure you want to permanently delete this match (${match.teamA} vs ${match.teamB})? All scoring data for this match will be lost.',
+      message: 'Are you sure you want to permanently delete this match (${match.teamA} vs ${match.teamB})? All match data will be lost.',
       confirmLabel: 'Delete Match',
       destructive: true,
     );
@@ -115,28 +115,47 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
 
     return matchAsync.when(
       loading: () => const Scaffold(
-        backgroundColor: Color(0xFFF1F5F9),
+        backgroundColor: Color(0xFFF8FAFC),
         body: Center(
           child: CircularProgressIndicator(color: Color(0xFF1E3A8A)),
         ),
       ),
       error: (e, _) => Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
           backgroundColor: const Color(0xFF1E3A8A),
           foregroundColor: Colors.white,
           title: const Text('Match Error'),
         ),
-        body: Center(child: Text('Error loading match: $e')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 48),
+                const SizedBox(height: 12),
+                Text('Error loading match: $e', textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF64748B))),
+              ],
+            ),
+          ),
+        ),
       ),
       data: (match) {
         if (match == null) {
           return Scaffold(
+            backgroundColor: const Color(0xFFF8FAFC),
             appBar: AppBar(
               backgroundColor: const Color(0xFF1E3A8A),
               foregroundColor: Colors.white,
               title: const Text('Match Not Found'),
             ),
-            body: const Center(child: Text('Match not found or has been deleted.')),
+            body: const Center(
+              child: Text(
+                'Match not found or has been deleted.',
+                style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+              ),
+            ),
           );
         }
 
@@ -149,7 +168,6 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
         final teamBPlayersAsync = ref.watch(teamPlayersProvider(match.teamBId));
         final teamAPlayers = teamAPlayersAsync.value ?? [];
         final teamBPlayers = teamBPlayersAsync.value ?? [];
-        final hasEnoughPlayers = teamAPlayers.length >= 2 && teamBPlayers.length >= 2;
 
         final isTossDone = match.hasToss;
         final tossWinnerName = match.tossWinnerId == match.teamAId ? match.teamA : match.teamB;
@@ -227,60 +245,57 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // ── HERO VS BANNER WITH TEAM PHOTOS & PLAYER COUNTS ──
+                      // ── 1. HERO VS STADIUM CARD ──
                       _buildVsHeroCard(context, match, teamA, teamB, teamAPlayers.length, teamBPlayers.length),
                       const SizedBox(height: 16),
 
-                      // ── SCHEDULED MATCH STATE (TOSS SETUP) ──
+                      // ── 2. SCHEDULED MATCH STATE (TOSS + SQUAD SELECTION) ──
                       if (match.status == MatchStatus.scheduled) ...[
-                        if (!isTossDone && canScore)
-                          _buildTossSetupCard(context, match, teamAPlayers.length, teamBPlayers.length),
+                        if (!isTossDone && canScore) ...[
+                          _buildTossSetupCard(context, match),
+                          const SizedBox(height: 14),
+                        ],
                         if (isTossDone) ...[
                           _buildTossRecordedCard(context, match, tossWinnerName, battingFirstTeam),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
+
+                          // ── GREEN PROMINENT SELECT SQUADS BUTTON ──
                           ElevatedButton.icon(
                             onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads'),
-                            icon: const Icon(Icons.groups_rounded, size: 20),
+                            icon: const Icon(Icons.how_to_reg_rounded, size: 22),
                             label: const Text(
                               'SELECT SQUADS (TEAM A & B)',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                             style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              backgroundColor: const Color(0xFF1E3A8A),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              backgroundColor: const Color(0xFF16A34A), // Emerald Green
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 3,
+                              shadowColor: const Color(0xFF16A34A).withOpacity(0.4),
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          if (canScore)
-                            ElevatedButton.icon(
-                              onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring'),
-                              icon: const Icon(Icons.play_circle_fill_rounded, size: 22),
-                              label: const Text(
-                                'START SCORING NOW',
-                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                backgroundColor: const Color(0xFF16A34A),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                elevation: 3,
-                              ),
-                            ),
+                          const SizedBox(height: 14),
                         ],
                       ],
 
-                      // ── LIVE MATCH STATE ──
+                      // ── 3. LIVE MATCH STATE ──
                       if (match.status == MatchStatus.live) ...[
                         _buildLiveStatusBanner(),
                         const SizedBox(height: 14),
-                        if (canScore)
+                        if (canScore) ...[
                           ElevatedButton.icon(
                             onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring'),
                             icon: const Icon(Icons.edit_note_rounded, size: 24),
-                            label: const Text('OPEN LIVE SCORER CONSOLE', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5)),
+                            label: const Text(
+                              'OPEN LIVE SCORER CONSOLE',
+                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14.5, letterSpacing: 0.5),
+                            ),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               backgroundColor: const Color(0xFFEA580C),
@@ -289,11 +304,15 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                               elevation: 3,
                             ),
                           ),
-                        const SizedBox(height: 10),
+                          const SizedBox(height: 10),
+                        ],
                         ElevatedButton.icon(
                           onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/live'),
                           icon: const Icon(Icons.stream_rounded, size: 22),
-                          label: const Text('WATCH LIVE SCORES & STREAM', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5)),
+                          label: const Text(
+                            'WATCH LIVE SCORES & STREAM',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5),
+                          ),
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             backgroundColor: const Color(0xFF1E3A8A),
@@ -302,36 +321,24 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                             elevation: 2,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildActionOutlineButton(
-                                icon: Icons.scoreboard_outlined,
-                                label: 'Scorecard',
-                                onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scorecard'),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _buildActionOutlineButton(
-                                icon: Icons.bar_chart_rounded,
-                                label: 'Match Charts',
-                                onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/charts'),
-                              ),
-                            ),
-                          ],
-                        ),
+                        const SizedBox(height: 14),
                       ],
 
-                      // ── COMPLETED MATCH STATE ──
+                      // ── 4. COMPLETED MATCH STATE ──
                       if (match.status == MatchStatus.completed) ...[
                         Container(
                           padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFEF3C7),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFFDE68A)),
+                            border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.4)),
+                            boxShadow: [
+                              BoxShadow(color: const Color(0xFFD97706).withOpacity(0.12), blurRadius: 10, offset: const Offset(0, 4)),
+                            ],
                           ),
                           child: Column(
                             children: [
@@ -361,27 +368,16 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildActionOutlineButton(
-                                icon: Icons.scoreboard_outlined,
-                                label: 'Full Scorecard',
-                                onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scorecard'),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _buildActionOutlineButton(
-                                icon: Icons.bar_chart_rounded,
-                                label: 'Match Charts',
-                                onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/charts'),
-                              ),
-                            ),
-                          ],
-                        ),
+                        const SizedBox(height: 14),
                       ],
+
+                      // ── 5. QUICK NAVIGATION ACTION TILES ──
+                      _buildQuickNavSection(context, match),
+                      const SizedBox(height: 16),
+
+                      // ── 6. MATCH INFO & DETAILS CARD ──
+                      _buildMatchInfoCard(match),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -404,13 +400,17 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E3A8A), // Clean Royal Blue
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E3A8A), Color(0xFF1E293B)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1E3A8A).withOpacity(0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: const Color(0xFF1E3A8A).withOpacity(0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -460,7 +460,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                         color: Colors.white,
                         border: Border.all(color: Colors.white, width: 2.5),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3)),
+                          BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3)),
                         ],
                         image: imageProviderA != null ? DecorationImage(image: imageProviderA, fit: BoxFit.cover) : null,
                       ),
@@ -536,7 +536,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                         color: Colors.white,
                         border: Border.all(color: Colors.white, width: 2.5),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3)),
+                          BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3)),
                         ],
                         image: imageProviderB != null ? DecorationImage(image: imageProviderB, fit: BoxFit.cover) : null,
                       ),
@@ -629,7 +629,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
   }
 
   // ── TOSS SETUP CARD ──
-  Widget _buildTossSetupCard(BuildContext context, Match match, int countA, int countB) {
+  Widget _buildTossSetupCard(BuildContext context, Match match) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -727,7 +727,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
                 : const Text(
-                    'Save Toss Result',
+                    'Save Toss & Select Squads ➔',
                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                   ),
           ),
@@ -772,6 +772,199 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     );
   }
 
+  // ── QUICK NAVIGATION GRID ──
+  Widget _buildQuickNavSection(BuildContext context, Match match) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'MATCH CENTER',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF64748B),
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _buildNavTile(
+                icon: Icons.groups_rounded,
+                title: 'Playing Squads',
+                subtitle: 'View & Edit Teams',
+                color: const Color(0xFF3B82F6),
+                onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildNavTile(
+                icon: Icons.scoreboard_outlined,
+                title: 'Scorecard',
+                subtitle: 'Full Inning Details',
+                color: const Color(0xFF10B981),
+                onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scorecard'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _buildNavTile(
+                icon: Icons.bar_chart_rounded,
+                title: 'Match Charts',
+                subtitle: 'Manhattan & Run Rate',
+                color: const Color(0xFF8B5CF6),
+                onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/charts'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildNavTile(
+                icon: Icons.stream_rounded,
+                title: 'Live Center',
+                subtitle: 'Spectator View',
+                color: const Color(0xFFF59E0B),
+                onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/live'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNavTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0F172A)),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── MATCH DETAILS & OFFICIALS INFO CARD ──
+  Widget _buildMatchInfoCard(Match match) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF1E3A8A)),
+              SizedBox(width: 6),
+              Text(
+                'Match Information',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 12),
+          _buildInfoRow('Venue', match.venue.isNotEmpty ? match.venue : 'Cricket Ground'),
+          _buildInfoRow('Overs', '${match.totalOvers} Overs per side'),
+          _buildInfoRow('Match Date', DateFormat('dd MMMM yyyy, hh:mm a').format(match.matchDate)),
+          _buildInfoRow('Status', match.status.label),
+          if (match.hasToss)
+            _buildInfoRow(
+              'Toss',
+              '${match.tossWinnerId == match.teamAId ? match.teamA : match.teamB} (Elected to ${match.tossDecision?.label.toLowerCase()})',
+            ),
+          if (match.resultText != null && match.resultText!.isNotEmpty)
+            _buildInfoRow('Result', match.resultText!),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5, color: Color(0xFF64748B)),
+            ),
+          ),
+          const Text(' :  ', style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w700)),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFF1E293B)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── LIVE STATUS BANNER ──
   Widget _buildLiveStatusBanner() {
     return Container(
@@ -800,32 +993,6 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ── OUTLINE ACTION BUTTON ──
-  Widget _buildActionOutlineButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 18, color: const Color(0xFF1E3A8A)),
-      label: Text(
-        label,
-        style: const TextStyle(
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF1E3A8A),
-          fontSize: 13,
-        ),
-      ),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        backgroundColor: Colors.white,
-        side: const BorderSide(color: Color(0xFFCBD5E1)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -859,3 +1026,4 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     );
   }
 }
+
