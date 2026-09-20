@@ -17,11 +17,11 @@ class StatsOverviewScreen extends ConsumerWidget {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: const Color(0xFFF1F5F9),
         appBar: AppBar(
           title: const Text(
             'My Stats',
-            style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.3),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
           ),
           elevation: 0,
           backgroundColor: const Color(0xFF1E3A8A),
@@ -36,7 +36,7 @@ class StatsOverviewScreen extends ConsumerWidget {
         ),
         body: playerAsync.when(
           loading: () => const Center(
-            child: CircularProgressIndicator(color: Color(0xFF0F172A)),
+            child: CircularProgressIndicator(color: Color(0xFF1E3A8A)),
           ),
           error: (e, _) => Center(
             child: Padding(
@@ -75,13 +75,13 @@ class StatsOverviewScreen extends ConsumerWidget {
                   pinned: true,
                   delegate: _SliverTabBarDelegate(
                     const TabBar(
-                      labelColor: Color(0xFF0F172A),
+                      labelColor: Color(0xFF1E3A8A),
                       unselectedLabelColor: Color(0xFF64748B),
                       indicatorColor: Color(0xFF2563EB),
                       indicatorWeight: 3,
                       labelStyle: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: 13.5,
                       ),
                       tabs: [
                         Tab(icon: Icon(Icons.sports_cricket, size: 18), text: 'BATTING'),
@@ -118,50 +118,44 @@ class StatsOverviewScreen extends ConsumerWidget {
           colors: [
             Color(0xFF0F172A),
             Color(0xFF1E293B),
-            Color(0xFF0F3460),
+            Color(0xFF1E3A8A),
           ],
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
       child: Column(
         children: [
-          // Player Avatar + Name + Badges
+          // Player Avatar (Squircle) + Name + Badges
           Row(
             children: [
               Container(
+                width: 76,
+                height: 76,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFF59E0B), width: 2.5),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFF59E0B), width: 2.2),
+                  color: const Color(0xFF0F172A),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.amber.withOpacity(0.3),
-                      blurRadius: 12,
-                      spreadRadius: 2,
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
-                child: CircleAvatar(
-                  radius: 38,
-                  backgroundColor: const Color(0xFF334155),
-                  backgroundImage: player.profilePicUrl != null &&
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15.5),
+                  child: player.profilePicUrl != null &&
                           player.profilePicUrl!.isNotEmpty
-                      ? NetworkImage(player.profilePicUrl!)
-                      : null,
-                  child: player.profilePicUrl == null || player.profilePicUrl!.isEmpty
-                      ? Text(
-                          player.name.isNotEmpty
-                              ? player.name[0].toUpperCase()
-                              : 'P',
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                      ? Image.network(
+                          player.profilePicUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildAvatarFallback(player.name),
                         )
-                      : null,
+                      : _buildAvatarFallback(player.name),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,7 +166,7 @@ class StatsOverviewScreen extends ConsumerWidget {
                           child: Text(
                             player.name,
                             style: const TextStyle(
-                              fontSize: 22,
+                              fontSize: 20,
                               fontWeight: FontWeight.w900,
                               color: Colors.white,
                               letterSpacing: 0.2,
@@ -202,10 +196,10 @@ class StatsOverviewScreen extends ConsumerWidget {
                         ],
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 5),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 3),
+                          horizontal: 9, vertical: 2.5),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(20),
@@ -218,13 +212,13 @@ class StatsOverviewScreen extends ConsumerWidget {
                         player.role.label.toUpperCase(),
                         style: const TextStyle(
                           color: Color(0xFF93C5FD),
-                          fontSize: 11,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.8,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
                         _buildHeaderStylePill(
@@ -240,16 +234,16 @@ class StatsOverviewScreen extends ConsumerWidget {
             ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
-          // 4 Highlights Cards (Matches, Runs, Wickets, Points)
+          // 4 Colorful Highlights Pills (Matches, Runs, Wickets, Points)
           Row(
             children: [
               _buildTopStatCard(
                 label: 'MATCHES',
                 value: '${stats.matchesPlayed}',
                 icon: Icons.emoji_events_outlined,
-                accentColor: const Color(0xFF60A5FA),
+                accentColor: const Color(0xFF38BDF8),
               ),
               const SizedBox(width: 8),
               _buildTopStatCard(
@@ -279,16 +273,39 @@ class StatsOverviewScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildAvatarFallback(String name) {
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'P';
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 32,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeaderStylePill(IconData icon, String text) {
     if (text == 'None' || text.isEmpty) return const SizedBox.shrink();
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 12, color: Colors.white60),
+        Icon(icon, size: 11, color: Colors.white60),
         const SizedBox(width: 4),
         Text(
           text,
-          style: const TextStyle(color: Colors.white70, fontSize: 11),
+          style: const TextStyle(color: Colors.white70, fontSize: 10.5),
         ),
       ],
     );
@@ -302,35 +319,35 @@ class StatsOverviewScreen extends ConsumerWidget {
   }) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.08),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: accentColor.withOpacity(0.3),
+            color: accentColor.withOpacity(0.35),
             width: 1,
           ),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 16, color: accentColor),
-            const SizedBox(height: 6),
+            Icon(icon, size: 15, color: accentColor),
+            const SizedBox(height: 4),
             Text(
               value,
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             Text(
               label,
               style: TextStyle(
-                fontSize: 9,
+                fontSize: 8.5,
                 fontWeight: FontWeight.w700,
                 color: Colors.grey.shade400,
-                letterSpacing: 0.5,
+                letterSpacing: 0.4,
               ),
             ),
           ],
@@ -344,17 +361,17 @@ class StatsOverviewScreen extends ConsumerWidget {
     final stats = player.stats;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       children: [
         _buildSectionHeader('BATTING PERFORMANCE', Icons.sports_cricket, const Color(0xFF2563EB)),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.45,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 1.68, // Reduced height by ~2 points
           children: [
             _buildStatCard(
               title: 'Total Runs',
@@ -401,12 +418,12 @@ class StatsOverviewScreen extends ConsumerWidget {
               value: player.role.label,
               subtitle: 'Position',
               icon: Icons.badge_outlined,
-              color: const Color(0xFF475569),
+              color: const Color(0xFF6366F1),
               isTextValue: true,
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         _buildInsightCard(
           title: 'Batting Summary',
           description: stats.matchesPlayed > 0
@@ -424,17 +441,17 @@ class StatsOverviewScreen extends ConsumerWidget {
     final stats = player.stats;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       children: [
         _buildSectionHeader('BOWLING PERFORMANCE', Icons.sports_baseball, const Color(0xFFDC2626)),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.45,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 1.68, // Reduced height by ~2 points
           children: [
             _buildStatCard(
               title: 'Wickets Taken',
@@ -470,7 +487,7 @@ class StatsOverviewScreen extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         _buildInsightCard(
           title: 'Bowling Summary',
           description: stats.wicketsTaken > 0
@@ -489,14 +506,14 @@ class StatsOverviewScreen extends ConsumerWidget {
     final allRounderPoints = stats.runsScored + (stats.wicketsTaken * 20);
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       children: [
         _buildSectionHeader('CAREER OVERVIEW', Icons.military_tech_rounded, const Color(0xFF7C3AED)),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
         // Overall Impact Score Card
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xFF4338CA), Color(0xFF6366F1)],
@@ -515,36 +532,36 @@ class StatsOverviewScreen extends ConsumerWidget {
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.shield_rounded, color: Colors.white, size: 32),
+                child: const Icon(Icons.shield_rounded, color: Colors.white, size: 28),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       'All-Rounder Impact Score',
-                      style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white70, fontSize: 11.5, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       '$allRounderPoints PTS',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 26,
+                        fontSize: 24,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       'Calculated as Runs + (Wickets × 20)',
-                      style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
+                      style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 10.5),
                     ),
                   ],
                 ),
@@ -553,7 +570,7 @@ class StatsOverviewScreen extends ConsumerWidget {
           ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
 
         // Player Info Card
         Card(
@@ -563,20 +580,20 @@ class StatsOverviewScreen extends ConsumerWidget {
             side: BorderSide(color: Colors.grey.shade200),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'PLAYER ATTRIBUTES',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF64748B),
                     letterSpacing: 0.8,
                   ),
                 ),
-                const Divider(height: 20),
+                const Divider(height: 18),
                 _buildAttributeRow('Player Name', player.name),
                 _buildAttributeRow('Primary Role', player.role.label),
                 _buildAttributeRow('Batting Hand', player.battingStyle.label),
@@ -588,7 +605,7 @@ class StatsOverviewScreen extends ConsumerWidget {
           ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
 
         // Tournament Standings Button
         SizedBox(
@@ -598,12 +615,12 @@ class StatsOverviewScreen extends ConsumerWidget {
             icon: const Icon(Icons.leaderboard_rounded),
             label: const Text('View All Tournaments & Standings'),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 13),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              side: const BorderSide(color: Color(0xFF0F172A), width: 1.5),
-              foregroundColor: const Color(0xFF0F172A),
+              side: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+              foregroundColor: const Color(0xFF1E3A8A),
               textStyle: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -615,12 +632,12 @@ class StatsOverviewScreen extends ConsumerWidget {
   Widget _buildSectionHeader(String title, IconData icon, Color color) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 8),
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 7),
         Text(
           title,
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 12.5,
             fontWeight: FontWeight.w800,
             color: color,
             letterSpacing: 0.6,
@@ -630,6 +647,7 @@ class StatsOverviewScreen extends ConsumerWidget {
     );
   }
 
+  // ── Colorful & Slimmer Stat Card ──
   Widget _buildStatCard({
     required String title,
     required String value,
@@ -639,14 +657,21 @@ class StatsOverviewScreen extends ConsumerWidget {
     bool isTextValue = false,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        gradient: LinearGradient(
+          colors: [
+            color.withOpacity(0.06),
+            Colors.white,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.25), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: color.withOpacity(0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -663,21 +688,21 @@ class StatsOverviewScreen extends ConsumerWidget {
                 child: Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF64748B),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF334155),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(7),
                 ),
-                child: Icon(icon, size: 16, color: color),
+                child: Icon(icon, size: 14, color: color),
               ),
             ],
           ),
@@ -687,7 +712,7 @@ class StatsOverviewScreen extends ConsumerWidget {
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: isTextValue ? 16 : 22,
+                  fontSize: isTextValue ? 14.5 : 19,
                   fontWeight: FontWeight.w900,
                   color: const Color(0xFF0F172A),
                 ),
@@ -696,10 +721,10 @@ class StatsOverviewScreen extends ConsumerWidget {
               ),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Color(0xFF94A3B8),
-                  fontWeight: FontWeight.w500,
+                style: TextStyle(
+                  fontSize: 9.5,
+                  color: color.withOpacity(0.85),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -716,7 +741,7 @@ class StatsOverviewScreen extends ConsumerWidget {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: color.withOpacity(0.06),
         borderRadius: BorderRadius.circular(14),
@@ -725,8 +750,8 @@ class StatsOverviewScreen extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(width: 12),
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -734,18 +759,18 @@ class StatsOverviewScreen extends ConsumerWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.bold,
                     color: color,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   description,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 11.5,
                     color: Color(0xFF475569),
-                    height: 1.4,
+                    height: 1.35,
                   ),
                 ),
               ],
@@ -758,14 +783,14 @@ class StatsOverviewScreen extends ConsumerWidget {
 
   Widget _buildAttributeRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 12.5,
               color: Color(0xFF64748B),
               fontWeight: FontWeight.w500,
             ),
@@ -773,7 +798,7 @@ class StatsOverviewScreen extends ConsumerWidget {
           Text(
             value,
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: FontWeight.bold,
               color: Color(0xFF0F172A),
             ),

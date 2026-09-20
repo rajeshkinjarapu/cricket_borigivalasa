@@ -139,10 +139,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── HERO VS BANNER WITH TEAM PHOTOS & PLAYER COUNTS ──
-                _buildVsHeroCard(context, match, teamA, teamB, teamAPlayers.length, teamBPlayers.length),
-                const SizedBox(height: 16),
-
                 // ── Progress indicator ──
                 _buildXIProgressBanner(
                   teamAName: match.teamA,
