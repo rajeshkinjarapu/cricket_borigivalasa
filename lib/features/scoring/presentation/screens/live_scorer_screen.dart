@@ -1251,24 +1251,31 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 5. TACTILE ERGONOMIC SCORING KEYPAD CONSOLE
+  // 5. TACTILE ERGONOMIC SCORING KEYPAD CONSOLE (FLOATING CARD DESIGN)
   // ─────────────────────────────────────────────────────────────────────────────
   Widget _buildScoringKeypad(Innings live) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final bottomPadding = bottomInset > 0 ? bottomInset + 6 : 14.0;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+      margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+      padding: EdgeInsets.fromLTRB(10, 12, 10, bottomPadding > 14 ? bottomPadding : 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 14,
-            offset: const Offset(0, -3),
+            color: const Color(0xFF1E3A8A).withOpacity(0.12),
+            blurRadius: 18,
+            offset: const Offset(0, -4),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
-        border: Border(
-          top: BorderSide(color: const Color(0xFFE2E8F0), width: 1),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1284,7 +1291,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               _buildRunButton(6, label: '6', isSix: true),
             ],
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: 8),
 
           // Row 2: Extras & Wicket Buttons (WD, NB, BYE, LB, OUT)
           Row(
@@ -1296,7 +1303,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               _buildActionButton('OUT 🎯', _wicket, color: const Color(0xFFDC2626), isOut: true),
             ],
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: 8),
 
           // Row 3: Quick Scorer Controls (Swap Strike, Bowler, + Runs, Undo)
           Row(
@@ -1309,13 +1316,14 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                   label: const Text('STRIKE', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF1E3A8A),
+                    backgroundColor: const Color(0xFFF8FAFC),
                     side: const BorderSide(color: Color(0xFFCBD5E1)),
                     padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: 6),
               Expanded(
                 flex: 4,
                 child: OutlinedButton.icon(
@@ -1324,13 +1332,14 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                   label: const Text('BOWLER', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF1E3A8A),
+                    backgroundColor: const Color(0xFFF8FAFC),
                     side: const BorderSide(color: Color(0xFFCBD5E1)),
                     padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: 6),
               Expanded(
                 flex: 3,
                 child: OutlinedButton.icon(
@@ -1344,13 +1353,14 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                   label: const Text('+RUNS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF1E3A8A),
+                    backgroundColor: const Color(0xFFF8FAFC),
                     side: const BorderSide(color: Color(0xFFCBD5E1)),
                     padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: 6),
               Expanded(
                 flex: 4,
                 child: ElevatedButton.icon(
@@ -1362,7 +1372,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    elevation: 1,
+                    elevation: 1.5,
                   ),
                 ),
               ),
@@ -1394,8 +1404,9 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               backgroundColor: bg,
               foregroundColor: fg,
               padding: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 2.5,
+              shadowColor: bg.withOpacity(0.4),
             ),
             child: Text(
               label,
@@ -1421,7 +1432,8 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               foregroundColor: Colors.white,
               padding: EdgeInsets.zero,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              elevation: 1.5,
+              elevation: 2,
+              shadowColor: color.withOpacity(0.35),
             ),
             child: Text(
               label,
