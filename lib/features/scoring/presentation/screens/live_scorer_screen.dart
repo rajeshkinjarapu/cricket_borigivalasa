@@ -527,10 +527,32 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.scoreboard_rounded, color: Colors.white),
-            tooltip: 'View Scorecard',
-            onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scorecard'),
+          // ── PROMINENT SCORECARD BUTTON ──
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: InkWell(
+              onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scorecard'),
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white38, width: 1.2),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.scoreboard_rounded, size: 16, color: Colors.white),
+                    SizedBox(width: 5),
+                    Text(
+                      'Scorecard',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12.5),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
@@ -553,7 +575,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                 children: [
-                  // 1. ── HERO STADIUM SCOREBOARD CARD ──
+                  // 1. ── HERO STADIUM SCOREBOARD CARD (ROYAL SAPPHIRE GRADIENT) ──
                   _buildHeroScoreboardCard(live, maxOvers, totalExtras, projectedScore),
                   const SizedBox(height: 12),
 
@@ -580,7 +602,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 1. HERO SCOREBOARD CARD
+  // 1. HERO SCOREBOARD CARD (ROYAL SAPPHIRE STADIUM GRADIENT)
   // ─────────────────────────────────────────────────────────────────────────────
   Widget _buildHeroScoreboardCard(Innings live, int maxOvers, int totalExtras, int projectedScore) {
     final crr = live.runRate;
@@ -597,18 +619,19 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+          colors: [Color(0xFF1E3A8A), Color(0xFF1D4ED8), Color(0xFF0F172A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withOpacity(0.3),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
+            color: const Color(0xFF1E3A8A).withOpacity(0.38),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
           ),
         ],
+        border: Border.all(color: Colors.white.withOpacity(0.18), width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       child: Column(
@@ -622,10 +645,10 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF3B82F6).withOpacity(0.2),
+                      color: Colors.white.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.sports_cricket_rounded, color: Color(0xFF60A5FA), size: 16),
+                    child: const Icon(Icons.sports_cricket_rounded, color: Color(0xFFFDE047), size: 16),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -642,13 +665,13 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withOpacity(0.18),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white12),
+                  border: Border.all(color: Colors.white24),
                 ),
                 child: Text(
                   '${live.inningsNumber}${live.inningsNumber == 1 ? "st" : "nd"} Innings',
-                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w700),
+                  style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 11, fontWeight: FontWeight.w800),
                 ),
               ),
             ],
@@ -664,11 +687,14 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               Text(
                 '${live.runs}',
                 style: const TextStyle(
-                  fontSize: 50,
+                  fontSize: 52,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
                   height: 1.0,
                   letterSpacing: -1,
+                  shadows: [
+                    Shadow(color: Colors.black38, blurRadius: 10, offset: Offset(0, 3)),
+                  ],
                 ),
               ),
               Text(
@@ -676,23 +702,23 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                 style: const TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFFF87171), // Soft Red Wickets
+                  color: Color(0xFFFCA5A5), // Soft Scarlet Red
                   height: 1.0,
                 ),
               ),
               const SizedBox(width: 14),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white12),
+                  color: Colors.black.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white24, width: 1),
                 ),
                 child: Text(
                   '${live.oversText} / $maxOvers ov',
                   style: const TextStyle(
                     fontSize: 15,
-                    color: Color(0xFFE2E8F0),
+                    color: Color(0xFFF8FAFC),
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -706,36 +732,37 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: const Color(0xFF334155),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
-              minHeight: 4,
+              backgroundColor: Colors.white.withOpacity(0.15),
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF38BDF8)),
+              minHeight: 4.5,
             ),
           ),
           const SizedBox(height: 12),
 
-          // Match Situation Row (Target / CRR / RRR / Extras)
+          // Match Situation Glass Row (Target / CRR / RRR / Extras)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.black.withOpacity(0.22),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withOpacity(0.15)),
             ),
             child: Row(
               children: [
-                Expanded(child: _buildScoreStatItem('CRR', crr.toStringAsFixed(2), color: const Color(0xFF60A5FA))),
+                Expanded(child: _buildScoreStatItem('CRR', crr.toStringAsFixed(2), color: const Color(0xFF38BDF8))),
                 if (target != null && runsNeeded != null) ...[
                   Container(width: 1, height: 20, color: Colors.white12),
-                  Expanded(child: _buildScoreStatItem('NEED', '$runsNeeded off $ballsRemaining b', color: const Color(0xFFFDE68A))),
+                  Expanded(child: _buildScoreStatItem('NEED', '$runsNeeded off $ballsRemaining b', color: const Color(0xFFFDE047))),
                   if (rrr != null) ...[
                     Container(width: 1, height: 20, color: Colors.white12),
                     Expanded(child: _buildScoreStatItem('RRR', rrr.toStringAsFixed(2), color: const Color(0xFFF87171))),
                   ],
                 ] else ...[
                   Container(width: 1, height: 20, color: Colors.white12),
-                  Expanded(child: _buildScoreStatItem('PROJ', '$projectedScore', color: const Color(0xFF34D399))),
+                  Expanded(child: _buildScoreStatItem('PROJ', '$projectedScore', color: const Color(0xFF4ADE80))),
                 ],
                 Container(width: 1, height: 20, color: Colors.white12),
-                Expanded(child: _buildScoreStatItem('EXTRAS', '$totalExtras (w${live.wides} nb${live.noballs})', color: const Color(0xFFCBD5E1))),
+                Expanded(child: _buildScoreStatItem('EXTRAS', '$totalExtras (w${live.wides} nb${live.noballs})', color: const Color(0xFFE2E8F0))),
               ],
             ),
           ),
@@ -748,7 +775,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8), letterSpacing: 0.5)),
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFCBD5E1), letterSpacing: 0.5)),
         const SizedBox(height: 2),
         Text(val, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: color)),
       ],
@@ -779,7 +806,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               onTap: () => _swapStrike(live),
               borderRadius: BorderRadius.circular(8),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(8),
@@ -788,9 +815,12 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.swap_horiz_rounded, size: 14, color: Color(0xFF1D4ED8)),
+                    Icon(Icons.swap_horiz_rounded, size: 14, color: Color(0xFF1E3A8A)),
                     SizedBox(width: 4),
-                    Text('Swap Strike', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF1D4ED8))),
+                    Text(
+                      'Swap Strike',
+                      style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 11, fontWeight: FontWeight.w800),
+                    ),
                   ],
                 ),
               ),
@@ -798,138 +828,128 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
           ],
         ),
         const SizedBox(height: 8),
+
+        // Batsmen Cards Row
         Row(
           children: [
-            Expanded(child: _buildBatsmanCard(striker, isStriker: true, onTap: () => _swapStrike(live))),
-            const SizedBox(width: 8),
-            Expanded(child: _buildBatsmanCard(nonStriker, isStriker: false, onTap: () => _swapStrike(live))),
+            Expanded(child: _buildBatsmanCard(striker, isStriker: true)),
+            const SizedBox(width: 10),
+            Expanded(child: _buildBatsmanCard(nonStriker, isStriker: false)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildBatsmanCard(BattingScorecardRow? batter, {required bool isStriker, required VoidCallback onTap}) {
+  Widget _buildBatsmanCard(BattingScorecardRow? batter, {required bool isStriker}) {
     final runs = batter?.runs ?? 0;
     final balls = batter?.balls ?? 0;
-    final sr = balls > 0 ? (runs / balls * 100).toStringAsFixed(1) : '0.0';
+    final sr = balls > 0 ? (runs * 100 / balls).toStringAsFixed(1) : '0.0';
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isStriker ? const Color(0xFFF0FDF4) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isStriker ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
-            width: isStriker ? 2 : 1,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isStriker ? const Color(0xFF16A34A) : const Color(0xFFE2E8F0),
+          width: isStriker ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isStriker ? const Color(0xFF16A34A).withOpacity(0.12) : Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          boxShadow: [
-            if (isStriker)
-              BoxShadow(
-                color: const Color(0xFF10B981).withOpacity(0.15),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              )
-            else
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Status Tag (ON STRIKE vs NON-STRIKER)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: isStriker ? const Color(0xFF16A34A) : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isStriker) ...[
-                        const Icon(Icons.bolt_rounded, size: 12, color: Colors.white),
-                        const SizedBox(width: 2),
-                      ],
-                      Text(
-                        isStriker ? 'ON STRIKE' : 'NON-STRIKER',
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w900,
-                          color: isStriker ? Colors.white : const Color(0xFF64748B),
-                        ),
-                      ),
+        ],
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Pill Badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isStriker ? const Color(0xFF16A34A) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isStriker) ...[
+                      const Icon(Icons.bolt_rounded, size: 12, color: Colors.white),
+                      const SizedBox(width: 2),
                     ],
-                  ),
+                    Text(
+                      isStriker ? 'ON STRIKE' : 'NON-STRIKER',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w900,
+                        color: isStriker ? Colors.white : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
                 ),
-                if (isStriker) const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 16),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Batsman Name
-            Text(
-              batter?.playerName ?? 'Selecting...',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 14,
-                color: isStriker ? const Color(0xFF065F46) : const Color(0xFF0F172A),
               ),
-            ),
-            const SizedBox(height: 6),
+              if (isStriker) const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 16),
+            ],
+          ),
+          const SizedBox(height: 8),
 
-            // Big Score & Balls
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  '$runs',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: isStriker ? const Color(0xFF15803D) : const Color(0xFF1E293B),
-                    height: 1.0,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '($balls)',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+          // Batsman Name
+          Text(
+            batter?.playerName ?? 'Selecting...',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+              color: isStriker ? const Color(0xFF065F46) : const Color(0xFF0F172A),
             ),
-            const SizedBox(height: 6),
-            const Divider(height: 1, color: Color(0xFFE2E8F0)),
-            const SizedBox(height: 6),
+          ),
+          const SizedBox(height: 6),
 
-            // Boundary Breakdown & SR
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('4s: ${batter?.fours ?? 0}  6s: ${batter?.sixes ?? 0}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w700)),
-                Text('SR: $sr', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-              ],
-            ),
-          ],
-        ),
+          // Big Score & Balls
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                '$runs',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: isStriker ? const Color(0xFF15803D) : const Color(0xFF1E293B),
+                  height: 1.0,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '($balls)',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          const SizedBox(height: 6),
+
+          // Boundary Breakdown & SR
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('4s: ${batter?.fours ?? 0}  6s: ${batter?.sixes ?? 0}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w700)),
+              Text('SR: $sr', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -965,8 +985,8 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEF2F2),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFEF2F2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.sports_baseball_rounded, color: Color(0xFFDC2626), size: 14),
@@ -982,7 +1002,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                 onTap: () => _manualChangeBowler(live),
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEF2F2),
                     borderRadius: BorderRadius.circular(8),
@@ -991,28 +1011,29 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.cached_rounded, size: 13, color: Color(0xFFDC2626)),
-                      SizedBox(width: 4),
-                      Text('Change', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFDC2626))),
+                      Icon(Icons.refresh_rounded, size: 13, color: Color(0xFFDC2626)),
+                      SizedBox(width: 3),
+                      Text(
+                        'Change',
+                        style: TextStyle(color: Color(0xFFDC2626), fontSize: 11, fontWeight: FontWeight.w800),
+                      ),
                     ],
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
-          // Bowler Figures Table
+          // Bowler Spell Stats Table
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildBowlerStat('O', oversText),
-              _buildBowlerStat('M', '${bowler?.maidens ?? 0}'),
-              _buildBowlerStat('R', '${bowler?.runs ?? 0}'),
-              _buildBowlerStat('W', '${bowler?.wickets ?? 0}', isWicket: true),
-              _buildBowlerStat('ECON', econ),
+              _buildBowlerStatCol('O', oversText),
+              _buildBowlerStatCol('M', '${bowler?.maidens ?? 0}'),
+              _buildBowlerStatCol('R', '${bowler?.runs ?? 0}'),
+              _buildBowlerStatCol('W', '${bowler?.wickets ?? 0}', isWicket: true),
+              _buildBowlerStatCol('ECON', econ),
             ],
           ),
         ],
@@ -1020,15 +1041,15 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     );
   }
 
-  Widget _buildBowlerStat(String label, String value, {bool isWicket = false}) {
+  Widget _buildBowlerStatCol(String title, String val, {bool isWicket = false}) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8))),
-        const SizedBox(height: 3),
+        Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+        const SizedBox(height: 4),
         Text(
-          value,
+          val,
           style: TextStyle(
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.w900,
             color: isWicket ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
           ),
@@ -1038,15 +1059,15 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 4. THIS OVER TIMELINE (LIVE BALLS)
+  // 4. THIS OVER TIMELINE
   // ─────────────────────────────────────────────────────────────────────────────
   Widget _buildThisOverSection(Innings live) {
     final currentOverNum = (live.legalBalls ~/ 6) + 1;
-    final ballsAsync = ref.watch(currentOverBallsProvider((
+    final ballsAsync = ref.watch(ballsForOverProvider((
       tournamentId: widget.tournamentId,
       matchId: widget.matchId,
       innings: live.inningsNumber,
-      overNumber: currentOverNum,
+      over: currentOverNum,
     )));
 
     return Container(
@@ -1168,17 +1189,20 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   // ─────────────────────────────────────────────────────────────────────────────
   Widget _buildScoringKeypad(Innings live) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
+            blurRadius: 14,
             offset: const Offset(0, -3),
           ),
         ],
+        border: Border(
+          top: BorderSide(color: const Color(0xFFE2E8F0), width: 1),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1194,62 +1218,85 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               _buildRunButton(6, label: '6', isSix: true),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
 
           // Row 2: Extras & Wicket Buttons (WD, NB, BYE, LB, OUT)
           Row(
             children: [
               _buildActionButton('WD', _wide, color: const Color(0xFFD97706)),
               _buildActionButton('NB', _noball, color: const Color(0xFFD97706)),
-              _buildActionButton('BYE', () => _byes(isLegBye: false), color: const Color(0xFF64748B)),
-              _buildActionButton('LB', () => _byes(isLegBye: true), color: const Color(0xFF64748B)),
+              _buildActionButton('BYE', () => _byes(isLegBye: false), color: const Color(0xFF475569)),
+              _buildActionButton('LB', () => _byes(isLegBye: true), color: const Color(0xFF475569)),
               _buildActionButton('OUT 🎯', _wicket, color: const Color(0xFFDC2626), isOut: true),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
 
-          // Row 3: Quick Scorer Controls (Swap Strike, Bowler, Undo)
+          // Row 3: Quick Scorer Controls (Swap Strike, Bowler, + Runs, Undo)
           Row(
             children: [
               Expanded(
+                flex: 4,
                 child: OutlinedButton.icon(
                   onPressed: _isProcessing ? null : () => _swapStrike(live),
-                  icon: const Icon(Icons.swap_horiz_rounded, size: 16),
-                  label: const Text('SWAP STRIKE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                  icon: const Icon(Icons.swap_horiz_rounded, size: 15),
+                  label: const Text('STRIKE', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF1E3A8A),
                     side: const BorderSide(color: Color(0xFFCBD5E1)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 5),
               Expanded(
+                flex: 4,
                 child: OutlinedButton.icon(
                   onPressed: _isProcessing ? null : () => _manualChangeBowler(live),
-                  icon: const Icon(Icons.sports_baseball_rounded, size: 16),
-                  label: const Text('BOWLER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                  icon: const Icon(Icons.sports_baseball_rounded, size: 15),
+                  label: const Text('BOWLER', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF1E3A8A),
                     side: const BorderSide(color: Color(0xFFCBD5E1)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 5),
               Expanded(
+                flex: 3,
+                child: OutlinedButton.icon(
+                  onPressed: _isProcessing
+                      ? null
+                      : () async {
+                          final r = await _customRuns();
+                          if (r != null) _runs(r);
+                        },
+                  icon: const Icon(Icons.add_rounded, size: 15),
+                  label: const Text('+RUNS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1E3A8A),
+                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                    padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                flex: 4,
                 child: ElevatedButton.icon(
                   onPressed: _isProcessing ? null : _undoLastBall,
-                  icon: const Icon(Icons.undo_rounded, size: 16),
-                  label: const Text('UNDO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                  icon: const Icon(Icons.undo_rounded, size: 15),
+                  label: const Text('UNDO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFEA580C),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    elevation: 0,
+                    elevation: 1,
                   ),
                 ),
               ),
@@ -1272,9 +1319,9 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
 
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 2.5),
         child: SizedBox(
-          height: 46,
+          height: 48,
           child: ElevatedButton(
             onPressed: _isProcessing ? null : () => _runs(runs),
             style: ElevatedButton.styleFrom(
