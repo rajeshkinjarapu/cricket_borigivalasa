@@ -24,7 +24,7 @@ class StatsOverviewScreen extends ConsumerWidget {
             style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.3),
           ),
           elevation: 0,
-          backgroundColor: const Color(0xFF0F172A),
+          backgroundColor: const Color(0xFF1E3A8A),
           foregroundColor: Colors.white,
           actions: [
             IconButton(

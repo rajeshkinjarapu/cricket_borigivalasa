@@ -13,27 +13,8 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isUploadingPhoto = false;
-  AnimationController? _animController;
-  Animation<double>? _fadeAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
-    _fadeAnim =
-        CurvedAnimation(parent: _animController!, curve: Curves.easeOut);
-    _animController!.forward();
-  }
-
-  @override
-  void dispose() {
-    _animController?.dispose();
-    super.dispose();
-  }
 
   // ─── Change Password Dialog ───
   Future<void> _showChangePasswordDialog() async {
@@ -582,472 +563,466 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
-      body: CustomScrollView(
-        slivers: [
-          // ── Sliver App Bar with gradient ──
-          SliverAppBar(
-            expandedHeight: 220,
-            pinned: true,
-            backgroundColor: const Color(0xFF1E3A8A),
-            foregroundColor: Colors.white,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white),
-              onPressed: () => context.pop(),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF0F2464), Color(0xFF1E3A8A), Color(0xFF3B82F6)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Decorative circles
-                    Positioned(
-                      top: -30,
-                      right: -30,
-                      child: Container(
-                        width: 140,
-                        height: 140,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E3A8A),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: context.canPop()
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                onPressed: () => context.pop(),
+              )
+            : null,
+        title: const Text(
+          'My Profile',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Colors.white,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            onPressed: () => context.push('/notifications'),
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          // ── Main Profile Header Card (with Squircle Photo, Name & Role) ──
+          _ProfileCard(
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+
+                // ── Rounded Rectangle Profile Photo (Squircle, NOT round) ──
+                Center(
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 96,
+                        height: 96,
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.05),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 20,
-                      left: -20,
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.04),
-                        ),
-                      ),
-                    ),
-                    // Avatar at bottom center
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        child: Stack(
-                          children: [
-                            Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: Colors.white, width: 3.5),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.25),
-                                    blurRadius: 16,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                              ),
-                              child: ClipOval(
-                                child: _isUploadingPhoto
-                                    ? Container(
-                                        color: const Color(0xFF1E3A8A),
-                                        child: const Center(
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2.5,
-                                              color: Colors.white),
-                                        ),
-                                      )
-                                    : (imageProvider != null)
-                                        ? Image(
-                                            image: imageProvider,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) =>
-                                                _buildAvatarFallback(
-                                                    user.displayName),
-                                          )
-                                        : _buildAvatarFallback(
-                                            user.displayName),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: GestureDetector(
-                                onTap: _pickAndUploadPhoto,
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: brandColor,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                        color: Colors.white, width: 2),
-                                    boxShadow: [
-                                      BoxShadow(
-                                          color: Colors.black.withOpacity(0.2),
-                                          blurRadius: 6),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                      Icons.camera_alt_rounded,
-                                      color: Colors.white,
-                                      size: 15),
-                                ),
-                              ),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: isAdmin
+                                ? const Color(0xFFF59E0B)
+                                : const Color(0xFF2563EB),
+                            width: 2.5,
+                          ),
+                          color: const Color(0xFF0F172A),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (isAdmin
+                                      ? const Color(0xFFF59E0B)
+                                      : const Color(0xFF2563EB))
+                                  .withOpacity(0.25),
+                              blurRadius: 14,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // ── Body Content ──
-          SliverToBoxAdapter(
-            child: FadeTransition(
-              opacity: _fadeAnim ?? const AlwaysStoppedAnimation(1.0),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                child: Column(
-                  children: [
-                    // ── Name & Role Card ──
-                    _ProfileCard(
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 4),
-                          // Name with edit
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  user.displayName.isNotEmpty
-                                      ? user.displayName
-                                      : 'Member',
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF0F172A),
-                                    letterSpacing: -0.5,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              GestureDetector(
-                                onTap: () =>
-                                    _showEditNameDialog(user.displayName),
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1E3A8A)
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(
-                                      Icons.edit_rounded,
-                                      size: 16,
-                                      color: Color(0xFF1E3A8A)),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-
-                          // Email with edit
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.alternate_email_rounded,
-                                  size: 14, color: Color(0xFF64748B)),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  user.email,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF64748B),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              GestureDetector(
-                                onTap: () =>
-                                    _showEditEmailDialog(user.email),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF2563EB)
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    'Change',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF2563EB),
-                                      fontWeight: FontWeight.w700,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(19.5),
+                          child: _isUploadingPhoto
+                              ? Container(
+                                  color: const Color(0xFF1E3A8A),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
                                     ),
                                   ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Role Badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 6),
-                            decoration: BoxDecoration(
-                              gradient: isAdmin
-                                  ? const LinearGradient(
-                                      colors: [
-                                        Color(0xFFFFE082),
-                                        Color(0xFFFFB300),
-                                        Color(0xFFFFA000)
-                                      ],
+                                )
+                              : (imageProvider != null)
+                                  ? Image(
+                                      image: imageProvider,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          _buildAvatarFallback(user.displayName),
                                     )
-                                  : const LinearGradient(
-                                      colors: [
-                                        Color(0xFFDBEAFE),
-                                        Color(0xFFBFD9FE)
+                                  : _buildAvatarFallback(user.displayName),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: -4,
+                        right: -4,
+                        child: GestureDetector(
+                          onTap: _pickAndUploadPhoto,
+                          child: Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: isAdmin
+                                    ? [
+                                        const Color(0xFFF59E0B),
+                                        const Color(0xFFD97706)
+                                      ]
+                                    : [
+                                        const Color(0xFF3B82F6),
+                                        const Color(0xFF1E3A8A)
                                       ],
-                                    ),
-                              borderRadius: BorderRadius.circular(20),
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                              border:
+                                  Border.all(color: Colors.white, width: 2),
                               boxShadow: [
                                 BoxShadow(
-                                  color: brandColor.withOpacity(0.2),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
+                                  color: Colors.black.withOpacity(0.25),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isAdmin
-                                      ? Icons.workspace_premium_rounded
-                                      : Icons.sports_cricket_rounded,
-                                  size: 15,
-                                  color: isAdmin
-                                      ? const Color(0xFF78350F)
-                                      : const Color(0xFF1E3A8A),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  isAdmin ? 'ADMINISTRATOR' : 'MEMBER',
-                                  style: TextStyle(
-                                    color: isAdmin
-                                        ? const Color(0xFF78350F)
-                                        : const Color(0xFF1E3A8A),
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 12,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // ── Admin Privileges ──
-                    if (isAdmin) ...[
-                      _SectionHeader(title: 'Administrator Access'),
-                      _ProfileCard(
-                        child: Column(
-                          children: [
-                            _ActionTile(
-                              icon: Icons.admin_panel_settings_rounded,
-                              title: 'Access Level',
-                              subtitle: 'Full Administrative Access',
-                              iconColor: const Color(0xFFD97706),
-                            ),
-                            const _Divider(),
-                            _ActionTile(
-                              icon: Icons.emoji_events_rounded,
-                              title: 'Tournament Manager',
-                              subtitle: 'Create, edit & manage tournaments',
-                              iconColor: const Color(0xFF2563EB),
-                            ),
-                            const _Divider(),
-                            _ActionTile(
-                              icon: Icons.sports_cricket_rounded,
-                              title: 'Live Match Scorer',
-                              subtitle: 'Full live match scoring controls',
-                              iconColor: const Color(0xFF16A34A),
-                            ),
-                            const _Divider(),
-                            _ActionTile(
-                              icon: Icons.manage_accounts_rounded,
-                              title: 'Member Management',
-                              subtitle:
-                                  'Promote, demote & manage members',
-                              iconColor: const Color(0xFF7C3AED),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-
-                    // ── Player Information (Members only) ──
-                    if (!isAdmin) ...[
-                      _SectionHeader(title: 'Player Information'),
-                      _ProfileCard(
-                        child: Column(
-                          children: [
-                            _ActionTile(
-                              icon: Icons.sports_cricket,
-                              title: 'Batting Style',
-                              subtitle: 'Right-hand bat',
-                              iconColor: const Color(0xFF1E3A8A),
-                            ),
-                            const _Divider(),
-                            _ActionTile(
-                              icon: Icons.sports_baseball,
-                              title: 'Bowling Style',
-                              subtitle: 'Right-arm medium',
-                              iconColor: const Color(0xFF059669),
-                            ),
-                            const _Divider(),
-                            _ActionTile(
-                              icon: Icons.group_rounded,
-                              title: 'Current Team',
-                              subtitle: 'Borigivalasa Blasters',
-                              iconColor: const Color(0xFFD97706),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-
-                    // ── Settings & Security ──
-                    _SectionHeader(title: 'Settings & Security'),
-                    _ProfileCard(
-                      child: Column(
-                        children: [
-                          _ActionTile(
-                            icon: Icons.lock_outline_rounded,
-                            title: 'Change Password',
-                            subtitle: 'Update your account password',
-                            iconColor: const Color(0xFF7C3AED),
-                            onTap: _showChangePasswordDialog,
-                          ),
-                          const _Divider(),
-                          _ActionTile(
-                            icon: Icons.notifications_active_outlined,
-                            title: 'Push Notifications',
-                            subtitle: 'Match alerts & scoring updates',
-                            iconColor: const Color(0xFF2563EB),
-                            trailing: Switch(
-                              value: true,
-                              activeColor: const Color(0xFF1E3A8A),
-                              onChanged: (_) {},
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // ── Sign Out Button ──
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.logout_rounded,
-                            color: Colors.white, size: 18),
-                        label: const Text(
-                          'Sign Out',
-                          style: TextStyle(
+                            child: const Icon(
+                              Icons.camera_alt_rounded,
                               color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFDC2626),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
-                          elevation: 2,
-                          shadowColor:
-                              const Color(0xFFDC2626).withOpacity(0.4),
-                        ),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (dialogCtx) => AlertDialog(
-                              backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                              title: const Row(
-                                children: [
-                                  Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 24),
-                                  SizedBox(width: 10),
-                                  Text(
-                                    'Sign Out',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                      color: Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              content: const Text(
-                                'Are you sure you want to sign out of your account?',
-                                style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(dialogCtx),
-                                  child: const Text(
-                                    'Cancel',
-                                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    Navigator.pop(dialogCtx);
-                                    await ref.read(authControllerProvider.notifier).signOut();
-                                    ref.invalidate(authStateProvider);
-                                    ref.invalidate(currentUserProvider);
-                                    if (context.mounted) {
-                                      context.go('/login');
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFDC2626),
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  child: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold)),
-                                ),
-                              ],
+                              size: 14,
                             ),
-                          );
-                        },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Name with edit pencil
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        user.displayName.isNotEmpty
+                            ? user.displayName
+                            : 'Member',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () => _showEditNameDialog(user.displayName),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: brandColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.edit_rounded,
+                            size: 16, color: brandColor),
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+
+                // Email with Change Button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '@ ',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Flexible(
+                      child: Text(
+                        user.email,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () => _showChangeEmailDialog(user.email),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: const Color(0xFF2563EB).withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Text(
+                          'Change',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF2563EB),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Role Badge
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: isAdmin
+                        ? const LinearGradient(
+                            colors: [
+                              Color(0xFFFFE082),
+                              Color(0xFFFFB300),
+                              Color(0xFFFFA000)
+                            ],
+                          )
+                        : const LinearGradient(
+                            colors: [
+                              Color(0xFFDBEAFE),
+                              Color(0xFFBFD9FE)
+                            ],
+                          ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: brandColor.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isAdmin
+                            ? Icons.workspace_premium_rounded
+                            : Icons.sports_cricket_rounded,
+                        size: 15,
+                        color: isAdmin
+                            ? const Color(0xFF78350F)
+                            : const Color(0xFF1E3A8A),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isAdmin ? 'ADMINISTRATOR' : 'MEMBER',
+                        style: TextStyle(
+                          color: isAdmin
+                              ? const Color(0xFF78350F)
+                              : const Color(0xFF1E3A8A),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── Admin Privileges ──
+          if (isAdmin) ...[
+            _SectionHeader(title: 'Administrator Access'),
+            _ProfileCard(
+              child: Column(
+                children: [
+                  _ActionTile(
+                    icon: Icons.admin_panel_settings_rounded,
+                    title: 'Access Level',
+                    subtitle: 'Full Administrative Access',
+                    iconColor: const Color(0xFFD97706),
+                  ),
+                  const _Divider(),
+                  _ActionTile(
+                    icon: Icons.emoji_events_rounded,
+                    title: 'Tournament Manager',
+                    subtitle: 'Create, edit & manage tournaments',
+                    iconColor: const Color(0xFF2563EB),
+                  ),
+                  const _Divider(),
+                  _ActionTile(
+                    icon: Icons.sports_cricket_rounded,
+                    title: 'Live Match Scorer',
+                    subtitle: 'Full live match scoring controls',
+                    iconColor: const Color(0xFF16A34A),
+                  ),
+                  const _Divider(),
+                  _ActionTile(
+                    icon: Icons.manage_accounts_rounded,
+                    title: 'Member Management',
+                    subtitle: 'Promote, demote & manage members',
+                    iconColor: const Color(0xFF7C3AED),
+                  ),
+                ],
               ),
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          // ── Player Information (Members only) ──
+          if (!isAdmin) ...[
+            _SectionHeader(title: 'Player Information'),
+            _ProfileCard(
+              child: Column(
+                children: [
+                  _ActionTile(
+                    icon: Icons.sports_cricket,
+                    title: 'Batting Style',
+                    subtitle: 'Right-hand bat',
+                    iconColor: const Color(0xFF1E3A8A),
+                  ),
+                  const _Divider(),
+                  _ActionTile(
+                    icon: Icons.sports_baseball,
+                    title: 'Bowling Style',
+                    subtitle: 'Right-arm medium',
+                    iconColor: const Color(0xFF059669),
+                  ),
+                  const _Divider(),
+                  _ActionTile(
+                    icon: Icons.group_rounded,
+                    title: 'Current Team',
+                    subtitle: 'Borigivalasa Blasters',
+                    iconColor: const Color(0xFFD97706),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          // ── Settings & Security ──
+          _SectionHeader(title: 'Settings & Security'),
+          _ProfileCard(
+            child: Column(
+              children: [
+                _ActionTile(
+                  icon: Icons.lock_outline_rounded,
+                  title: 'Change Password',
+                  subtitle: 'Update your account password',
+                  iconColor: const Color(0xFF7C3AED),
+                  onTap: _showChangePasswordDialog,
+                ),
+                const _Divider(),
+                _ActionTile(
+                  icon: Icons.notifications_active_outlined,
+                  title: 'Push Notifications',
+                  subtitle: 'Match alerts & scoring updates',
+                  iconColor: const Color(0xFF2563EB),
+                  trailing: Switch(
+                    value: true,
+                    activeColor: const Color(0xFF1E3A8A),
+                    onChanged: (_) {},
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // ── Sign Out Button ──
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.logout_rounded,
+                  color: Colors.white, size: 18),
+              label: const Text(
+                'Sign Out',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                elevation: 2,
+                shadowColor: const Color(0xFFDC2626).withOpacity(0.4),
+              ),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (dialogCtx) => AlertDialog(
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18)),
+                    title: const Row(
+                      children: [
+                        Icon(Icons.logout_rounded,
+                            color: Color(0xFFDC2626), size: 24),
+                        SizedBox(width: 10),
+                        Text(
+                          'Sign Out',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    content: const Text(
+                      'Are you sure you want to sign out of your account?',
+                      style:
+                          TextStyle(fontSize: 14, color: Color(0xFF475569)),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogCtx),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          Navigator.pop(dialogCtx);
+                          await ref
+                              .read(authControllerProvider.notifier)
+                              .signOut();
+                          ref.invalidate(authStateProvider);
+                          ref.invalidate(currentUserProvider);
+                          if (context.mounted) {
+                            context.go('/login');
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFDC2626),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('Sign Out',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -1056,9 +1031,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Widget _buildAvatarFallback(String name) {
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'A';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
     return Container(
-      color: const Color(0xFF1E3A8A),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
       child: Center(
         child: Text(
           initial,
