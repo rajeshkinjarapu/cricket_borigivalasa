@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../auth/data/models/app_user.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
+
+  static const Color drawerBlue = Color(0xFF1E3A8A); // Clean, solid Royal Blue theme
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -15,37 +16,81 @@ class AppDrawer extends ConsumerWidget {
     final bool isAdmin = user?.role == UserRole.admin;
 
     return Drawer(
-      backgroundColor: const Color(0xFF0A192F),
+      backgroundColor: drawerBlue,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topRight: Radius.circular(24),
-          bottomRight: Radius.circular(24),
+          topRight: Radius.circular(20),
+          bottomRight: Radius.circular(20),
         ),
       ),
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0A192F), // Deep Navy
-              Color(0xFF0F2464), // Royal Navy
-              Color(0xFF1E3A8A), // Cricket Blue
-            ],
-          ),
-        ),
+      child: SafeArea(
         child: Column(
           children: [
-            // ── Top Header with App Title & Logged-in User Info ──
-            _buildDrawerHeader(context, user, isAdmin),
+            // ── Clean App Header (No Administrator Box) ──
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.white.withOpacity(0.15), width: 1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.sports_cricket_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Borigivalasa Cricket',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Tournament & Scoring App',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
             // ── Navigation Items List ──
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 children: [
-                  // ── Group 1: MAIN ──
-                  _buildSectionHeader('MAIN'),
+                  // ── MAIN ──
+                  _buildSectionLabel('MAIN'),
                   _buildNavItem(
                     context: context,
                     icon: Icons.home_rounded,
@@ -59,7 +104,7 @@ class AppDrawer extends ConsumerWidget {
                   ),
                   _buildNavItem(
                     context: context,
-                    icon: Icons.sports_cricket_rounded,
+                    icon: Icons.sports_score_rounded,
                     label: 'Matches',
                     route: '/matches-list',
                     currentLocation: currentLocation,
@@ -74,21 +119,20 @@ class AppDrawer extends ConsumerWidget {
                     label: 'Live Matches',
                     route: '/live-matches',
                     currentLocation: currentLocation,
-                    accentColor: const Color(0xFFEF4444),
+                    badgeText: 'LIVE',
+                    badgeColor: const Color(0xFFEF4444),
                     onTap: () {
                       Navigator.pop(context);
                       context.push('/live-matches');
                     },
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Divider(height: 1, color: Colors.white.withOpacity(0.12)),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
-                  // ── Group 2: MANAGEMENT ──
-                  _buildSectionHeader('MANAGEMENT'),
-                  
-                  // ONLY ADMIN sees Tournaments
+                  // ── MANAGEMENT ──
+                  _buildSectionLabel('MANAGEMENT'),
                   if (isAdmin)
                     _buildNavItem(
                       context: context,
@@ -96,13 +140,11 @@ class AppDrawer extends ConsumerWidget {
                       label: 'Tournaments',
                       route: '/tournaments',
                       currentLocation: currentLocation,
-                      accentColor: const Color(0xFFF59E0B),
                       onTap: () {
                         Navigator.pop(context);
                         context.push('/tournaments');
                       },
                     ),
-
                   _buildNavItem(
                     context: context,
                     icon: Icons.groups_rounded,
@@ -129,7 +171,7 @@ class AppDrawer extends ConsumerWidget {
                     _buildNavItem(
                       context: context,
                       icon: Icons.manage_accounts_rounded,
-                      label: 'Manage Members',
+                      label: 'Members',
                       route: '/members',
                       currentLocation: currentLocation,
                       onTap: () {
@@ -149,12 +191,12 @@ class AppDrawer extends ConsumerWidget {
                     },
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Divider(height: 1, color: Colors.white.withOpacity(0.12)),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
-                  // ── Group 3: ACCOUNT ──
-                  _buildSectionHeader('ACCOUNT'),
+                  // ── ACCOUNT ──
+                  _buildSectionLabel('ACCOUNT'),
                   _buildNavItem(
                     context: context,
                     icon: Icons.notifications_rounded,
@@ -181,170 +223,60 @@ class AppDrawer extends ConsumerWidget {
               ),
             ),
 
-            // ── Footer with App Version & Sign Out Button ──
-            _buildDrawerFooter(context, ref),
+            // ── Clean Footer with Sign Out ──
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.white.withOpacity(0.15), width: 1),
+                ),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: () => _confirmSignOut(context, ref),
+                  icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
+                  label: const Text(
+                    'Sign Out',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // ── Header Widget (Rich Cricket Blue Header) ──
-  Widget _buildDrawerHeader(BuildContext context, AppUser? user, bool isAdmin) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 52, 20, 20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withOpacity(0.12), width: 1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // App Title + Logo
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF38BDF8), Color(0xFF2563EB)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF38BDF8).withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.sports_cricket_rounded,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Borigivalasa Cricket',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.2,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Tournament & Scoring App',
-                      style: TextStyle(
-                        color: Color(0xFF93C5FD),
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // User Profile Quick Bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withOpacity(0.15)),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: const Color(0xFF38BDF8),
-                  backgroundImage: user?.photoUrl != null && user!.photoUrl!.isNotEmpty
-                      ? NetworkImage(user.photoUrl!)
-                      : null,
-                  child: user?.photoUrl == null || user!.photoUrl!.isEmpty
-                      ? Text(
-                          (user?.displayName.isNotEmpty ?? false)
-                              ? user!.displayName[0].toUpperCase()
-                              : 'U',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        user?.displayName ?? 'User',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (isAdmin)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 2),
-                          child: Text(
-                            '👑 Administrator',
-                            style: TextStyle(
-                              color: Color(0xFFFBBF24),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Section Header ──
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(left: 10, top: 6, bottom: 6),
+      padding: const EdgeInsets.only(left: 12, top: 6, bottom: 6),
       child: Text(
-        title,
-        style: const TextStyle(
-          color: Color(0xFF60A5FA), // Sky Blue Accent
+        text,
+        style: TextStyle(
+          color: Colors.white.withOpacity(0.6),
           fontSize: 11,
           fontWeight: FontWeight.w800,
-          letterSpacing: 1.2,
+          letterSpacing: 1.1,
         ),
       ),
     );
   }
 
-  // ── Navigation Item (Blue Glassmorphic Active Pill) ──
   Widget _buildNavItem({
     required BuildContext context,
     required IconData icon,
@@ -352,135 +284,72 @@ class AppDrawer extends ConsumerWidget {
     required String route,
     required String currentLocation,
     required VoidCallback onTap,
-    Color? accentColor,
+    String? badgeText,
+    Color? badgeColor,
   }) {
     final bool isActive = currentLocation == route ||
         (route != '/admin' && route != '/member' && currentLocation.startsWith(route));
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 2.5),
       child: Material(
-        color: isActive
-            ? Colors.white.withOpacity(0.18)
-            : Colors.transparent,
+        color: isActive ? Colors.white.withOpacity(0.2) : Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           side: isActive
-              ? BorderSide(color: (accentColor ?? const Color(0xFF38BDF8)).withOpacity(0.6), width: 1.5)
+              ? BorderSide(color: Colors.white.withOpacity(0.4), width: 1.2)
               : BorderSide.none,
         ),
-        child: ListTile(
+        child: InkWell(
           onTap: onTap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-          dense: true,
-          leading: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: isActive
-                  ? (accentColor ?? const Color(0xFF2563EB))
-                  : Colors.white.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: isActive
-                  ? [
-                      BoxShadow(
-                        color: (accentColor ?? const Color(0xFF2563EB)).withOpacity(0.4),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: isActive ? Colors.white : Colors.white.withOpacity(0.85),
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                if (badgeText != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: badgeColor ?? Colors.red,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w900,
                       ),
-                    ]
-                  : null,
-            ),
-            child: Icon(
-              icon,
-              color: isActive ? Colors.white : (accentColor ?? const Color(0xFF93C5FD)),
-              size: 20,
-            ),
-          ),
-          title: Text(
-            label,
-            style: TextStyle(
-              color: isActive ? Colors.white : const Color(0xFFE2E8F0),
-              fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
-              fontSize: 14,
-              letterSpacing: 0.2,
+                    ),
+                  )
+                else if (isActive)
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: Colors.white,
+                    size: 13,
+                  ),
+              ],
             ),
           ),
-          trailing: isActive
-              ? Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 13,
-                  color: accentColor ?? const Color(0xFF38BDF8),
-                )
-              : null,
         ),
-      ),
-    );
-  }
-
-  // ── Footer Section with Sign Out ──
-  Widget _buildDrawerFooter(BuildContext context, WidgetRef ref) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.25),
-        border: Border(
-          top: BorderSide(color: Colors.white.withOpacity(0.12), width: 1),
-        ),
-      ),
-      child: Column(
-        children: [
-          // App Brand Footer
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.sports_cricket_rounded,
-                size: 15,
-                color: Colors.white.withOpacity(0.6),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Borigivalasa Cricket',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Sign Out Button
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: ElevatedButton.icon(
-              onPressed: () => _confirmSignOut(context, ref),
-              icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
-              label: const Text(
-                'Sign Out',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626),
-                foregroundColor: Colors.white,
-                elevation: 3,
-                shadowColor: const Color(0xFFDC2626).withOpacity(0.5),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -490,10 +359,10 @@ class AppDrawer extends ConsumerWidget {
       context: context,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 24),
+            Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 22),
             SizedBox(width: 10),
             Text(
               'Sign Out',
@@ -506,7 +375,7 @@ class AppDrawer extends ConsumerWidget {
           ],
         ),
         content: const Text(
-          'Are you sure you want to sign out of your account?',
+          'Are you sure you want to sign out?',
           style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
         ),
         actions: [
@@ -531,7 +400,7 @@ class AppDrawer extends ConsumerWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
