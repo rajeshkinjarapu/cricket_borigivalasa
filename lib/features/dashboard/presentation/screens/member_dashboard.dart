@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../providers/dashboard_providers.dart';
 import '../widgets/live_match_card.dart';
 import '../widgets/upcoming_match_card.dart';
@@ -14,7 +15,7 @@ class MemberDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final u = ref.watch(currentUserProvider);
-    final isScorer = true; // In the future, check user permissions
+    final isScorer = u?.role == UserRole.scorer;
 
     final liveMatchesAsync = ref.watch(liveMatchesProvider);
     final upcomingMatchesAsync = ref.watch(upcomingMatchesProvider);

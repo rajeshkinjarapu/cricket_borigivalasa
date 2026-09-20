@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../tournaments/data/models/tournament.dart';
-import '../../../tournaments/presentation/providers/tournament_providers.dart' hide matchRepositoryProvider;
+import '../../../tournaments/presentation/providers/tournament_providers.dart';
 import '../../../teams/data/models/team.dart';
 import '../../../teams/presentation/providers/team_providers.dart';
 import '../../data/models/match.dart';

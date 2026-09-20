@@ -124,7 +124,7 @@ class _LeaderboardSectionState extends ConsumerState<LeaderboardSection>
                   player: players[index],
                   tab: _selectedTab,
                   tabColor: _tabs[_selectedTab].color,
-                  onTap: () => context.push('/player/${players[index].id}'),
+                  onTap: () => context.push('/players/${players[index].id}/stats'),
                 );
               }),
             );

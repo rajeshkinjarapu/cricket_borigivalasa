@@ -77,6 +77,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           // Branch 0: Home
           StatefulShellBranch(
             routes: [
+              GoRoute(
+                path: '/home',
+                redirect: (context, state) {
+                  final user = ref.read(authStateProvider).value;
+                  if (user != null && user.role == UserRole.admin) return '/admin';
+                  return '/member';
+                },
+                builder: (_, __) => const SizedBox(),
+              ),
               GoRoute(path: '/member', builder: (_, __) => const MemberDashboard()),
               GoRoute(path: '/admin', builder: (_, __) => const AdminDashboard()),
             ],
@@ -306,6 +315,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           path: ':playerId/edit',
           builder: (_, s) => PlayerFormScreen(
             playerId: s.pathParameters['playerId'],
+          ),
+        ),
+        GoRoute(
+          path: ':playerId/stats',
+          builder: (_, s) => PlayerStatsScreen(
+            tournamentId: 'global',
+            teamId: 'global',
+            playerId: s.pathParameters['playerId']!,
           ),
         ),
       ],

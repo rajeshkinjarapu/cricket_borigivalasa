@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../matches/presentation/providers/match_providers.dart';
+import '../../../matches/data/models/match.dart';
 import '../../../players/data/models/player.dart';
 import '../../../players/presentation/providers/player_providers.dart';
+import '../../../teams/data/models/team.dart';
 import '../../data/models/ball_event.dart';
 import '../../data/models/innings.dart';
 import '../../data/repositories/scoring_repository.dart';
@@ -138,7 +140,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
 
     final live = ref.read(inningsProvider(_k)).value ?? widget.innings;
     final isCompleteNow = live.isComplete ||
-        (live.targetRuns != null && live.runs >= live.targetRuns) ||
+        (live.targetRuns != null && live.runs >= live.targetRuns!) ||
         (live.legalBalls >= maxOvers * 6) ||
         (live.wickets >= (playersPerSide - 1)) ||
         (match?.status == MatchStatus.completed);
@@ -550,7 +552,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     final isMatchOver = match?.status == MatchStatus.completed ||
         (live.inningsNumber == 2 &&
             (live.isComplete ||
-                (live.targetRuns != null && live.runs >= live.targetRuns) ||
+                (live.targetRuns != null && live.runs >= live.targetRuns!) ||
                 live.legalBalls >= maxOvers * 6 ||
                 live.wickets >= (playersPerSide - 1)));
 
@@ -617,33 +619,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
           ],
         ),
         actions: [
-          // ── PROMINENT SCORECARD BUTTON ──
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: InkWell(
-              onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scorecard'),
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white38, width: 1.2),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.scoreboard_rounded, size: 16, color: Colors.white),
-                    SizedBox(width: 5),
-                    Text(
-                      'Scorecard',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12.5),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+
           if (!isMatchOver) ...[
             IconButton(
               icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
@@ -674,6 +650,24 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                 children: [
                   // 1. ── HERO STADIUM SCOREBOARD CARD (ROYAL SAPPHIRE GRADIENT) ──
                   _buildHeroScoreboardCard(live, maxOvers, totalExtras, projectedScore),
+                  const SizedBox(height: 12),
+
+                  // ── PROMINENT FULL SCORECARD BUTTON ──
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scorecard'),
+                      icon: const Icon(Icons.assessment_rounded, size: 20, color: Color(0xFF1E3A8A)),
+                      label: const Text('VIEW FULL SCORECARD', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), letterSpacing: 0.5)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE0E7FF),
+                        elevation: 0,
+                        side: const BorderSide(color: Color(0xFFC7D2FE), width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 12),
 
                   // 2. ── BATSMEN ON CREASE (STRIKER & NON-STRIKER) ──
@@ -721,7 +715,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A8A), Color(0xFF1D4ED8), Color(0xFF0F172A)],
+          colors: [Color(0xFF2563EB), Color(0xFF06B6D4)], // Vibrant Blue to Cyan
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1313,11 +1307,11 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   // ─────────────────────────────────────────────────────────────────────────────
   Widget _buildScoringKeypad(Innings live) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    final bottomPadding = bottomInset > 0 ? bottomInset + 6 : 14.0;
+    final bottomPadding = bottomInset > 0 ? bottomInset + 8 : 28.0;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-      padding: EdgeInsets.fromLTRB(10, 12, 10, bottomPadding > 14 ? bottomPadding : 12),
+      margin: EdgeInsets.fromLTRB(10, 0, 10, bottomInset > 0 ? 8 : 16),
+      padding: EdgeInsets.fromLTRB(10, 12, 10, bottomPadding),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
@@ -1366,77 +1360,57 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
           // Row 3: Quick Scorer Controls (Swap Strike, Bowler, + Runs, Undo)
           Row(
             children: [
-              Expanded(
-                flex: 4,
-                child: OutlinedButton.icon(
-                  onPressed: _isProcessing ? null : () => _swapStrike(live),
-                  icon: const Icon(Icons.swap_horiz_rounded, size: 15),
-                  label: const Text('STRIKE', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800)),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1E3A8A),
-                    backgroundColor: const Color(0xFFF8FAFC),
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
-                    padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              _buildIconActionBtn('STRIKE', Icons.swap_horiz_rounded, () => _swapStrike(live), isPrimary: false),
               const SizedBox(width: 6),
-              Expanded(
-                flex: 4,
-                child: OutlinedButton.icon(
-                  onPressed: _isProcessing ? null : () => _manualChangeBowler(live),
-                  icon: const Icon(Icons.sports_baseball_rounded, size: 15),
-                  label: const Text('BOWLER', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800)),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1E3A8A),
-                    backgroundColor: const Color(0xFFF8FAFC),
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
-                    padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              _buildIconActionBtn('BOWLER', Icons.sports_baseball_rounded, () => _manualChangeBowler(live), isPrimary: false),
               const SizedBox(width: 6),
-              Expanded(
-                flex: 3,
-                child: OutlinedButton.icon(
-                  onPressed: _isProcessing
-                      ? null
-                      : () async {
-                          final r = await _customRuns();
-                          if (r != null) _runs(r);
-                        },
-                  icon: const Icon(Icons.add_rounded, size: 15),
-                  label: const Text('+RUNS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1E3A8A),
-                    backgroundColor: const Color(0xFFF8FAFC),
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
-                    padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
+              _buildIconActionBtn('+RUNS', Icons.add_rounded, () async {
+                final r = await _customRuns();
+                if (r != null) _runs(r);
+              }, isPrimary: false),
               const SizedBox(width: 6),
-              Expanded(
-                flex: 4,
-                child: ElevatedButton.icon(
-                  onPressed: _isProcessing ? null : _undoLastBall,
-                  icon: const Icon(Icons.undo_rounded, size: 15),
-                  label: const Text('UNDO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEA580C),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    elevation: 1.5,
-                  ),
-                ),
-              ),
+              _buildIconActionBtn('UNDO', Icons.undo_rounded, _undoLastBall, isPrimary: true),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildIconActionBtn(String label, IconData icon, VoidCallback? onTap, {required bool isPrimary}) {
+    return Expanded(
+      child: Material(
+        color: isPrimary ? const Color(0xFFEA580C) : const Color(0xFFF8FAFC),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: isPrimary ? Colors.transparent : const Color(0xFFCBD5E1)),
+        ),
+        child: InkWell(
+          onTap: _isProcessing ? null : onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 18, color: isPrimary ? Colors.white : const Color(0xFF1E3A8A)),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: isPrimary ? Colors.white : const Color(0xFF1E3A8A),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1507,9 +1481,10 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     );
   }
 
-  Widget _buildMatchCompletedPanel(BuildContext context, dynamic match, Innings live) {
+  Widget _buildMatchCompletedPanel(BuildContext context, Match? match, Innings live) {
+    if (match == null) return const SizedBox();
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    final String result = match?.resultText ??
+    final String result = match.resultText ??
         (live.runs >= (live.targetRuns ?? 0)
             ? '${live.battingTeamName} won the match 🎉'
             : '${live.bowlingTeamName} won the match 🎉');
@@ -1583,6 +1558,45 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               ),
             ),
           ),
+          const SizedBox(height: 8),
+          
+          if (match.manOfTheMatchName != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7ED),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFDBA74)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.star_rounded, color: Color(0xFFD97706), size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Man of the Match: ${match.manOfTheMatchName}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                  ),
+                ],
+              ),
+            ),
+          
+          if (match.manOfTheMatchName == null)
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: () => _showMoMDialog(context, match),
+                icon: const Icon(Icons.stars_rounded, size: 18),
+                label: const Text('Select Man of the Match', style: TextStyle(fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFD97706),
+                  side: const BorderSide(color: Color(0xFFFDBA74)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          
           const SizedBox(height: 8),
           Row(
             children: [
@@ -1678,17 +1692,16 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
             width: double.infinity,
             height: 46,
             child: ElevatedButton.icon(
-              onPressed: () async {
-                // Ensure 1st innings is marked complete in Firestore
-                await ref.read(scoringRepositoryProvider).initInnings(
-                  tournamentId: widget.tournamentId,
-                  matchId: widget.matchId,
-                  inningsNumber: 1,
-                  battingTeam: Team(id: live.battingTeamId, name: live.battingTeamName, shortName: live.battingTeamShort, tournamentIds: [widget.tournamentId]),
-                  bowlingTeam: Team(id: live.bowlingTeamId, name: live.bowlingTeamName, shortName: live.bowlingTeamShort, tournamentIds: [widget.tournamentId]),
-                  openingStriker: Player(id: live.openingStrikerId, name: live.openingStrikerName),
-                  openingNonStriker: Player(id: live.openingNonStrikerId, name: live.openingNonStrikerName),
-                  openingBowler: Player(id: live.currentBowlerId ?? '', name: live.currentBowlerName ?? ''),
+              onPressed: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (ctx) => InningsSetupScreen(
+                      tournamentId: widget.tournamentId,
+                      matchId: widget.matchId,
+                      inningsNumber: 2,
+                      targetRuns: live.runs + 1,
+                    ),
+                  ),
                 );
               },
               icon: const Icon(Icons.play_arrow_rounded, size: 22),
@@ -1711,6 +1724,112 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showMoMDialog(BuildContext context, Match? match) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _MoMSelectionSheet(match: match, tournamentId: widget.tournamentId),
+    );
+  }
+}
+
+class _MoMSelectionSheet extends ConsumerStatefulWidget {
+  const _MoMSelectionSheet({required this.match, required this.tournamentId});
+  final Match? match;
+  final String tournamentId;
+
+  @override
+  ConsumerState<_MoMSelectionSheet> createState() => _MoMSelectionSheetState();
+}
+
+class _MoMSelectionSheetState extends ConsumerState<_MoMSelectionSheet> {
+  bool _isSaving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.match == null) return const SizedBox();
+    final matchData = widget.match!;
+    
+    final teamAPlayersAsync = ref.watch(teamPlayersProvider(matchData.teamAId));
+    final teamBPlayersAsync = ref.watch(teamPlayersProvider(matchData.teamBId));
+
+    final isLoading = teamAPlayersAsync.isLoading || teamBPlayersAsync.isLoading;
+    final teamAPlayers = teamAPlayersAsync.value ?? [];
+    final teamBPlayers = teamBPlayersAsync.value ?? [];
+    final allPlayers = [...teamAPlayers, ...teamBPlayers];
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.only(top: 24, left: 16, right: 16, bottom: 24),
+      height: MediaQuery.of(context).size.height * 0.7,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Select Man of the Match',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (isLoading)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else if (allPlayers.isEmpty)
+            const Expanded(child: Center(child: Text('No players found in both teams.')))
+          else
+            Expanded(
+              child: ListView.builder(
+                itemCount: allPlayers.length,
+                itemBuilder: (context, index) {
+                  final p = allPlayers[index];
+                  final isTeamA = teamAPlayers.any((t) => t.id == p.id);
+                  final teamName = isTeamA ? matchData.teamAShort : matchData.teamBShort;
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: const Color(0xFFEFF6FF),
+                      child: Text(p.name.substring(0, 1).toUpperCase(), style: const TextStyle(color: Color(0xFF1D4ED8), fontWeight: FontWeight.bold)),
+                    ),
+                    title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    subtitle: Text(teamName, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+                    onTap: _isSaving
+                        ? null
+                        : () async {
+                            setState(() => _isSaving = true);
+                            try {
+                              await ref.read(matchRepositoryProvider).updatePartial(
+                                tournamentId: widget.tournamentId,
+                                matchId: matchData.id,
+                                data: {
+                                  'manOfTheMatchId': p.id,
+                                  'manOfTheMatchName': p.name,
+                                },
+                              );
+                              if (mounted) Navigator.pop(context);
+                            } catch (e) {
+                              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                              setState(() => _isSaving = false);
+                            }
+                          },
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );

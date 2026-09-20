@@ -22,6 +22,8 @@ class Match {
   final DateTime? startedAt;
   final DateTime? completedAt;
   final DateTime? createdAt;
+  final String? manOfTheMatchId;
+  final String? manOfTheMatchName;
 
   Match({
     required this.id,
@@ -43,6 +45,8 @@ class Match {
     this.isTie = false,
     this.startedAt,
     this.completedAt,
+    this.manOfTheMatchId,
+    this.manOfTheMatchName,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -111,6 +115,8 @@ class Match {
       startedAt: json['startedAt'] != null ? parseDate(json['startedAt']) : null,
       completedAt: json['completedAt'] != null ? parseDate(json['completedAt']) : null,
       createdAt: json['createdAt'] != null ? parseDate(json['createdAt']) : null,
+      manOfTheMatchId: json['manOfTheMatchId'] as String?,
+      manOfTheMatchName: json['manOfTheMatchName'] as String?,
     );
   }
 
@@ -142,6 +148,8 @@ class Match {
       'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
       'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
+      'manOfTheMatchId': manOfTheMatchId,
+      'manOfTheMatchName': manOfTheMatchName,
     };
   }
 
@@ -166,6 +174,8 @@ class Match {
     DateTime? startedAt,
     DateTime? completedAt,
     DateTime? createdAt,
+    String? manOfTheMatchId,
+    String? manOfTheMatchName,
   }) {
     return Match(
       id: id ?? this.id,
@@ -188,6 +198,8 @@ class Match {
       startedAt: startedAt ?? this.startedAt,
       completedAt: completedAt ?? this.completedAt,
       createdAt: createdAt ?? this.createdAt,
+      manOfTheMatchId: manOfTheMatchId ?? this.manOfTheMatchId,
+      manOfTheMatchName: manOfTheMatchName ?? this.manOfTheMatchName,
     );
   }
 }

@@ -165,7 +165,14 @@ class ScorecardTab extends ConsumerWidget {
               bowlRowsAsync.when(
                 loading: () => const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
                 error: (e, _) => Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
-                data: (rows) {
+                data: (allRows) {
+                  final rows = allRows.where((r) => r.balls > 0 || r.wides > 0 || r.noballs > 0).toList();
+                  if (rows.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: Text('No bowlers yet', style: TextStyle(color: Colors.black54))),
+                    );
+                  }
                   return Column(
                     children: rows.asMap().entries.map((e) {
                       final i = e.key;

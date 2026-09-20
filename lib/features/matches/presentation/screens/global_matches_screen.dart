@@ -363,22 +363,54 @@ class _GlobalMatchesScreenState extends ConsumerState<GlobalMatchesScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              m.teamA,
+                              '${m.teamA} vs ${m.teamB}',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF0F172A),
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              m.teamB,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF0F172A),
+                            if (m.liveScore != null) ...() {
+                              final inn1 = m.liveScore!['inn1'] as Map<String, dynamic>?;
+                              final inn2 = m.liveScore!['inn2'] as Map<String, dynamic>?;
+                              
+                              String getScore(String teamId, int defaultInn) {
+                                final inn = (inn1 != null && (inn1['teamId'] == teamId || inn1['teamId'] == null && defaultInn == 1)) 
+                                    ? inn1 
+                                    : (inn2 != null && (inn2['teamId'] == teamId || inn2['teamId'] == null && defaultInn == 2)) 
+                                        ? inn2 
+                                        : null;
+                                if (inn == null) return 'Yet to bat';
+                                return '${inn['runs']}/${inn['wickets']} (${inn['overs']})';
+                              }
+
+                              return [
+                                const SizedBox(height: 8),
+                                Text('${m.teamAShort}: ${getScore(m.teamAId, 1)}', style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                                const SizedBox(height: 2),
+                                Text('${m.teamBShort}: ${getScore(m.teamBId, 2)}', style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                              ];
+                            }(),
+                            if (m.status == MatchStatus.completed && m.resultText != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                m.resultText!,
+                                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
                               ),
-                            ),
+                            ],
+                            if (m.status == MatchStatus.completed && m.manOfTheMatchName != null) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.star_rounded, size: 14, color: Color(0xFFD97706)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'MoM: ${m.manOfTheMatchName}',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFD97706)),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),

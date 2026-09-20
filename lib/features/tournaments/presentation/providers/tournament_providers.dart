@@ -6,8 +6,7 @@ import '../../../matches/data/models/match.dart';
 import '../../../matches/data/repositories/match_repository.dart';
 import '../../data/models/team_standing.dart';
 import '../../../../core/constants/cricket_enums.dart';
-
-final matchRepositoryProvider = Provider((_) => MatchRepository());
+import '../../../matches/presentation/providers/match_providers.dart';
 
 final tournamentRepositoryProvider = Provider((_) => TournamentRepository());
 final tournamentListProvider = StreamProvider<List<Tournament>>((ref) =>

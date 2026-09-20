@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../matches/data/models/match.dart';
 import '../../../matches/presentation/providers/match_providers.dart';
 import '../../data/models/innings.dart';
 import '../providers/scoring_providers.dart';
@@ -211,7 +212,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Si
 
 class _InfoTab extends StatelessWidget {
   const _InfoTab({required this.match, this.i1, this.i2});
-  final dynamic match;
+  final MatchModel match;
   final Innings? i1;
   final Innings? i2;
 
