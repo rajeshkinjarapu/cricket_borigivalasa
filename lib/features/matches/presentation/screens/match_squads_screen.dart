@@ -62,7 +62,8 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
       tournamentId: widget.tournamentId,
       matchId: widget.matchId,
     )));
-    final isAdmin = ref.watch(currentUserProvider)?.role == UserRole.admin;
+    final currentUser = ref.watch(currentUserProvider);
+    final canManage = currentUser?.role == UserRole.admin || currentUser?.role == UserRole.scorer;
 
     return matchAsync.when(
       loading: () => const Scaffold(
@@ -156,7 +157,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                   teamB: teamB,
                   teamAPlayers: teamAPlayers,
                   teamBPlayers: teamBPlayers,
-                  isAdmin: isAdmin,
+                  isAdmin: canManage,
                 ),
                 const SizedBox(height: 24),
 
@@ -175,7 +176,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                   ),
                   label: Text(
                     bothReady
-                        ? 'PROCEED TO MATCH & TOSS'
+                        ? 'CONFIRM PLAYING 11 & PROCEED TO TOSS'
                         : 'Need 11 Players Each (${teamAPlayers.length}/11 & ${teamBPlayers.length}/11)',
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.3),
                   ),

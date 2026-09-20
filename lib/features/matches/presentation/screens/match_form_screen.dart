@@ -216,12 +216,12 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
         if (startImmediately && targetMatchId != null && targetMatchId.isNotEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${teamAResolved.name} vs ${teamBResolved.name} match created! Opening Match Center...'),
+              content: Text('${teamAResolved.name} vs ${teamBResolved.name} match created! Select Playing XI...'),
               backgroundColor: const Color(0xFF16A34A),
             ),
           );
-          // Navigate directly to match center / toss page
-          context.pushReplacement('/tournaments/$effectiveTournamentId/matches/$targetMatchId');
+          // Navigate directly to match squads / Playing XI selection page
+          context.pushReplacement('/tournaments/$effectiveTournamentId/matches/$targetMatchId/squads');
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
