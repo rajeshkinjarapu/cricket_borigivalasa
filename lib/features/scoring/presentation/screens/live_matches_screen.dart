@@ -198,18 +198,35 @@ class _LiveMatchesScreenState extends ConsumerState<LiveMatchesScreen>
     final inn1 = live?['inn1'] as Map<String, dynamic>?;
     final inn2 = live?['inn2'] as Map<String, dynamic>?;
 
-    final String runsA = inn1?['runs']?.toString() ?? '0';
-    final String wktsA = inn1?['wickets']?.toString() ?? '0';
-    final String oversA = inn1?['overs']?.toString() ?? '0.0';
+    // Helper to resolve score map for each team
+    Map<String, dynamic>? getScoreForTeam(String teamId, int fallbackInn) {
+      if (inn1 != null && (inn1['teamId'] == teamId || (inn1['teamId'] == null && fallbackInn == 1))) {
+        return inn1;
+      }
+      if (inn2 != null && (inn2['teamId'] == teamId || (inn2['teamId'] == null && fallbackInn == 2))) {
+        return inn2;
+      }
+      return null;
+    }
 
-    final String runsB = inn2?['runs']?.toString() ?? '-';
-    final String wktsB = inn2?['wickets']?.toString() ?? '-';
-    final String oversB = inn2?['overs']?.toString() ?? '-';
+    final scoreA = getScoreForTeam(match.teamAId, 1);
+    final scoreB = getScoreForTeam(match.teamBId, 2);
+
+    final bool isTeamABatting = (inn2 == null && scoreA != null) || (inn2 != null && inn2['teamId'] == match.teamAId);
+    final bool isTeamBBatting = (inn2 == null && scoreB != null && inn1?['teamId'] == match.teamBId) || (inn2 != null && inn2['teamId'] == match.teamBId);
+
+    final String runsA = scoreA?['runs']?.toString() ?? '-';
+    final String wktsA = scoreA?['wickets']?.toString() ?? '0';
+    final String oversA = scoreA?['overs']?.toString() ?? '0.0';
+
+    final String runsB = scoreB?['runs']?.toString() ?? '-';
+    final String wktsB = scoreB?['wickets']?.toString() ?? '0';
+    final String oversB = scoreB?['overs']?.toString() ?? '0.0';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shadowColor: const Color(0xFFEF4444).withOpacity(0.25),
+      elevation: 3,
+      shadowColor: const Color(0xFFEF4444).withOpacity(0.2),
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
@@ -268,52 +285,82 @@ class _LiveMatchesScreenState extends ConsumerState<LiveMatchesScreen>
             const SizedBox(height: 16),
 
             // Team A Score Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  match.teamA,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: isTeamABatting ? const Color(0xFFF0FDF4) : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        match.teamA,
+                        style: TextStyle(
+                          fontSize: 15.5,
+                          fontWeight: isTeamABatting ? FontWeight.w900 : FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                      if (isTeamABatting) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.sports_cricket, size: 15, color: Color(0xFF16A34A)),
+                      ],
+                    ],
                   ),
-                ),
-                Text(
-                  '$runsA/$wktsA ($oversA ov)',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF1E3A8A),
+                  Text(
+                    runsA != '-' ? '$runsA/$wktsA ($oversA ov)' : 'Yet to bat',
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w900,
+                      color: runsA != '-' ? const Color(0xFF1E3A8A) : const Color(0xFF94A3B8),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
 
             // Team B Score Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  match.teamB,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: isTeamBBatting ? const Color(0xFFF0FDF4) : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        match.teamB,
+                        style: TextStyle(
+                          fontSize: 15.5,
+                          fontWeight: isTeamBBatting ? FontWeight.w900 : FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                      if (isTeamBBatting) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.sports_cricket, size: 15, color: Color(0xFF16A34A)),
+                      ],
+                    ],
                   ),
-                ),
-                Text(
-                  runsB != '-' ? '$runsB/$wktsB ($oversB ov)' : 'Yet to bat',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: runsB != '-' ? const Color(0xFF1E3A8A) : const Color(0xFF94A3B8),
+                  Text(
+                    runsB != '-' ? '$runsB/$wktsB ($oversB ov)' : 'Yet to bat',
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w900,
+                      color: runsB != '-' ? const Color(0xFF1E3A8A) : const Color(0xFF94A3B8),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const Divider(height: 24, color: Color(0xFFF1F5F9)),
+            const Divider(height: 20, color: Color(0xFFF1F5F9)),
 
             // Action Buttons
             Row(

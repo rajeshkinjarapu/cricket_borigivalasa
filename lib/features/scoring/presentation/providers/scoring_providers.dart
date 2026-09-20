@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../tournaments/presentation/providers/tournament_providers.dart';
+import '../../../matches/presentation/providers/match_providers.dart';
 import '../../data/models/ball_event.dart';
 import '../../data/models/innings.dart';
 import '../../data/repositories/scoring_repository.dart';
@@ -23,6 +24,14 @@ typedef OverKey = ({String tournamentId, String matchId, int innings, int overNu
 final currentOverBallsProvider = StreamProvider.family<List<BallEvent>, OverKey>(
   (ref, k) => ref.watch(scoringRepositoryProvider)
     .watchCurrentOverBalls(k.tournamentId, k.matchId, k.innings, k.overNumber));
+
+final matchMaxOversProvider = Provider.family<int, ({String tournamentId, String matchId})>((ref, k) {
+  final m = ref.watch(matchDetailProvider(k)).value;
+  if (m != null && m.totalOvers > 0) return m.totalOvers;
+  final tr = ref.watch(tournamentDetailProvider(k.tournamentId)).value;
+  return tr?.format.maxOvers ?? 20;
+});
+
 final maxOversProvider = Provider.family<int, String>((ref, t) {
   final tr = ref.watch(tournamentDetailProvider(t)).value;
   return tr?.format.maxOvers ?? 20;

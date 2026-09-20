@@ -91,6 +91,24 @@ class ScoringRepository {
     b.set(_bowlRef(tournamentId, matchId, inningsNumber).doc(openingBowler.id), {
       'playerName': openingBowler.name, 'balls': 0, 'runs': 0, 'wickets': 0,
       'maidens': 0, 'wides': 0, 'noballs': 0});
+
+    // Set match status to live and initialize liveScore
+    b.set(_matchRef(tournamentId, matchId), {
+      'status': 'live',
+      'startedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'liveScore': {
+        'inn$inningsNumber': {
+          'teamId': battingTeam.id,
+          'teamName': battingTeam.name,
+          'runs': 0,
+          'wickets': 0,
+          'legalBalls': 0,
+          'overs': '0.0',
+        },
+      },
+    }, SetOptions(merge: true));
+
     await b.commit();
   }
 
@@ -146,6 +164,23 @@ class ScoringRepository {
       b.set(_bowlRef(tournamentId, matchId, inningsNumber).doc(e.key),
         bw.toJson()..remove('playerId'), SetOptions(merge: false));
     }
+
+    final String oversText = '${snap.legalBalls ~/ 6}.${snap.legalBalls % 6}';
+    b.set(_matchRef(tournamentId, matchId), {
+      if (complete == null || inningsNumber == 1) 'status': 'live',
+      'liveScore': {
+        'inn$inningsNumber': {
+          'teamId': innings.battingTeamId,
+          'teamName': innings.battingTeamName,
+          'runs': snap.runs,
+          'wickets': snap.wickets,
+          'legalBalls': snap.legalBalls,
+          'overs': oversText,
+        },
+      },
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
     await b.commit();
 
     if (complete != null) {
@@ -351,6 +386,23 @@ class ScoringRepository {
       'currentBowlerName': prev?.bowlerName ?? innings.currentBowlerName,
       'isComplete': false, 'completionReason': FieldValue.delete(),
       'updatedAt': FieldValue.serverTimestamp()});
+
+    final String oversText = '${s.legalBalls ~/ 6}.${s.legalBalls % 6}';
+    b.set(_matchRef(tournamentId, matchId), {
+      'status': 'live',
+      'liveScore': {
+        'inn$inningsNumber': {
+          'teamId': innings.battingTeamId,
+          'teamName': innings.battingTeamName,
+          'runs': s.runs,
+          'wickets': s.wickets,
+          'legalBalls': s.legalBalls,
+          'overs': oversText,
+        },
+      },
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
     await b.commit();
   }
 

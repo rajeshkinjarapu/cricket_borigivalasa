@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,6 +26,27 @@ class LiveScorerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final matchAsync = ref.watch(matchDetailProvider((
+      tournamentId: tournamentId,
+      matchId: matchId,
+    )));
+    final match = matchAsync.value;
+    if (match != null &&
+        match.status != MatchStatus.live &&
+        match.status != MatchStatus.completed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(matchRepositoryProvider).updatePartial(
+          tournamentId: tournamentId,
+          matchId: matchId,
+          data: {
+            'status': MatchStatus.live.name,
+            'startedAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+        );
+      });
+    }
+
     final i1 = ref.watch(inningsProvider((tournamentId: tournamentId, matchId: matchId, innings: 1)));
     final i2 = ref.watch(inningsProvider((tournamentId: tournamentId, matchId: matchId, innings: 2)));
 
@@ -107,13 +129,21 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     if (_isProcessing) return;
     setState(() => _isProcessing = true);
     try {
+      final match = ref.read(matchDetailProvider((
+        tournamentId: widget.tournamentId,
+        matchId: widget.matchId,
+      ))).value;
+      final maxOvers = (match != null && match.totalOvers > 0)
+          ? match.totalOvers
+          : ref.read(matchMaxOversProvider((tournamentId: widget.tournamentId, matchId: widget.matchId)));
+
       await ref.read(scoringRepositoryProvider).recordBall(
         tournamentId: widget.tournamentId,
         matchId: widget.matchId,
         inningsNumber: widget.innings.inningsNumber,
         innings: widget.innings,
         ball: ball,
-        maxOvers: ref.read(maxOversProvider(widget.tournamentId)),
+        maxOvers: maxOvers,
         playersPerSide: playersPerSide,
       );
     } catch (e) {
@@ -134,12 +164,20 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
       _promptedOverNumber = null;
     });
     try {
+      final match = ref.read(matchDetailProvider((
+        tournamentId: widget.tournamentId,
+        matchId: widget.matchId,
+      ))).value;
+      final maxOvers = (match != null && match.totalOvers > 0)
+          ? match.totalOvers
+          : ref.read(matchMaxOversProvider((tournamentId: widget.tournamentId, matchId: widget.matchId)));
+
       await ref.read(scoringRepositoryProvider).undoLastBall(
         tournamentId: widget.tournamentId,
         matchId: widget.matchId,
         inningsNumber: widget.innings.inningsNumber,
         innings: widget.innings,
-        maxOvers: ref.read(maxOversProvider(widget.tournamentId)),
+        maxOvers: maxOvers,
         playersPerSide: playersPerSide,
       );
       if (mounted) {
@@ -260,7 +298,14 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   }
 
   Future<void> _handleOverCompletion(Innings live) async {
-    final maxOvers = ref.read(maxOversProvider(widget.tournamentId));
+    final match = ref.read(matchDetailProvider((
+      tournamentId: widget.tournamentId,
+      matchId: widget.matchId,
+    ))).value;
+    final maxOvers = (match != null && match.totalOvers > 0)
+        ? match.totalOvers
+        : ref.read(matchMaxOversProvider((tournamentId: widget.tournamentId, matchId: widget.matchId)));
+
     if (live.legalBalls >= maxOvers * 6 || live.legalBalls == 0 || live.legalBalls % 6 != 0) return;
 
     final completedOver = live.legalBalls ~/ 6;
@@ -474,11 +519,13 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   Widget build(BuildContext context) {
     final a = ref.watch(inningsProvider(_k));
     final live = a.value ?? widget.innings;
-    final maxOvers = ref.read(maxOversProvider(widget.tournamentId));
     final match = ref.watch(matchDetailProvider((
       tournamentId: widget.tournamentId,
       matchId: widget.matchId,
     ))).value;
+    final maxOvers = (match != null && match.totalOvers > 0)
+        ? match.totalOvers
+        : ref.watch(matchMaxOversProvider((tournamentId: widget.tournamentId, matchId: widget.matchId)));
 
     final overEnd = live.legalBalls > 0 && live.legalBalls % 6 == 0 && live.legalBalls < maxOvers * 6 && !live.isComplete;
     if (overEnd && _promptedOverNumber != (live.legalBalls ~/ 6)) {
@@ -563,6 +610,11 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
             icon: const Icon(Icons.sports_baseball_rounded, color: Colors.white),
             tooltip: 'Change Bowler',
             onPressed: () => _manualChangeBowler(live),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_suggest_rounded, color: Colors.white),
+            tooltip: 'Match Settings / Overs',
+            onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/edit'),
           ),
           const SizedBox(width: 4),
         ],

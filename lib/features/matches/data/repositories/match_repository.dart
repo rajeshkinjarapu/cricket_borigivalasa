@@ -18,7 +18,13 @@ class MatchRepository {
 
   Match _parseDoc(DocumentSnapshot<Map<String, dynamic>> doc, [String? fallbackTournamentId]) {
     final data = doc.data() ?? {};
-    final tId = data['tournamentId'] as String? ?? fallbackTournamentId ?? '';
+    String tId = data['tournamentId'] as String? ?? fallbackTournamentId ?? '';
+    if (tId.isEmpty) {
+      final segments = doc.reference.path.split('/');
+      if (segments.length >= 2 && segments[0] == AppConstants.tournamentsCollection) {
+        tId = segments[1];
+      }
+    }
     return Match.fromJson({...data, 'id': doc.id, 'tournamentId': tId});
   }
 
@@ -48,6 +54,14 @@ class MatchRepository {
   Future<void> update(String tournamentId, Match match) async {
     final json = match.toJson()..remove('id');
     await _matchesRef(tournamentId).doc(match.id).update(json);
+  }
+
+  Future<void> updatePartial({
+    required String tournamentId,
+    required String matchId,
+    required Map<String, dynamic> data,
+  }) async {
+    await _matchesRef(tournamentId).doc(matchId).update(data);
   }
 
   Future<void> delete(String tournamentId, String matchId) async {
@@ -99,14 +113,13 @@ class MatchRepository {
     });
   }
 
-  // Cross-tournament feed for Dashboard & Global Matches
   Stream<List<Match>> getLiveMatches() {
     return _db
         .collectionGroup(AppConstants.matchesCollection)
         .snapshots()
         .map((snap) => snap.docs
             .map((d) => _parseDoc(d))
-            .where((m) => m.status == MatchStatus.live)
+            .where((m) => m.status == MatchStatus.live || (m.status != MatchStatus.completed && m.liveScore != null))
             .toList());
   }
 

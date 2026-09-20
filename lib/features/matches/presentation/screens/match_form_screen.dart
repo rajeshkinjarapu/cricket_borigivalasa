@@ -176,25 +176,41 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
       String? targetMatchId = widget.matchId;
 
       if (widget.isEdit) {
-        final existing = ref.read(matchDetailProvider((
+        var existing = ref.read(matchDetailProvider((
           tournamentId: effectiveTournamentId,
           matchId: widget.matchId!,
         ))).value;
 
         if (existing == null) {
-          setState(() => _isSaving = false);
-          return;
+          try {
+            existing = await ref.read(matchRepositoryProvider).watchById(effectiveTournamentId, widget.matchId!).first;
+          } catch (_) {}
         }
 
-        await controller.update(existing.copyWith(
-          teamAId: teamAResolved.id,
-          teamBId: teamBResolved.id,
-          teamA: teamAResolved.name,
-          teamB: teamBResolved.name,
-          totalOvers: overs,
-          venue: _venueController.text.trim(),
-          matchDate: _matchDate,
-        ));
+        if (existing != null) {
+          await controller.update(existing.copyWith(
+            teamAId: teamAResolved.id,
+            teamBId: teamBResolved.id,
+            teamA: teamAResolved.name,
+            teamB: teamBResolved.name,
+            totalOvers: overs,
+            venue: _venueController.text.trim(),
+            matchDate: _matchDate,
+          ));
+        } else {
+          await ref.read(matchRepositoryProvider).updatePartial(
+            tournamentId: effectiveTournamentId,
+            matchId: widget.matchId!,
+            data: {
+              'teamAId': teamAResolved.id,
+              'teamBId': teamBResolved.id,
+              'teamA': teamAResolved.name,
+              'teamB': teamBResolved.name,
+              'totalOvers': overs,
+              'venue': _venueController.text.trim(),
+            },
+          );
+        }
       } else {
         targetMatchId = await controller.create(MatchModel(
           id: '',
@@ -213,7 +229,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
       if (mounted) {
         setState(() => _isSaving = false);
 
-        if (startImmediately && targetMatchId != null && targetMatchId.isNotEmpty) {
+        if (!widget.isEdit && startImmediately && targetMatchId != null && targetMatchId.isNotEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('${teamAResolved.name} vs ${teamBResolved.name} match created! Select Playing XI...'),
@@ -225,14 +241,14 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(widget.isEdit ? 'Match updated successfully!' : 'Match scheduled successfully!'),
-              backgroundColor: const Color(0xFF1E3A8A),
+              content: Text(widget.isEdit ? 'Match settings updated successfully!' : 'Match scheduled successfully!'),
+              backgroundColor: const Color(0xFF16A34A),
             ),
           );
           if (context.canPop()) {
             context.pop();
           } else {
-            context.go('/matches-list');
+            context.go('/tournaments/$effectiveTournamentId/matches/${widget.matchId ?? targetMatchId}');
           }
         }
       }
@@ -512,56 +528,85 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                       ),
                       const SizedBox(height: 22),
 
-                      // ── 2 ACTION BUTTONS: SCHEDULE & START MATCH NOW ──
+                      // ── ACTION BUTTONS: SAVE CHANGES OR SCHEDULE/START ──
                       Column(
                         children: [
-                          // 1. START MATCH NOW (Primary Action)
-                          SizedBox(
-                            width: double.infinity,
-                            height: 52,
-                            child: ElevatedButton.icon(
-                              onPressed: _isSaving ? null : () => _save(
-                                effectiveTournamentId: effectiveTournamentId,
-                                existingTeams: teams,
-                                startImmediately: true,
-                              ),
-                              icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
-                              label: const Text(
-                                'START MATCH NOW',
-                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF16A34A), // Emerald Green
-                                foregroundColor: Colors.white,
-                                elevation: 3,
-                                shadowColor: const Color(0xFF16A34A).withOpacity(0.4),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          if (widget.isEdit) ...[
+                            // SAVE & UPDATE MATCH (Primary Action for Edit)
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52,
+                              child: ElevatedButton.icon(
+                                onPressed: _isSaving ? null : () => _save(
+                                  effectiveTournamentId: effectiveTournamentId,
+                                  existingTeams: teams,
+                                  startImmediately: false,
+                                ),
+                                icon: _isSaving
+                                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                    : const Icon(Icons.check_circle_rounded, color: Colors.white, size: 22),
+                                label: Text(
+                                  _isSaving ? 'SAVING CHANGES...' : 'SAVE & UPDATE MATCH',
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF16A34A), // Emerald Green
+                                  foregroundColor: Colors.white,
+                                  elevation: 3,
+                                  shadowColor: const Color(0xFF16A34A).withOpacity(0.4),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
+                          ] else ...[
+                            // 1. START MATCH NOW (Primary Action for Create)
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52,
+                              child: ElevatedButton.icon(
+                                onPressed: _isSaving ? null : () => _save(
+                                  effectiveTournamentId: effectiveTournamentId,
+                                  existingTeams: teams,
+                                  startImmediately: true,
+                                ),
+                                icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                                label: const Text(
+                                  'START MATCH NOW',
+                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF16A34A), // Emerald Green
+                                  foregroundColor: Colors.white,
+                                  elevation: 3,
+                                  shadowColor: const Color(0xFF16A34A).withOpacity(0.4),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
 
-                          // 2. SCHEDULE MATCH (For Later)
-                          SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: OutlinedButton.icon(
-                              onPressed: _isSaving ? null : () => _save(
-                                effectiveTournamentId: effectiveTournamentId,
-                                existingTeams: teams,
-                                startImmediately: false,
-                              ),
-                              icon: const Icon(Icons.schedule_rounded, color: Color(0xFF1E3A8A), size: 20),
-                              label: const Text(
-                                'Schedule Match For Later',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A)),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            // 2. SCHEDULE MATCH (For Later)
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: OutlinedButton.icon(
+                                onPressed: _isSaving ? null : () => _save(
+                                  effectiveTournamentId: effectiveTournamentId,
+                                  existingTeams: teams,
+                                  startImmediately: false,
+                                ),
+                                icon: const Icon(Icons.schedule_rounded, color: Color(0xFF1E3A8A), size: 20),
+                                label: const Text(
+                                  'Schedule Match For Later',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A)),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 24),
