@@ -613,8 +613,9 @@ class TeamDetailScreen extends ConsumerWidget {
 // Add Players Modal Sheet (Dual Mode: Select Existing OR Manual Entry)
 // ─────────────────────────────────────────────────────────────────────────────
 class AddPlayersModalSheet extends ConsumerStatefulWidget {
-  const AddPlayersModalSheet({super.key, required this.team});
+  const AddPlayersModalSheet({super.key, required this.team, this.initialTab = 0});
   final Team team;
+  final int initialTab;
 
   @override
   ConsumerState<AddPlayersModalSheet> createState() => _AddPlayersModalSheetState();
@@ -642,7 +643,7 @@ class _AddPlayersModalSheetState extends ConsumerState<AddPlayersModalSheet>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTab.clamp(0, 1));
   }
 
   @override

@@ -56,14 +56,14 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
     }
   }
 
-  void _openAddPlayersModal(BuildContext context, Team? team, String teamId, String teamName) {
+  void _openAddPlayersModal(BuildContext context, Team? team, String teamId, String teamName, {int initialTab = 0}) {
     final effectiveTeam = team ?? Team(id: teamId, name: teamName, shortName: teamName.isNotEmpty ? teamName[0] : 'T');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => AddPlayersModalSheet(team: effectiveTeam),
+      builder: (ctx) => AddPlayersModalSheet(team: effectiveTeam, initialTab: initialTab),
     );
   }
 
@@ -118,8 +118,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
         final activeTeam = _selectedSquadTabIndex == 0 ? teamA : teamB;
         final activePlayers = _selectedSquadTabIndex == 0 ? teamAPlayers : teamBPlayers;
 
-        final bool bothReady = teamAPlayers.length >= 11 && teamBPlayers.length >= 11;
-
         return Scaffold(
           backgroundColor: const Color(0xFFF1F5F9),
           appBar: AppBar(
@@ -140,7 +138,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Select Playing 11',
+                  'Match Squads Selection',
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: Colors.white),
                 ),
                 Text(
@@ -186,35 +184,60 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                   children: [
-                    // Squad Header with "+ Add Players"
+                    // Squad Header with Dual Action Buttons (Database & Manual)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '$activeTeamName (${activePlayers.length}/11)',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                        if (canManage)
-                          ElevatedButton.icon(
-                            onPressed: () => _openAddPlayersModal(context, activeTeam, activeTeamId, activeTeamName),
-                            icon: const Icon(Icons.person_add_rounded, size: 14),
-                            label: const Text('Add Players'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF16A34A),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              elevation: 0,
-                              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        Flexible(
+                          child: Text(
+                            '$activeTeamName (${activePlayers.length} Players)',
+                            style: const TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
                             ),
                           ),
+                        ),
+                        if (canManage) ...[
+                          const SizedBox(width: 8),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // 1. From Database
+                              ElevatedButton.icon(
+                                onPressed: () => _openAddPlayersModal(context, activeTeam, activeTeamId, activeTeamName, initialTab: 0),
+                                icon: const Icon(Icons.storage_rounded, size: 13),
+                                label: const Text('From DB'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1E3A8A),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  elevation: 0,
+                                  textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              // 2. Manual Player
+                              ElevatedButton.icon(
+                                onPressed: () => _openAddPlayersModal(context, activeTeam, activeTeamId, activeTeamName, initialTab: 1),
+                                icon: const Icon(Icons.person_add_rounded, size: 13),
+                                label: const Text('Manual'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF16A34A),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  elevation: 0,
+                                  textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
 
                     // Players List or Empty View
                     if (activePlayers.isEmpty)
@@ -238,16 +261,40 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
                             if (canManage)
-                              ElevatedButton.icon(
-                                onPressed: () => _openAddPlayersModal(context, activeTeam, activeTeamId, activeTeamName),
-                                icon: const Icon(Icons.person_add_rounded, size: 16),
-                                label: Text('Add Players to $activeTeamName'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF16A34A),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                alignment: WrapAlignment.center,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed: () => _openAddPlayersModal(context, activeTeam, activeTeamId, activeTeamName, initialTab: 0),
+                                    icon: const Icon(Icons.storage_rounded, size: 16),
+                                    label: const Text('Select from Database'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1E3A8A),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                  ),
+                                  ElevatedButton.icon(
+                                    onPressed: () => _openAddPlayersModal(context, activeTeam, activeTeamId, activeTeamName, initialTab: 1),
+                                    icon: const Icon(Icons.person_add_rounded, size: 16),
+                                    label: const Text('Add Manually'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF16A34A),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      )
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                 ),
                               ),
@@ -472,31 +519,28 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     ElevatedButton.icon(
-                      onPressed: bothReady
-                          ? () {
-                              context.pushReplacement(
-                                '/tournaments/${widget.tournamentId}/matches/${widget.matchId}',
-                              );
-                            }
-                          : () {
-                              final incompleteTeam = teamAPlayers.length < 11 ? teamA : teamB;
-                              final incompleteId = teamAPlayers.length < 11 ? match.teamAId : match.teamBId;
-                              final incompleteName = teamAPlayers.length < 11 ? match.teamA : match.teamB;
-                              _openAddPlayersModal(context, incompleteTeam, incompleteId, incompleteName);
-                            },
+                      onPressed: () {
+                        if (match.hasToss) {
+                          context.pushReplacement(
+                            '/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring',
+                          );
+                        } else {
+                          context.pushReplacement(
+                            '/tournaments/${widget.tournamentId}/matches/${widget.matchId}',
+                          );
+                        }
+                      },
                       icon: Icon(
-                        bothReady ? Icons.how_to_vote_rounded : Icons.person_add_alt_1_rounded,
+                        match.hasToss ? Icons.play_circle_fill_rounded : Icons.how_to_vote_rounded,
                         size: 20,
                       ),
                       label: Text(
-                        bothReady
-                            ? 'CONFIRM PLAYING 11 & PROCEED TO TOSS'
-                            : 'Need 11 Players (${teamAPlayers.length}/11 & ${teamBPlayers.length}/11)',
+                        match.hasToss ? 'CONFIRM SQUADS & START SCORING' : 'CONFIRM SQUADS & GO TO TOSS',
                         style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800),
                       ),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: bothReady ? const Color(0xFF16A34A) : const Color(0xFF1E3A8A),
+                        backgroundColor: const Color(0xFF16A34A),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
@@ -536,8 +580,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    final isComplete = count >= 11;
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -569,21 +611,21 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
             ),
             const SizedBox(width: 6),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
               decoration: BoxDecoration(
                 color: isSelected
                     ? Colors.white.withOpacity(0.22)
-                    : (isComplete ? const Color(0xFFDCFCE7) : const Color(0xFFE2E8F0)),
+                    : const Color(0xFFE2E8F0),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                '$count/11',
+                '$count Players',
                 style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
                   color: isSelected
                       ? Colors.white
-                      : (isComplete ? const Color(0xFF16A34A) : const Color(0xFF475569)),
+                      : const Color(0xFF475569),
                 ),
               ),
             ),

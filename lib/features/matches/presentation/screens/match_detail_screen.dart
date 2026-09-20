@@ -46,139 +46,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     }
   }
 
-  void _showPlayersRequiredDialog(BuildContext context, Match match, int teamACount, int teamBCount) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 28),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Players Required',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Both teams must have registered players before starting the match or recording the toss.',
-              style: TextStyle(fontSize: 13.5, color: Color(0xFF475569)),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          match.teamA,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: teamACount >= 2 ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '$teamACount Players',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                            color: teamACount >= 2 ? const Color(0xFF15803D) : const Color(0xFFDC2626),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          match.teamB,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: teamBCount >= 2 ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '$teamBCount Players',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                            color: teamBCount >= 2 ? const Color(0xFF15803D) : const Color(0xFFDC2626),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
-          ),
-          if (teamACount < 2)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                context.push('/teams/${match.teamAId}');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E3A8A),
-                foregroundColor: Colors.white,
-              ),
-              child: Text('Add to ${match.teamA.split(" ").first}'),
-            ),
-          if (teamBCount < 2)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                context.push('/teams/${match.teamBId}');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E3A8A),
-                foregroundColor: Colors.white,
-              ),
-              child: Text('Add to ${match.teamB.split(" ").first}'),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _saveToss(Match match, int teamACount, int teamBCount) async {
-    if (teamACount < 2 || teamBCount < 2) {
-      _showPlayersRequiredDialog(context, match, teamACount, teamBCount);
-      return;
-    }
-
+  Future<void> _saveToss(Match match) async {
     if (_selectedTossWinner == null || _selectedDecision == null) return;
     setState(() => _isSavingToss = true);
     final ok = await ref.read(matchControllerProvider.notifier).setToss(
@@ -192,10 +60,11 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
       if (ok) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Toss recorded successfully!'),
+            content: Text('Toss recorded! Please select Playing Squads.'),
             backgroundColor: Color(0xFF16A34A),
           ),
         );
+        context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads');
       }
     }
   }
@@ -365,32 +234,42 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                       // ── SCHEDULED MATCH STATE (TOSS SETUP) ──
                       if (match.status == MatchStatus.scheduled) ...[
                         if (!isTossDone && canScore)
-                          _buildTossSetupCard(context, match, teamAPlayers.length, teamBPlayers.length, hasEnoughPlayers),
-                        if (isTossDone)
+                          _buildTossSetupCard(context, match, teamAPlayers.length, teamBPlayers.length),
+                        if (isTossDone) ...[
                           _buildTossRecordedCard(context, match, tossWinnerName, battingFirstTeam),
-                        const SizedBox(height: 16),
-                        if (isTossDone && canScore)
+                          const SizedBox(height: 12),
                           ElevatedButton.icon(
-                            onPressed: () {
-                              if (!hasEnoughPlayers) {
-                                _showPlayersRequiredDialog(context, match, teamAPlayers.length, teamBPlayers.length);
-                                return;
-                              }
-                              context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring');
-                            },
-                            icon: const Icon(Icons.play_circle_fill_rounded, size: 22),
+                            onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads'),
+                            icon: const Icon(Icons.groups_rounded, size: 20),
                             label: const Text(
-                              'START SCORING NOW',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                              'SELECT SQUADS (TEAM A & B)',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                             ),
                             style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: hasEnoughPlayers ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              backgroundColor: const Color(0xFF1E3A8A),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              elevation: 3,
                             ),
                           ),
+                          const SizedBox(height: 10),
+                          if (canScore)
+                            ElevatedButton.icon(
+                              onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring'),
+                              icon: const Icon(Icons.play_circle_fill_rounded, size: 22),
+                              label: const Text(
+                                'START SCORING NOW',
+                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                backgroundColor: const Color(0xFF16A34A),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                elevation: 3,
+                              ),
+                            ),
+                        ],
                       ],
 
                       // ── LIVE MATCH STATE ──
@@ -750,7 +629,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
   }
 
   // ── TOSS SETUP CARD ──
-  Widget _buildTossSetupCard(BuildContext context, Match match, int countA, int countB, bool hasEnough) {
+  Widget _buildTossSetupCard(BuildContext context, Match match, int countA, int countB) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -831,7 +710,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: (_selectedTossWinner != null && _selectedDecision != null && !_isSavingToss)
-                ? () => _saveToss(match, countA, countB)
+                ? () => _saveToss(match)
                 : null,
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
