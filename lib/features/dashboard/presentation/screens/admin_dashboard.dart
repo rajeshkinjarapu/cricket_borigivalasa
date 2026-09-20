@@ -29,7 +29,7 @@ class AdminDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final u = ref.watch(currentUserProvider);
     final totalTeams = ref.watch(totalTeamsCountProvider);
-    final totalMembers = ref.watch(memberListProvider);
+    final totalMembers = ref.watch(totalUnifiedMembersCountProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -171,7 +171,7 @@ class AdminDashboard extends ConsumerWidget {
                   icon: Icons.people_alt_rounded,
                   color: const Color(0xFF16A34A),
                   value: totalMembers.when(
-                      data: (list) => '${list.length}',
+                      data: (count) => '$count',
                       loading: () => '...',
                       error: (_, __) => '-'),
                 ),

@@ -5,6 +5,8 @@ import '../../../tournaments/data/models/tournament.dart';
 import '../../../matches/data/repositories/match_repository.dart';
 import '../../../matches/data/models/match.dart';
 import '../../../players/data/models/player.dart';
+import '../../../members/presentation/providers/member_providers.dart';
+import '../../../players/presentation/providers/player_providers.dart';
 
 final tournamentRepositoryProvider = Provider((ref) => TournamentRepository());
 final matchRepositoryProvider = Provider((ref) => MatchRepository());
@@ -29,19 +31,70 @@ final allMatchesProvider = StreamProvider<List<Match>>((ref) {
   return ref.watch(matchRepositoryProvider).getAllMatches();
 });
 
-// ── Dashboard Stats Providers ──
 final _db = FirebaseFirestore.instance;
 
 final totalTeamsCountProvider = StreamProvider<int>((ref) {
   return _db
-      .collectionGroup('teams')
+      .collection('teams')
       .snapshots()
       .map((snap) => snap.docs.length);
 });
 
+final totalUnifiedMembersCountProvider = Provider<AsyncValue<int>>((ref) {
+  final usersAsync = ref.watch(memberListProvider);
+  final playersAsync = ref.watch(allPlayersProvider);
+
+  if (usersAsync.isLoading || playersAsync.isLoading) {
+    return const AsyncValue.loading();
+  }
+  if (usersAsync.hasError) {
+    return AsyncValue.error(usersAsync.error!, usersAsync.stackTrace!);
+  }
+
+  final users = usersAsync.value ?? [];
+  final players = playersAsync.value ?? [];
+
+  final Set<String> processedPlayerIds = {};
+  final Set<String> processedPhones = {};
+  final Set<String> processedNames = {};
+
+  int count = 0;
+
+  for (final u in users) {
+    count++;
+    String contact = u.email;
+    if (u.email.endsWith('@member.cricket.com')) {
+      contact = u.email.replaceAll('@member.cricket.com', '');
+      processedPhones.add(contact);
+    }
+    if (u.displayName.isNotEmpty) {
+      processedNames.add(u.displayName.toLowerCase().trim());
+    }
+
+    for (final p in players) {
+      if ((p.phoneNumber != null && p.phoneNumber == contact) ||
+          p.id == u.uid ||
+          p.name.toLowerCase().trim() == u.displayName.toLowerCase().trim()) {
+        processedPlayerIds.add(p.id);
+        break;
+      }
+    }
+  }
+
+  for (final p in players) {
+    if (processedPlayerIds.contains(p.id)) continue;
+    if (p.phoneNumber != null && p.phoneNumber!.isNotEmpty && processedPhones.contains(p.phoneNumber)) continue;
+    if (processedNames.contains(p.name.toLowerCase().trim())) continue;
+
+    count++;
+  }
+
+  return AsyncValue.data(count);
+});
+
 final totalPlayersCountProvider = StreamProvider<int>((ref) {
   return _db
-      .collectionGroup('players')
+      .collection('players')
       .snapshots()
       .map((snap) => snap.docs.length);
 });
