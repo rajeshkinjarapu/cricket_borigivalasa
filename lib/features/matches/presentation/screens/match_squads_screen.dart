@@ -61,6 +61,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => AddPlayersModalSheet(team: effectiveTeam),
     );
