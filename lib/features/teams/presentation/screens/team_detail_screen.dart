@@ -13,6 +13,7 @@ import '../../../auth/data/models/app_user.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../players/data/models/player.dart';
 import '../../../players/presentation/providers/player_providers.dart';
+import '../../../players/presentation/screens/add_players_screen.dart';
 import '../providers/team_providers.dart';
 import '../../data/models/team.dart';
 
@@ -53,12 +54,11 @@ class TeamDetailScreen extends ConsumerWidget {
   }
 
   void _openAddPlayersModal(BuildContext context, Team team, WidgetRef ref) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      useSafeArea: true,
-      builder: (ctx) => AddPlayersModalSheet(team: team),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => AddPlayersScreen(team: team),
+      ),
     );
   }
 

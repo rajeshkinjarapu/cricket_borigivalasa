@@ -9,7 +9,7 @@ import '../../../players/data/models/player.dart';
 import '../../../players/presentation/providers/player_providers.dart';
 import '../../../teams/data/models/team.dart';
 import '../../../teams/presentation/providers/team_providers.dart';
-import '../../../teams/presentation/screens/team_detail_screen.dart';
+import '../../../players/presentation/screens/add_players_screen.dart';
 import '../../data/models/match.dart';
 import '../providers/match_providers.dart';
 
@@ -56,14 +56,26 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
     }
   }
 
-  void _openAddPlayersModal(BuildContext context, Team? team, String teamId, String teamName, {int initialTab = 0}) {
+  void _openAddPlayersPage(
+    BuildContext context,
+    Team? team,
+    String teamId,
+    String teamName,
+    String oppositeTeamName,
+    Set<String> oppositeTeamPlayerIds, {
+    int initialTab = 0,
+  }) {
     final effectiveTeam = team ?? Team(id: teamId, name: teamName, shortName: teamName.isNotEmpty ? teamName[0] : 'T');
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => AddPlayersModalSheet(team: effectiveTeam, initialTab: initialTab),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => AddPlayersScreen(
+          team: effectiveTeam,
+          oppositeTeamName: oppositeTeamName,
+          oppositeTeamPlayerIds: oppositeTeamPlayerIds,
+          initialTab: initialTab,
+        ),
+      ),
     );
   }
 
@@ -117,6 +129,11 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
         final activeTeamId = _selectedSquadTabIndex == 0 ? match.teamAId : match.teamBId;
         final activeTeam = _selectedSquadTabIndex == 0 ? teamA : teamB;
         final activePlayers = _selectedSquadTabIndex == 0 ? teamAPlayers : teamBPlayers;
+
+        final oppositeTeamName = _selectedSquadTabIndex == 0 ? match.teamB : match.teamA;
+        final oppositeTeamPlayerIds = _selectedSquadTabIndex == 0
+            ? teamBPlayers.map((p) => p.id).toSet()
+            : teamAPlayers.map((p) => p.id).toSet();
 
         return Scaffold(
           backgroundColor: const Color(0xFFF1F5F9),
@@ -205,7 +222,15 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                             children: [
                               // 1. From Database
                               ElevatedButton.icon(
-                                onPressed: () => _openAddPlayersModal(context, activeTeam, activeTeamId, activeTeamName, initialTab: 0),
+                                onPressed: () => _openAddPlayersPage(
+                                  context,
+                                  activeTeam,
+                                  activeTeamId,
+                                  activeTeamName,
+                                  oppositeTeamName,
+                                  oppositeTeamPlayerIds,
+                                  initialTab: 0,
+                                ),
                                 icon: const Icon(Icons.storage_rounded, size: 13),
                                 label: const Text('From DB'),
                                 style: ElevatedButton.styleFrom(
@@ -220,7 +245,15 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                               const SizedBox(width: 6),
                               // 2. Manual Player
                               ElevatedButton.icon(
-                                onPressed: () => _openAddPlayersModal(context, activeTeam, activeTeamId, activeTeamName, initialTab: 1),
+                                onPressed: () => _openAddPlayersPage(
+                                  context,
+                                  activeTeam,
+                                  activeTeamId,
+                                  activeTeamName,
+                                  oppositeTeamName,
+                                  oppositeTeamPlayerIds,
+                                  initialTab: 1,
+                                ),
                                 icon: const Icon(Icons.person_add_rounded, size: 13),
                                 label: const Text('Manual'),
                                 style: ElevatedButton.styleFrom(
@@ -269,7 +302,15 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                 alignment: WrapAlignment.center,
                                 children: [
                                   ElevatedButton.icon(
-                                    onPressed: () => _openAddPlayersModal(context, activeTeam, activeTeamId, activeTeamName, initialTab: 0),
+                                    onPressed: () => _openAddPlayersPage(
+                                      context,
+                                      activeTeam,
+                                      activeTeamId,
+                                      activeTeamName,
+                                      oppositeTeamName,
+                                      oppositeTeamPlayerIds,
+                                      initialTab: 0,
+                                    ),
                                     icon: const Icon(Icons.storage_rounded, size: 16),
                                     label: const Text('Select from Database'),
                                     style: ElevatedButton.styleFrom(
@@ -280,7 +321,15 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                     ),
                                   ),
                                   ElevatedButton.icon(
-                                    onPressed: () => _openAddPlayersModal(context, activeTeam, activeTeamId, activeTeamName, initialTab: 1),
+                                    onPressed: () => _openAddPlayersPage(
+                                      context,
+                                      activeTeam,
+                                      activeTeamId,
+                                      activeTeamName,
+                                      oppositeTeamName,
+                                      oppositeTeamPlayerIds,
+                                      initialTab: 1,
+                                    ),
                                     icon: const Icon(Icons.person_add_rounded, size: 16),
                                     label: const Text('Add Manually'),
                                     style: ElevatedButton.styleFrom(
