@@ -5,7 +5,7 @@ import '../../../auth/presentation/providers/auth_providers.dart';
 import '../providers/dashboard_providers.dart';
 import '../widgets/live_match_card.dart';
 import '../widgets/upcoming_match_card.dart';
-import '../widgets/tournament_summary_card.dart';
+import '../widgets/leaderboard_section.dart';
 import '../widgets/app_drawer.dart';
 
 class MemberDashboard extends ConsumerWidget {
@@ -24,7 +24,7 @@ class MemberDashboard extends ConsumerWidget {
       backgroundColor: const Color(0xFFF8F9FA),
       drawer: const AppDrawer(),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E3A8A), // Royal Blue Header
+        backgroundColor: const Color(0xFF1E3A8A),
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text('Member Dashboard',
@@ -62,14 +62,14 @@ class MemberDashboard extends ConsumerWidget {
                   GestureDetector(
                     onTap: () => context.push('/profile'),
                     child: Container(
-                      width: 56,
-                      height: 56,
+                      width: 80,
+                      height: 80,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.white, width: 2),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: Colors.white, width: 3),
                         color: Colors.white.withOpacity(0.2),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3)),
+                          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
                         ],
                         image: (u?.photoUrl != null && u!.photoUrl!.isNotEmpty)
                             ? DecorationImage(image: NetworkImage(u.photoUrl!), fit: BoxFit.cover)
@@ -79,7 +79,7 @@ class MemberDashboard extends ConsumerWidget {
                           ? Center(
                               child: Text(
                                 (u?.displayName.isNotEmpty ?? false) ? u!.displayName[0].toUpperCase() : 'M',
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 32),
                               ),
                             )
                           : null,
@@ -143,19 +143,85 @@ class MemberDashboard extends ConsumerWidget {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Text('Error: $e'),
             ),
+            const SizedBox(height: 8),
 
-            // My Tournaments
-            const _SectionTitle(title: '🏆 MY TOURNAMENTS'),
+            // Tournaments — only show if admin has created at least one
             tournamentsAsync.when(
               data: (tournaments) {
-                if (tournaments.isEmpty) return const Padding(padding: EdgeInsets.only(bottom: 24), child: Text('No active tournaments'));
-                return Column(children: tournaments.map((t) => TournamentSummaryCard(tournament: t)).toList());
+                if (tournaments.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _SectionTitle(title: '🏆 ACTIVE TOURNAMENTS'),
+                    ...tournaments.map((t) => _TournamentChip(tournament: t)),
+                    const SizedBox(height: 8),
+                  ],
+                );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Text('Error: $e'),
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
             ),
+
+            // Leaderboard
+            const _SectionTitle(title: '🏅 LEADERBOARD'),
+            const LeaderboardSection(),
+            const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TournamentChip extends StatelessWidget {
+  final tournament;
+  const _TournamentChip({required this.tournament});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1E3A8A).withOpacity(0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.emoji_events_rounded, color: Color(0xFFFFD700), size: 26),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tournament.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  '${tournament.teamsCount} Teams • ${tournament.status.name.toUpperCase()}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: Colors.white70),
+        ],
       ),
     );
   }

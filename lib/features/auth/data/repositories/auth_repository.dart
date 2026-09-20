@@ -136,4 +136,28 @@ class AuthRepository {
     // Now update password
     await user.updatePassword(newPassword);
   }
+
+  Future<void> updateEmail({
+    required String newEmail,
+    required String currentPassword,
+  }) async {
+    final user = _a.currentUser;
+    if (user == null) throw Exception('Not logged in');
+
+    // Re-authenticate before changing email
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: currentPassword,
+    );
+    await user.reauthenticateWithCredential(credential);
+
+    // Update Firebase Auth email
+    await user.verifyBeforeUpdateEmail(newEmail.trim());
+
+    // Update Firestore email field
+    await _db.collection(AppConstants.usersCollection).doc(user.uid).set(
+      {'email': newEmail.trim()},
+      SetOptions(merge: true),
+    );
+  }
 }

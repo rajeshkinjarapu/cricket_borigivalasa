@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../providers/auth_providers.dart';
 
@@ -14,8 +13,27 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   bool _isUploadingPhoto = false;
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
+    _fadeAnim =
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
 
   // ─── Change Password Dialog ───
   Future<void> _showChangePasswordDialog() async {
@@ -34,13 +52,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (dialogCtx) {
         return StatefulBuilder(builder: (ctx, setDialogState) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Row(
               children: [
                 Icon(Icons.lock_reset_rounded, color: Color(0xFF1E3A8A)),
                 SizedBox(width: 10),
                 Text('Change Password',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
             content: SingleChildScrollView(
@@ -58,35 +78,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         border: Border.all(color: Colors.red.shade200),
                       ),
                       child: Text(errorMsg!,
-                          style: const TextStyle(color: Colors.red, fontSize: 13)),
+                          style:
+                              const TextStyle(color: Colors.red, fontSize: 13)),
                     ),
                   _dialogField(
                     controller: currentCtrl,
                     label: 'Current Password',
                     obscure: obscureCurrent,
-                    onToggle: () => setDialogState(() => obscureCurrent = !obscureCurrent),
+                    onToggle: () =>
+                        setDialogState(() => obscureCurrent = !obscureCurrent),
                   ),
                   const SizedBox(height: 12),
                   _dialogField(
                     controller: newCtrl,
                     label: 'New Password',
                     obscure: obscureNew,
-                    onToggle: () => setDialogState(() => obscureNew = !obscureNew),
+                    onToggle: () =>
+                        setDialogState(() => obscureNew = !obscureNew),
                   ),
                   const SizedBox(height: 12),
                   _dialogField(
                     controller: confirmCtrl,
                     label: 'Confirm New Password',
                     obscure: obscureConfirm,
-                    onToggle: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                    onToggle: () =>
+                        setDialogState(() => obscureConfirm = !obscureConfirm),
                   ),
                 ],
               ),
             ),
             actions: [
               TextButton(
-                onPressed: isLoading ? null : () => Navigator.of(dialogCtx).pop(),
-                child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                onPressed:
+                    isLoading ? null : () => Navigator.of(dialogCtx).pop(),
+                child: const Text('Cancel',
+                    style: TextStyle(color: Colors.grey)),
               ),
               ElevatedButton(
                 onPressed: isLoading
@@ -95,12 +121,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         if (currentCtrl.text.isEmpty ||
                             newCtrl.text.isEmpty ||
                             confirmCtrl.text.isEmpty) {
-                          setDialogState(() => errorMsg = 'All fields are required');
+                          setDialogState(
+                              () => errorMsg = 'All fields are required');
                           return;
                         }
                         if (newCtrl.text.length < 6) {
-                          setDialogState(
-                              () => errorMsg = 'New password must be at least 6 characters');
+                          setDialogState(() => errorMsg =
+                              'New password must be at least 6 characters');
                           return;
                         }
                         if (newCtrl.text != confirmCtrl.text) {
@@ -108,32 +135,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               () => errorMsg = 'New passwords do not match');
                           return;
                         }
-
                         setDialogState(() {
                           isLoading = true;
                           errorMsg = null;
                         });
-
                         try {
-                          await ref.read(authRepositoryProvider).changePassword(
+                          await ref
+                              .read(authRepositoryProvider)
+                              .changePassword(
                                 currentPassword: currentCtrl.text,
                                 newPassword: newCtrl.text,
                               );
-                          if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
+                          if (dialogCtx.mounted) {
+                            Navigator.of(dialogCtx).pop();
+                          }
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Row(
-                                  children: [
-                                    Icon(Icons.check_circle, color: Colors.white),
-                                    SizedBox(width: 8),
-                                    Text('Password changed successfully!'),
-                                  ],
-                                ),
-                                backgroundColor: Color(0xFF16A34A),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
+                            _showSuccessSnack('Password changed successfully!');
                           }
                         } catch (e) {
                           String msg = 'Something went wrong. Try again.';
@@ -144,7 +161,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           } else if (err.contains('weak-password')) {
                             msg = 'Password is too weak';
                           } else if (err.contains('requires-recent-login')) {
-                            msg = 'Please sign out and sign in again to change password';
+                            msg =
+                                'Please sign out and sign in again to change password';
                           }
                           setDialogState(() {
                             errorMsg = msg;
@@ -155,19 +173,314 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E3A8A),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 child: isLoading
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
                     : const Text('Change Password'),
               ),
             ],
           );
         });
       },
+    );
+  }
+
+  // ─── Edit Name Dialog ───
+  Future<void> _showEditNameDialog(String currentName) async {
+    final ctrl = TextEditingController(text: currentName);
+    bool isUpdating = false;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (c, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.person_outline_rounded, color: Color(0xFF1E3A8A)),
+                SizedBox(width: 10),
+                Text('Edit Name',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: TextField(
+              controller: ctrl,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                labelText: 'Full Name',
+                hintText: 'Enter your full name',
+                prefixIcon: const Icon(Icons.badge_outlined,
+                    color: Color(0xFF1E3A8A)),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF1E3A8A), width: 2),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isUpdating ? null : () => Navigator.pop(ctx),
+                child: const Text('Cancel',
+                    style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                onPressed: isUpdating
+                    ? null
+                    : () async {
+                        final newName = ctrl.text.trim();
+                        if (newName.isEmpty) return;
+                        setDialogState(() => isUpdating = true);
+                        try {
+                          await ref
+                              .read(authRepositoryProvider)
+                              .updateProfile(displayName: newName);
+                          // Invalidate so UI refreshes immediately
+                          ref.invalidate(authStateProvider);
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (mounted) {
+                            _showSuccessSnack('Name updated successfully!');
+                          }
+                        } catch (e) {
+                          setDialogState(() => isUpdating = false);
+                          if (ctx.mounted) {
+                            _showErrorSnack('Failed to update name. Try again.');
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E3A8A),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: isUpdating
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Text('Save'),
+              ),
+            ],
+          );
+        });
+      },
+    );
+  }
+
+  // ─── Edit Email Dialog ───
+  Future<void> _showEditEmailDialog(String currentEmail) async {
+    final emailCtrl = TextEditingController(text: currentEmail);
+    final passCtrl = TextEditingController();
+    bool isUpdating = false;
+    bool obscurePass = true;
+    String? errorMsg;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (c, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.email_outlined, color: Color(0xFF1E3A8A)),
+                SizedBox(width: 10),
+                Text('Change Email',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (errorMsg != null)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Text(errorMsg!,
+                        style:
+                            const TextStyle(color: Colors.red, fontSize: 13)),
+                  ),
+                TextField(
+                  controller: emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: 'New Email Address',
+                    prefixIcon: const Icon(Icons.alternate_email_rounded,
+                        color: Color(0xFF1E3A8A)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Color(0xFF1E3A8A), width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passCtrl,
+                  obscureText: obscurePass,
+                  decoration: InputDecoration(
+                    labelText: 'Current Password (to confirm)',
+                    prefixIcon: const Icon(Icons.lock_outline_rounded,
+                        color: Color(0xFF1E3A8A)),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                          obscurePass
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey,
+                          size: 20),
+                      onPressed: () =>
+                          setDialogState(() => obscurePass = !obscurePass),
+                    ),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Color(0xFF1E3A8A), width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '⚠️ A verification link will be sent to your new email.',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isUpdating ? null : () => Navigator.pop(ctx),
+                child: const Text('Cancel',
+                    style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                onPressed: isUpdating
+                    ? null
+                    : () async {
+                        final newEmail = emailCtrl.text.trim();
+                        final pass = passCtrl.text;
+                        if (newEmail.isEmpty || pass.isEmpty) {
+                          setDialogState(
+                              () => errorMsg = 'All fields are required');
+                          return;
+                        }
+                        if (!newEmail.contains('@')) {
+                          setDialogState(
+                              () => errorMsg = 'Enter a valid email address');
+                          return;
+                        }
+                        setDialogState(() {
+                          isUpdating = true;
+                          errorMsg = null;
+                        });
+                        try {
+                          await ref
+                              .read(authRepositoryProvider)
+                              .updateEmail(
+                                newEmail: newEmail,
+                                currentPassword: pass,
+                              );
+                          ref.invalidate(authStateProvider);
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (mounted) {
+                            _showSuccessSnack(
+                                'Verification email sent! Please check your inbox.');
+                          }
+                        } catch (e) {
+                          String msg = 'Failed to update email. Try again.';
+                          final err = e.toString();
+                          if (err.contains('wrong-password') ||
+                              err.contains('invalid-credential')) {
+                            msg = 'Incorrect password';
+                          } else if (err.contains('email-already-in-use')) {
+                            msg = 'This email is already in use';
+                          }
+                          setDialogState(() {
+                            errorMsg = msg;
+                            isUpdating = false;
+                          });
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E3A8A),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: isUpdating
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Text('Send Verification'),
+              ),
+            ],
+          );
+        });
+      },
+    );
+  }
+
+  void _showSuccessSnack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(msg)),
+          ],
+        ),
+        backgroundColor: const Color(0xFF16A34A),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _showErrorSnack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_rounded, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(msg)),
+          ],
+        ),
+        backgroundColor: const Color(0xFFDC2626),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
     );
   }
 
@@ -187,8 +500,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               color: Colors.grey, size: 20),
           onPressed: onToggle,
         ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        border:
+            OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              const BorderSide(color: Color(0xFF1E3A8A), width: 2),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       ),
     );
   }
@@ -196,8 +516,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   ImageProvider? _getImageProvider(String? photoUrl) {
     if (photoUrl == null || photoUrl.isEmpty) return null;
     try {
-      if (photoUrl.startsWith('data:image') || !photoUrl.startsWith('http')) {
-        final base64String = photoUrl.contains(',') ? photoUrl.split(',').last : photoUrl;
+      if (photoUrl.startsWith('data:image') ||
+          !photoUrl.startsWith('http')) {
+        final base64String = photoUrl.contains(',')
+            ? photoUrl.split(',').last
+            : photoUrl;
         return MemoryImage(base64Decode(base64String));
       }
       return NetworkImage(photoUrl);
@@ -220,26 +543,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final bytes = await pickedFile.readAsBytes();
     final ext = pickedFile.name.split('.').last.toLowerCase();
 
-    final success = await ref
-        .read(authControllerProvider.notifier)
-        .updateProfile(imageBytes: bytes, fileExtension: ext);
-
-    if (mounted) {
-      setState(() => _isUploadingPhoto = false);
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile photo updated successfully!'),
-            backgroundColor: Color(0xFF16A34A),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update photo.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+    try {
+      await ref
+          .read(authRepositoryProvider)
+          .updateProfile(imageBytes: bytes, fileExtension: ext);
+      ref.invalidate(authStateProvider);
+      if (mounted) {
+        setState(() => _isUploadingPhoto = false);
+        _showSuccessSnack('Profile photo updated!');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isUploadingPhoto = false);
+        _showErrorSnack('Failed to update photo.');
       }
     }
   }
@@ -261,264 +577,432 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final bool isAdmin = user.role == UserRole.admin;
     final imageProvider = _getImageProvider(user.photoUrl);
+    final Color brandColor =
+        isAdmin ? const Color(0xFFD97706) : const Color(0xFF1E3A8A);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E3A8A),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('My Profile', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19)),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        children: [
-          // ── Profile Photo & Name Card ──
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+      body: CustomScrollView(
+        slivers: [
+          // ── Sliver App Bar with gradient ──
+          SliverAppBar(
+            expandedHeight: 220,
+            pinned: true,
+            backgroundColor: const Color(0xFF1E3A8A),
+            foregroundColor: Colors.white,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white),
+              onPressed: () => context.pop(),
             ),
-            child: Column(
-              children: [
-                // Avatar with Camera Picker
-                Stack(
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF0F2464), Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Stack(
                   children: [
-                    Container(
-                      width: 96,
-                      height: 96,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isAdmin ? const Color(0xFFFFB300) : const Color(0xFF1E3A8A),
-                          width: 3,
+                    // Decorative circles
+                    Positioned(
+                      top: -30,
+                      right: -30,
+                      child: Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.05),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: (isAdmin ? const Color(0xFFFFB300) : const Color(0xFF1E3A8A)).withOpacity(0.25),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: _isUploadingPhoto
-                            ? const Center(
-                                child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF1E3A8A)),
-                              )
-                            : (imageProvider != null)
-                                ? Image(
-                                    image: imageProvider,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => _buildAvatarFallback(user.displayName),
-                                  )
-                                : _buildAvatarFallback(user.displayName),
                       ),
                     ),
                     Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: _pickAndUploadPhoto,
-                        child: Container(
-                          padding: const EdgeInsets.all(7),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E3A8A),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),
+                      bottom: 20,
+                      left: -20,
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.04),
+                        ),
+                      ),
+                    ),
+                    // Avatar at bottom center
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.white, width: 3.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.25),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: ClipOval(
+                                child: _isUploadingPhoto
+                                    ? Container(
+                                        color: const Color(0xFF1E3A8A),
+                                        child: const Center(
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2.5,
+                                              color: Colors.white),
+                                        ),
+                                      )
+                                    : (imageProvider != null)
+                                        ? Image(
+                                            image: imageProvider,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                _buildAvatarFallback(
+                                                    user.displayName),
+                                          )
+                                        : _buildAvatarFallback(
+                                            user.displayName),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: _pickAndUploadPhoto,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: brandColor,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                        color: Colors.white, width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 6),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                      Icons.camera_alt_rounded,
+                                      color: Colors.white,
+                                      size: 15),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Body Content ──
+          SliverToBoxAdapter(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                child: Column(
+                  children: [
+                    // ── Name & Role Card ──
+                    _ProfileCard(
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 4),
+                          // Name with edit
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  user.displayName.isNotEmpty
+                                      ? user.displayName
+                                      : 'Member',
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF0F172A),
+                                    letterSpacing: -0.5,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              GestureDetector(
+                                onTap: () =>
+                                    _showEditNameDialog(user.displayName),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E3A8A)
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                      Icons.edit_rounded,
+                                      size: 16,
+                                      color: Color(0xFF1E3A8A)),
+                                ),
+                              ),
                             ],
                           ),
-                          child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
+                          const SizedBox(height: 6),
 
-                // Name with Edit Button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      user.displayName.isNotEmpty ? user.displayName : 'Administrator',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF2563EB)),
-                      onPressed: () => _showEditNameDialog(context, user.displayName),
-                    ),
-                  ],
-                ),
+                          // Email with edit
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.alternate_email_rounded,
+                                  size: 14, color: Color(0xFF64748B)),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  user.email,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF64748B),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: () =>
+                                    _showEditEmailDialog(user.email),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2563EB)
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Change',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF2563EB),
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
 
-                // Email
-                Text(
-                  user.email,
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 12),
-
-                // Role Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(
-                    gradient: isAdmin
-                        ? const LinearGradient(
-                            colors: [Color(0xFFFFE082), Color(0xFFFFB300), Color(0xFFFFA000)],
-                          )
-                        : null,
-                    color: !isAdmin ? const Color(0xFFE2E8F0) : null,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: isAdmin
-                        ? [
-                            BoxShadow(
-                              color: const Color(0xFFFFB300).withOpacity(0.35),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                          // Role Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              gradient: isAdmin
+                                  ? const LinearGradient(
+                                      colors: [
+                                        Color(0xFFFFE082),
+                                        Color(0xFFFFB300),
+                                        Color(0xFFFFA000)
+                                      ],
+                                    )
+                                  : const LinearGradient(
+                                      colors: [
+                                        Color(0xFFDBEAFE),
+                                        Color(0xFFBFD9FE)
+                                      ],
+                                    ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: brandColor.withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
                             ),
-                          ]
-                        : null,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isAdmin ? Icons.workspace_premium_rounded : Icons.sports_cricket_rounded,
-                        size: 14,
-                        color: const Color(0xFF0F172A),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isAdmin
+                                      ? Icons.workspace_premium_rounded
+                                      : Icons.sports_cricket_rounded,
+                                  size: 15,
+                                  color: isAdmin
+                                      ? const Color(0xFF78350F)
+                                      : const Color(0xFF1E3A8A),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isAdmin ? 'ADMINISTRATOR' : 'MEMBER',
+                                  style: TextStyle(
+                                    color: isAdmin
+                                        ? const Color(0xFF78350F)
+                                        : const Color(0xFF1E3A8A),
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 12,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                        ],
                       ),
-                      const SizedBox(width: 5),
-                      Text(
-                        isAdmin ? 'ADMINISTRATOR' : 'MEMBER',
-                        style: const TextStyle(
-                          color: Color(0xFF0F172A),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 11,
-                          letterSpacing: 0.8,
+                    ),
+                    const SizedBox(height: 20),
+
+                    // ── Admin Privileges ──
+                    if (isAdmin) ...[
+                      _SectionHeader(title: 'Administrator Access'),
+                      _ProfileCard(
+                        child: Column(
+                          children: [
+                            _ActionTile(
+                              icon: Icons.admin_panel_settings_rounded,
+                              title: 'Access Level',
+                              subtitle: 'Full Administrative Access',
+                              iconColor: const Color(0xFFD97706),
+                            ),
+                            const _Divider(),
+                            _ActionTile(
+                              icon: Icons.emoji_events_rounded,
+                              title: 'Tournament Manager',
+                              subtitle: 'Create, edit & manage tournaments',
+                              iconColor: const Color(0xFF2563EB),
+                            ),
+                            const _Divider(),
+                            _ActionTile(
+                              icon: Icons.sports_cricket_rounded,
+                              title: 'Live Match Scorer',
+                              subtitle: 'Full live match scoring controls',
+                              iconColor: const Color(0xFF16A34A),
+                            ),
+                            const _Divider(),
+                            _ActionTile(
+                              icon: Icons.manage_accounts_rounded,
+                              title: 'Member Management',
+                              subtitle:
+                                  'Promote, demote & manage members',
+                              iconColor: const Color(0xFF7C3AED),
+                            ),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 20),
                     ],
-                  ),
+
+                    // ── Player Information (Members only) ──
+                    if (!isAdmin) ...[
+                      _SectionHeader(title: 'Player Information'),
+                      _ProfileCard(
+                        child: Column(
+                          children: [
+                            _ActionTile(
+                              icon: Icons.sports_cricket,
+                              title: 'Batting Style',
+                              subtitle: 'Right-hand bat',
+                              iconColor: const Color(0xFF1E3A8A),
+                            ),
+                            const _Divider(),
+                            _ActionTile(
+                              icon: Icons.sports_baseball,
+                              title: 'Bowling Style',
+                              subtitle: 'Right-arm medium',
+                              iconColor: const Color(0xFF059669),
+                            ),
+                            const _Divider(),
+                            _ActionTile(
+                              icon: Icons.group_rounded,
+                              title: 'Current Team',
+                              subtitle: 'Borigivalasa Blasters',
+                              iconColor: const Color(0xFFD97706),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    // ── Settings & Security ──
+                    _SectionHeader(title: 'Settings & Security'),
+                    _ProfileCard(
+                      child: Column(
+                        children: [
+                          _ActionTile(
+                            icon: Icons.lock_outline_rounded,
+                            title: 'Change Password',
+                            subtitle: 'Update your account password',
+                            iconColor: const Color(0xFF7C3AED),
+                            onTap: _showChangePasswordDialog,
+                          ),
+                          const _Divider(),
+                          _ActionTile(
+                            icon: Icons.notifications_active_outlined,
+                            title: 'Push Notifications',
+                            subtitle: 'Match alerts & scoring updates',
+                            iconColor: const Color(0xFF2563EB),
+                            trailing: Switch(
+                              value: true,
+                              activeColor: const Color(0xFF1E3A8A),
+                              onChanged: (_) {},
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // ── Sign Out Button ──
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.logout_rounded,
+                            color: Colors.white, size: 18),
+                        label: const Text(
+                          'Sign Out',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFDC2626),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          elevation: 2,
+                          shadowColor:
+                              const Color(0xFFDC2626).withOpacity(0.4),
+                        ),
+                        onPressed: () async {
+                          await ref
+                              .read(authControllerProvider.notifier)
+                              .signOut();
+                          if (context.mounted) context.go('/login');
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-          const SizedBox(height: 20),
-
-          // ── Admin Privileges & System Access (Shown ONLY for Admins) ──
-          if (isAdmin) ...[
-            const Padding(
-              padding: EdgeInsets.only(left: 4, bottom: 8),
-              child: Text(
-                'Administrator Access & Privileges',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
-              ),
-            ),
-            _buildCard([
-              _buildListTile(Icons.admin_panel_settings_rounded, 'Access Level', 'Full Administrative Access', iconColor: const Color(0xFFD97706)),
-              const Divider(height: 1),
-              _buildListTile(Icons.emoji_events_rounded, 'Tournament Manager', 'Create, edit & manage tournaments', iconColor: const Color(0xFF2563EB)),
-              const Divider(height: 1),
-              _buildListTile(Icons.sports_cricket_rounded, 'Live Match Scorer', 'Full live match scoring controls', iconColor: const Color(0xFF16A34A)),
-              const Divider(height: 1),
-              _buildListTile(Icons.manage_accounts_rounded, 'Member Management', 'Promote, demote & manage members', iconColor: const Color(0xFF7C3AED)),
-            ]),
-            const SizedBox(height: 20),
-          ],
-
-          // ── Player Details (Shown ONLY for Members) ──
-          if (!isAdmin) ...[
-            const Padding(
-              padding: EdgeInsets.only(left: 4, bottom: 8),
-              child: Text(
-                'Player Information',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
-              ),
-            ),
-            _buildCard([
-              _buildListTile(Icons.sports_cricket, 'Batting Style', 'Right-hand bat'),
-              const Divider(height: 1),
-              _buildListTile(Icons.sports_baseball, 'Bowling Style', 'Right-arm medium'),
-              const Divider(height: 1),
-              _buildListTile(Icons.group_rounded, 'Current Team', 'Borigivalasa Blasters'),
-            ]),
-            const SizedBox(height: 20),
-          ],
-
-          // ── Settings & Security Section ──
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'Settings & Security',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
-            ),
-          ),
-          _buildCard([
-            _buildListTile(
-              Icons.lock_outline_rounded,
-              'Change Password',
-              'Update your account password',
-              onTap: _showChangePasswordDialog,
-            ),
-            const Divider(height: 1),
-            _buildListTile(
-              Icons.notifications_active_outlined,
-              'Push Notifications',
-              'Match alerts & scoring updates',
-              trailing: Switch(
-                value: true,
-                activeColor: const Color(0xFF1E3A8A),
-                onChanged: (_) {},
-              ),
-            ),
-            const Divider(height: 1),
-            _buildListTile(
-              Icons.info_outline_rounded,
-              'App Version',
-              'Borigivalasa Cricket App v1.0.0',
-            ),
-          ]),
-          const SizedBox(height: 24),
-
-          // ── Sign Out Button ──
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
-              label: const Text(
-                'Sign Out',
-                style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 1,
-              ),
-              onPressed: () async {
-                await ref.read(authControllerProvider.notifier).signOut();
-                if (context.mounted) {
-                  context.go('/login');
-                }
-              },
-            ),
-          ),
-          const SizedBox(height: 24),
         ],
       ),
     );
@@ -540,130 +1024,152 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
     );
   }
+}
 
-  Future<void> _showEditNameDialog(BuildContext context, String currentName) async {
-    final ctrl = TextEditingController(text: currentName);
-    bool isUpdating = false;
+// ── Reusable Widgets ──
 
-    await showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(builder: (c, setState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Edit Display Name', style: TextStyle(fontWeight: FontWeight.bold)),
-            content: TextField(
-              controller: ctrl,
-              decoration: const InputDecoration(
-                labelText: 'Full Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: isUpdating ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-              ),
-              ElevatedButton(
-                onPressed: isUpdating
-                    ? null
-                    : () async {
-                        if (ctrl.text.trim().isEmpty) return;
-                        setState(() => isUpdating = true);
-                        final success = await ref
-                            .read(authControllerProvider.notifier)
-                            .updateProfile(displayName: ctrl.text.trim());
-                        if (success && ctx.mounted) {
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Name updated successfully!')),
-                          );
-                        } else {
-                          setState(() => isUpdating = false);
-                          if (ctx.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Failed to update name.'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E3A8A),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: isUpdating
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('Save'),
-              ),
-            ],
-          );
-        });
-      },
-    );
-  }
+class _ProfileCard extends StatelessWidget {
+  final Widget child;
+  const _ProfileCard({required this.child});
 
-  Widget _buildCard(List<Widget> children) {
+  @override
+  Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE8EEF9), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            color: const Color(0xFF1E3A8A).withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Column(children: children),
+      child: child,
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 16,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E3A8A),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1E3A8A),
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color iconColor;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  const _ActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.iconColor,
+    this.trailing,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.5,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              trailing ??
+                  (onTap != null
+                      ? const Icon(Icons.chevron_right_rounded,
+                          color: Color(0xFF94A3B8), size: 22)
+                      : const SizedBox.shrink()),
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildListTile(
-    IconData icon,
-    String title,
-    String subtitle, {
-    Color? iconColor,
-    Widget? trailing,
-    VoidCallback? onTap,
-  }) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: (iconColor ?? const Color(0xFF1E3A8A)).withOpacity(0.08),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: iconColor ?? const Color(0xFF1E3A8A), size: 20),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5, color: Color(0xFF0F172A)),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(color: Color(0xFF64748B), fontSize: 12.5),
-      ),
-      trailing: trailing ??
-          (onTap != null
-              ? const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20)
-              : null),
-      onTap: onTap,
+class _Divider extends StatelessWidget {
+  const _Divider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Divider(
+      height: 1,
+      color: Color(0xFFF1F5F9),
+      indent: 44,
     );
   }
 }

@@ -29,6 +29,7 @@ class MatchSquadsScreen extends ConsumerStatefulWidget {
 
 class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
   int _selectedSquadTabIndex = 0; // 0 for Team A, 1 for Team B
+  bool _hasAutoNavigated = false; // prevent multiple navigations
 
   ImageProvider? _getImageProvider(String? url) {
     if (url == null || url.isEmpty) return null;
@@ -101,15 +102,38 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
         final teamAPlayers = teamAPlayersAsync.value ?? [];
         final teamBPlayers = teamBPlayersAsync.value ?? [];
 
+        final bothReady = teamAPlayers.length >= 11 && teamBPlayers.length >= 11;
+
+        // Auto navigate to toss page when both teams have 11 players
+        if (bothReady && !_hasAutoNavigated) {
+          _hasAutoNavigated = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              context.pushReplacement(
+                '/tournaments/${widget.tournamentId}/matches/${widget.matchId}',
+              );
+            }
+          });
+        }
+
         return Scaffold(
           backgroundColor: const Color(0xFFF1F5F9),
           appBar: AppBar(
             backgroundColor: const Color(0xFF1E3A8A),
             foregroundColor: Colors.white,
             elevation: 0,
-            title: const Text(
-              'Match Squads',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19, color: Colors.white),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Playing XI',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19, color: Colors.white),
+                ),
+                Text(
+                  '${match.teamA} vs ${match.teamB}',
+                  style: const TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500),
+                ),
+              ],
             ),
           ),
           body: SingleChildScrollView(
@@ -121,7 +145,17 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                 _buildVsHeroCard(context, match, teamA, teamB, teamAPlayers.length, teamBPlayers.length),
                 const SizedBox(height: 16),
 
-                // ── 2 TABS PLAYING SQUAD / PLAYING 11 SECTION ──
+                // ── Progress indicator ──
+                _buildXIProgressBanner(
+                  teamAName: match.teamA,
+                  teamBName: match.teamB,
+                  countA: teamAPlayers.length,
+                  countB: teamBPlayers.length,
+                  bothReady: bothReady,
+                ),
+                const SizedBox(height: 12),
+
+                // ── 2 TABS PLAYING XI SECTION ──
                 _buildPlaying11TabsSection(
                   context: context,
                   match: match,
@@ -133,22 +167,31 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // ── PROCEED TO DASHBOARD BUTTON ──
+                // ── PROCEED TO TOSS BUTTON ──
                 ElevatedButton.icon(
-                  onPressed: () {
-                    context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}');
-                  },
-                  icon: const Icon(Icons.arrow_forward_rounded, size: 22),
-                  label: const Text(
-                    'PROCEED TO TOSS',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                  onPressed: bothReady
+                      ? () {
+                          context.pushReplacement(
+                            '/tournaments/${widget.tournamentId}/matches/${widget.matchId}',
+                          );
+                        }
+                      : null,
+                  icon: Icon(
+                    bothReady ? Icons.how_to_vote_rounded : Icons.lock_outline_rounded,
+                    size: 22,
+                  ),
+                  label: Text(
+                    bothReady
+                        ? 'PROCEED TO TOSS'
+                        : 'Need 11 Players Each (${teamAPlayers.length}/11 & ${teamBPlayers.length}/11)',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.3),
                   ),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: const Color(0xFF16A34A),
+                    backgroundColor: bothReady ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    elevation: 3,
+                    elevation: bothReady ? 3 : 0,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -157,6 +200,81 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildXIProgressBanner({
+    required String teamAName,
+    required String teamBName,
+    required int countA,
+    required int countB,
+    required bool bothReady,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: bothReady ? const Color(0xFFDCFCE7) : const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: bothReady ? const Color(0xFF86EFAC) : const Color(0xFFBFD9FE),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            bothReady ? Icons.check_circle_rounded : Icons.group_add_rounded,
+            color: bothReady ? const Color(0xFF16A34A) : const Color(0xFF1E3A8A),
+            size: 22,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  bothReady ? 'Both XIs are ready! Proceeding to toss...' : 'Select Playing XI for each team',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: bothReady ? const Color(0xFF15803D) : const Color(0xFF1E3A8A),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    _buildTeamProgress(teamAName, countA),
+                    const SizedBox(width: 12),
+                    _buildTeamProgress(teamBName, countB),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTeamProgress(String teamName, int count) {
+    final done = count >= 11;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+          size: 14,
+          color: done ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '${teamName.split(' ').first}: $count/11',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: done ? const Color(0xFF16A34A) : const Color(0xFF64748B),
+          ),
+        ),
+      ],
     );
   }
 
