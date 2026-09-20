@@ -504,7 +504,10 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                   const SizedBox(height: 6),
 
                                   // Role Badge + Joined Date
-                                  Row(
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 4,
+                                    crossAxisAlignment: WrapCrossAlignment.center,
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
@@ -561,7 +564,6 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                         ),
                                       ),
                                       if (isPlayer) ...[
-                                        const SizedBox(width: 6),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
@@ -579,7 +581,6 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                         ),
                                       ],
                                       if (u.createdAt != null) ...[
-                                        const Spacer(),
                                         Text(
                                           DateFormat('MMM d, yyyy').format(u.createdAt!),
                                           style: const TextStyle(

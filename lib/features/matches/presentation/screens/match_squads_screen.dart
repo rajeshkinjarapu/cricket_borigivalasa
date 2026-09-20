@@ -295,12 +295,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                           ],
                         ),
                       )
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                              ),
-                          ],
-                        ),
-                      )
                     else
                       Container(
                         decoration: BoxDecoration(
