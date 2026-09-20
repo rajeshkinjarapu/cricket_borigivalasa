@@ -40,31 +40,37 @@ class MemberRepository {
 
   Future<String?> createMember({
     required String name,
-    required String phoneNumber,
+    String? phoneNumber,
     required UserRole role,
     String? photoUrl,
   }) async {
-    final cleanPhone = phoneNumber.trim().replaceAll(' ', '').replaceAll('-', '');
-    final authEmail = '$cleanPhone@member.cricket.com';
-    final password = cleanPhone;
+    final rawPhone = phoneNumber?.trim() ?? '';
+    final cleanPhone = rawPhone.replaceAll(' ', '').replaceAll('-', '');
+    final bool hasPhone = cleanPhone.isNotEmpty;
+    final authEmail = hasPhone
+        ? '$cleanPhone@member.cricket.com'
+        : 'member_${DateTime.now().millisecondsSinceEpoch}@borigivalasa.club';
+    final password = hasPhone ? cleanPhone : 'Member@123';
 
     String? createdUid;
-    try {
-      final tempApp = await Firebase.initializeApp(
-        name: 'temp_add_member_${DateTime.now().millisecondsSinceEpoch}',
-        options: Firebase.app().options,
-      );
+    if (hasPhone) {
       try {
-        final cred = await FirebaseAuth.instanceFor(app: tempApp)
-            .createUserWithEmailAndPassword(email: authEmail, password: password);
-        final u = cred.user!;
-        await u.updateDisplayName(name.trim());
-        createdUid = u.uid;
-      } catch (_) {
-      } finally {
-        await tempApp.delete();
-      }
-    } catch (_) {}
+        final tempApp = await Firebase.initializeApp(
+          name: 'temp_add_member_${DateTime.now().millisecondsSinceEpoch}',
+          options: Firebase.app().options,
+        );
+        try {
+          final cred = await FirebaseAuth.instanceFor(app: tempApp)
+              .createUserWithEmailAndPassword(email: authEmail, password: password);
+          final u = cred.user!;
+          await u.updateDisplayName(name.trim());
+          createdUid = u.uid;
+        } catch (_) {
+        } finally {
+          await tempApp.delete();
+        }
+      } catch (_) {}
+    }
 
     final appUser = AppUser(
       uid: createdUid ?? '',
@@ -82,22 +88,23 @@ class MemberRepository {
       );
       return createdUid;
     } else {
-      final existing = await _db.collection(AppConstants.usersCollection)
-          .where('email', isEqualTo: authEmail)
-          .limit(1)
-          .get();
-      if (existing.docs.isNotEmpty) {
-        await _db.collection(AppConstants.usersCollection).doc(existing.docs.first.id).update({
-          'displayName': name.trim(),
-          'role': role.name,
-        });
-        return existing.docs.first.id;
-      } else {
-        final doc = await _db.collection(AppConstants.usersCollection).add(
-          appUser.toJson()..remove('uid'),
-        );
-        return doc.id;
+      if (hasPhone) {
+        final existing = await _db.collection(AppConstants.usersCollection)
+            .where('email', isEqualTo: authEmail)
+            .limit(1)
+            .get();
+        if (existing.docs.isNotEmpty) {
+          await _db.collection(AppConstants.usersCollection).doc(existing.docs.first.id).update({
+            'displayName': name.trim(),
+            'role': role.name,
+          });
+          return existing.docs.first.id;
+        }
       }
+      final doc = await _db.collection(AppConstants.usersCollection).add(
+        appUser.toJson()..remove('uid'),
+      );
+      return doc.id;
     }
   }
 }

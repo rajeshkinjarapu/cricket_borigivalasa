@@ -74,14 +74,12 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
   }
 
   void _showAddModal(BuildContext context, {bool defaultToScorer = false}) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _AddMemberOrScorerModalSheet(
-        initialRole: defaultToScorer ? UserRole.scorer : UserRole.member,
-        initialTab: defaultToScorer ? 0 : 2,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => AddMemberOrScorerScreen(
+          initialRole: defaultToScorer ? UserRole.scorer : UserRole.member,
+          initialTab: defaultToScorer ? 0 : 2,
+        ),
       ),
     );
   }
@@ -788,10 +786,11 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Add / Appoint Member or Scorer Modal Sheet (3 Tabs: Players, Members, Register New)
+// Add / Appoint Member or Scorer Screen (Full Page with 3 Tabs)
 // ─────────────────────────────────────────────────────────────────────────────
-class _AddMemberOrScorerModalSheet extends ConsumerStatefulWidget {
-  const _AddMemberOrScorerModalSheet({
+class AddMemberOrScorerScreen extends ConsumerStatefulWidget {
+  const AddMemberOrScorerScreen({
+    super.key,
     this.initialRole = UserRole.scorer,
     this.initialTab = 0,
   });
@@ -800,10 +799,10 @@ class _AddMemberOrScorerModalSheet extends ConsumerStatefulWidget {
   final int initialTab;
 
   @override
-  ConsumerState<_AddMemberOrScorerModalSheet> createState() => _AddMemberOrScorerModalSheetState();
+  ConsumerState<AddMemberOrScorerScreen> createState() => _AddMemberOrScorerScreenState();
 }
 
-class _AddMemberOrScorerModalSheetState extends ConsumerState<_AddMemberOrScorerModalSheet>
+class _AddMemberOrScorerScreenState extends ConsumerState<AddMemberOrScorerScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -867,7 +866,7 @@ class _AddMemberOrScorerModalSheetState extends ConsumerState<_AddMemberOrScorer
 
       final createdUid = await ref.read(memberRepositoryProvider).createMember(
         name: name,
-        phoneNumber: phone,
+        phoneNumber: phone.isNotEmpty ? phone : null,
         role: _selectedRole,
         photoUrl: _photoBase64,
       );
@@ -880,7 +879,7 @@ class _AddMemberOrScorerModalSheetState extends ConsumerState<_AddMemberOrScorer
           role: _playerRole,
           battingStyle: BattingStyle.rightHand,
           bowlingStyle: BowlingStyle.none,
-          phoneNumber: phone,
+          phoneNumber: phone.isNotEmpty ? phone : null,
           profilePicUrl: _photoBase64,
         );
         await ref.read(playerControllerProvider.notifier).create(newPlayer);
@@ -911,88 +910,41 @@ class _AddMemberOrScorerModalSheetState extends ConsumerState<_AddMemberOrScorer
     final allPlayersAsync = ref.watch(allPlayersProvider);
     final allMembersAsync = ref.watch(memberListProvider);
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.90,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          // Drag Handle
-          const SizedBox(height: 12),
-          Container(
-            width: 44,
-            height: 5,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(10),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1F5F9),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E3A8A),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Appoint / Add Scorer & Member',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
             ),
-          ),
-          const SizedBox(height: 12),
-
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Appoint / Add Scorer & Member',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
-                        ),
-                      ),
-                      Text(
-                        'Select from existing players, members, or register a new one',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
+            Text(
+              'Select from players, members, or register new',
+              style: TextStyle(fontSize: 11, color: Color(0xFF93C5FD), fontWeight: FontWeight.w500),
             ),
-          ),
-          const SizedBox(height: 10),
-
-          // ── 3 Tabs ──
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
-              borderRadius: BorderRadius.circular(14),
-            ),
+          ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Container(
+            color: const Color(0xFF1E3A8A),
             child: TabBar(
               controller: _tabController,
-              indicator: BoxDecoration(
-                color: const Color(0xFF1E3A8A),
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF1E3A8A).withOpacity(0.25),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
+              indicatorColor: const Color(0xFF38BDF8),
+              indicatorWeight: 3.5,
               labelColor: Colors.white,
-              unselectedLabelColor: const Color(0xFF475569),
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              unselectedLabelColor: const Color(0xFF94A3B8),
+              labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5),
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
               tabs: const [
                 Tab(text: 'From Players'),
                 Tab(text: 'From Members'),
@@ -1000,24 +952,19 @@ class _AddMemberOrScorerModalSheetState extends ConsumerState<_AddMemberOrScorer
               ],
             ),
           ),
-          const SizedBox(height: 8),
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // ── TAB 1: From Existing Players ──
+          _buildPlayersTab(allPlayersAsync),
 
-          // ── Tab Bar Views ──
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // ── TAB 1: From Existing Players ──
-                _buildPlayersTab(allPlayersAsync),
+          // ── TAB 2: From Existing Members ──
+          _buildMembersTab(allMembersAsync),
 
-                // ── TAB 2: From Existing Members ──
-                _buildMembersTab(allMembersAsync),
-
-                // ── TAB 3: Register New Scorer / Member Form ──
-                _buildRegisterNewTab(),
-              ],
-            ),
-          ),
+          // ── TAB 3: Register New Scorer / Member Form ──
+          _buildRegisterNewTab(),
         ],
       ),
     );
@@ -1297,12 +1244,12 @@ class _AddMemberOrScorerModalSheetState extends ConsumerState<_AddMemberOrScorer
           ),
           const SizedBox(height: 12),
 
-          // Phone Number
+          // Phone Number (Optional)
           TextFormField(
             controller: _phoneCtrl,
             keyboardType: TextInputType.phone,
             decoration: InputDecoration(
-              labelText: 'Mobile Number *',
+              labelText: 'Mobile Number (Optional)',
               hintText: 'e.g. 9876543210',
               prefixIcon: const Icon(Icons.phone_android_rounded, size: 20),
               filled: true,
@@ -1310,8 +1257,9 @@ class _AddMemberOrScorerModalSheetState extends ConsumerState<_AddMemberOrScorer
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
             validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Please enter mobile number';
-              if (v.trim().length < 5) return 'Please enter a valid mobile number';
+              if (v != null && v.trim().isNotEmpty && v.trim().length < 5) {
+                return 'Please enter a valid mobile number or leave blank';
+              }
               return null;
             },
           ),
@@ -1329,7 +1277,7 @@ class _AddMemberOrScorerModalSheetState extends ConsumerState<_AddMemberOrScorer
                 SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Auto-Login: User ID & Password will both be set to this Mobile Number.',
+                    'Optional: If entered, Mobile Number will be used for direct login credentials.',
                     style: TextStyle(fontSize: 11, color: Color(0xFF1E40AF), fontWeight: FontWeight.w600),
                   ),
                 ),
