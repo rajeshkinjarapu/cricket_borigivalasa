@@ -1090,13 +1090,12 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
 
           // Bowler Spell Stats Table
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildBowlerStatCol('O', oversText),
-              _buildBowlerStatCol('M', '${bowler?.maidens ?? 0}'),
-              _buildBowlerStatCol('R', '${bowler?.runs ?? 0}'),
-              _buildBowlerStatCol('W', '${bowler?.wickets ?? 0}', isWicket: true),
-              _buildBowlerStatCol('ECON', econ),
+              Expanded(child: _buildBowlerStatCol('O', oversText)),
+              Expanded(child: _buildBowlerStatCol('M', '${bowler?.maidens ?? 0}')),
+              Expanded(child: _buildBowlerStatCol('R', '${bowler?.runs ?? 0}')),
+              Expanded(child: _buildBowlerStatCol('W', '${bowler?.wickets ?? 0}', isWicket: true)),
+              Expanded(child: _buildBowlerStatCol('ECON', econ)),
             ],
           ),
         ],
@@ -1106,15 +1105,19 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
 
   Widget _buildBowlerStatCol(String title, String val, {bool isWicket = false}) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
         const SizedBox(height: 4),
-        Text(
-          val,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w900,
-            color: isWicket ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            val,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: isWicket ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
+            ),
           ),
         ),
       ],
