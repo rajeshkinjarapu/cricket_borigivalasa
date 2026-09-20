@@ -293,25 +293,30 @@ class AppDrawer extends ConsumerWidget {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         user?.displayName ?? 'User',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 13.5,
+                          fontSize: 14,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      Text(
-                        isAdmin ? '👑 Administrator' : '🏏 Club Member',
-                        style: TextStyle(
-                          color: isAdmin ? const Color(0xFFFBBF24) : const Color(0xFF6EE7B7),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                      if (isAdmin)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: Text(
+                            '👑 Administrator',
+                            style: TextStyle(
+                              color: Color(0xFFFBBF24),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -426,41 +431,22 @@ class AppDrawer extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          // App Title & Version Number
+          // App Brand Footer
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.sports_cricket_rounded,
-                    size: 14,
-                    color: Colors.white.withOpacity(0.6),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Borigivalasa Cricket',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+              Icon(
+                Icons.sports_cricket_rounded,
+                size: 15,
+                color: Colors.white.withOpacity(0.6),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Text(
-                  'v1.0.0',
-                  style: TextStyle(
-                    color: Color(0xFF93C5FD),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
+              const SizedBox(width: 6),
+              Text(
+                'Borigivalasa Cricket',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
