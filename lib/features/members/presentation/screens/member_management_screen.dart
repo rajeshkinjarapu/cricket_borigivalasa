@@ -12,6 +12,32 @@ import '../../../players/data/models/player.dart';
 import '../../../players/presentation/providers/player_providers.dart';
 import '../providers/member_providers.dart';
 
+class UnifiedMember {
+  final String id;
+  final String? uid;
+  final String name;
+  final String? contact;
+  final bool isPhone;
+  final UserRole role;
+  final String? photoUrl;
+  final Player? linkedPlayer;
+  final DateTime? createdAt;
+  final bool isSelf;
+
+  UnifiedMember({
+    required this.id,
+    this.uid,
+    required this.name,
+    this.contact,
+    this.isPhone = false,
+    required this.role,
+    this.photoUrl,
+    this.linkedPlayer,
+    this.createdAt,
+    this.isSelf = false,
+  });
+}
+
 class MemberManagementScreen extends ConsumerStatefulWidget {
   const MemberManagementScreen({super.key});
 
@@ -149,7 +175,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                       const SizedBox(width: 8),
                       _buildFilterChip('✍️ Scorers', 'scorer'),
                       const SizedBox(width: 8),
-                      _buildFilterChip('🏏 Members', 'member'),
+                      _buildFilterChip('🏏 Members & Players', 'member'),
                     ],
                   ),
                 ),
@@ -157,7 +183,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
             ),
           ),
 
-          // ── Members List ──
+          // ── Members & Players Unified List ──
           Expanded(
             child: membersAsync.when(
               loading: () => const Center(
@@ -176,8 +202,71 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
               data: (users) {
                 final players = playersAsync.value ?? [];
 
-                // Filter registered users
-                final filtered = users.where((u) {
+                // Combine registered users + all players
+                final List<UnifiedMember> unifiedList = [];
+                final Set<String> processedPlayerIds = {};
+                final Set<String> processedPhones = {};
+                final Set<String> processedNames = {};
+
+                // 1. Process users
+                for (final u in users) {
+                  String displayContact = u.email;
+                  bool isPhone = false;
+                  if (u.email.endsWith('@member.cricket.com')) {
+                    displayContact = u.email.replaceAll('@member.cricket.com', '');
+                    isPhone = true;
+                  }
+
+                  Player? linkedPlayer;
+                  for (final p in players) {
+                    if ((p.phoneNumber != null && p.phoneNumber == displayContact) ||
+                        p.id == u.uid ||
+                        p.name.toLowerCase().trim() == u.displayName.toLowerCase().trim()) {
+                      linkedPlayer = p;
+                      processedPlayerIds.add(p.id);
+                      break;
+                    }
+                  }
+
+                  if (isPhone && displayContact.isNotEmpty) processedPhones.add(displayContact);
+                  if (u.displayName.isNotEmpty) processedNames.add(u.displayName.toLowerCase().trim());
+
+                  unifiedList.add(UnifiedMember(
+                    id: u.uid,
+                    uid: u.uid,
+                    name: u.displayName.isNotEmpty ? u.displayName : 'Member',
+                    contact: displayContact,
+                    isPhone: isPhone,
+                    role: u.role,
+                    photoUrl: u.photoUrl ?? linkedPlayer?.profilePicUrl,
+                    linkedPlayer: linkedPlayer,
+                    createdAt: u.createdAt,
+                    isSelf: u.uid == currentUid,
+                  ));
+                }
+
+                // 2. Add players not in users collection yet
+                for (final p in players) {
+                  if (processedPlayerIds.contains(p.id)) continue;
+                  if (p.phoneNumber != null && p.phoneNumber!.isNotEmpty && processedPhones.contains(p.phoneNumber)) continue;
+                  if (processedNames.contains(p.name.toLowerCase().trim())) continue;
+
+                  unifiedList.add(UnifiedMember(
+                    id: p.id,
+                    uid: null, // Standalone player
+                    name: p.name,
+                    contact: p.phoneNumber ?? '',
+                    isPhone: p.phoneNumber != null && p.phoneNumber!.isNotEmpty,
+                    role: UserRole.member,
+                    photoUrl: p.profilePicUrl,
+                    linkedPlayer: p,
+                    createdAt: p.createdAt,
+                    isSelf: false,
+                  ));
+                }
+
+                // Filter unified list
+                final filtered = unifiedList.where((u) {
                   // Role Filter
                   if (_selectedFilter == 'admin' && u.role != UserRole.admin) return false;
                   if (_selectedFilter == 'scorer' && u.role != UserRole.scorer) return false;
@@ -185,9 +274,9 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
 
                   // Search Filter
                   if (_searchQuery.isNotEmpty) {
-                    final nameMatch = u.displayName.toLowerCase().contains(_searchQuery);
-                    final emailMatch = u.email.toLowerCase().contains(_searchQuery);
-                    return nameMatch || emailMatch;
+                    final nameMatch = u.name.toLowerCase().contains(_searchQuery);
+                    final contactMatch = (u.contact ?? '').toLowerCase().contains(_searchQuery);
+                    return nameMatch || contactMatch;
                   }
                   return true;
                 }).toList();
@@ -218,8 +307,8 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                           const SizedBox(height: 16),
                           Text(
                             _searchQuery.isNotEmpty
-                                ? 'No users found matching "$_searchQuery"'
-                                : 'No members registered yet.',
+                                ? 'No members found matching "$_searchQuery"'
+                                : 'No members or players found.',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Color(0xFF64748B),
@@ -249,29 +338,12 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final u = filtered[index];
-                    final isSelf = u.uid == currentUid;
+                    final isSelf = u.isSelf;
                     final isAdmin = u.role == UserRole.admin;
                     final isScorer = u.role == UserRole.scorer;
+                    final isPlayer = u.linkedPlayer != null;
 
-                    // Clean phone vs email display
-                    String displayContact = u.email;
-                    bool isPhone = false;
-                    if (u.email.endsWith('@member.cricket.com')) {
-                      displayContact = u.email.replaceAll('@member.cricket.com', '');
-                      isPhone = true;
-                    }
-
-                    // Matching player if any
-                    Player? linkedPlayer;
-                    for (final p in players) {
-                      if (p.phoneNumber == displayContact ||
-                          p.name.toLowerCase() == u.displayName.toLowerCase()) {
-                        linkedPlayer = p;
-                        break;
-                      }
-                    }
-
-                    final imageProvider = _getImageProvider(u.photoUrl ?? linkedPlayer?.profilePicUrl);
+                    final imageProvider = _getImageProvider(u.photoUrl);
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 10),
@@ -318,7 +390,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                               child: imageProvider == null
                                   ? Center(
                                       child: Text(
-                                        u.displayName.isNotEmpty ? u.displayName[0].toUpperCase() : 'M',
+                                        u.name.isNotEmpty ? u.name[0].toUpperCase() : 'M',
                                         style: TextStyle(
                                           fontWeight: FontWeight.w900,
                                           fontSize: 20,
@@ -343,7 +415,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          u.displayName.isNotEmpty ? u.displayName : 'Unnamed Member',
+                                          u.name,
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 15.5,
@@ -375,28 +447,29 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                   const SizedBox(height: 3),
 
                                   // Contact Info
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        isPhone ? Icons.phone_android_rounded : Icons.email_outlined,
-                                        size: 13,
-                                        color: const Color(0xFF64748B),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          displayContact,
-                                          style: const TextStyle(
-                                            color: Color(0xFF64748B),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                  if (u.contact != null && u.contact!.isNotEmpty)
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          u.isPhone ? Icons.phone_android_rounded : Icons.email_outlined,
+                                          size: 13,
+                                          color: const Color(0xFF64748B),
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            u.contact!,
+                                            style: const TextStyle(
+                                              color: Color(0xFF64748B),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   const SizedBox(height: 6),
 
                                   // Role Badge + Joined Date
@@ -427,7 +500,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                                   ? Icons.workspace_premium_rounded
                                                   : isScorer
                                                       ? Icons.edit_note_rounded
-                                                      : Icons.sports_cricket_rounded,
+                                                      : Icons.person_rounded,
                                               size: 12,
                                               color: isAdmin
                                                   ? const Color(0xFFB45309)
@@ -441,7 +514,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                                   ? 'ADMIN'
                                                   : isScorer
                                                       ? 'OFFICIAL SCORER'
-                                                      : 'MEMBER',
+                                                      : (u.uid != null ? 'MEMBER' : 'PLAYER'),
                                               style: TextStyle(
                                                 color: isAdmin
                                                     ? const Color(0xFFB45309)
@@ -456,7 +529,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                           ],
                                         ),
                                       ),
-                                      if (linkedPlayer != null) ...[
+                                      if (isPlayer) ...[
                                         const SizedBox(width: 6),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -465,7 +538,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                             borderRadius: BorderRadius.circular(5),
                                           ),
                                           child: Text(
-                                            linkedPlayer.role.label,
+                                            '🏏 ${u.linkedPlayer!.role.label}',
                                             style: const TextStyle(
                                               color: Color(0xFF15803D),
                                               fontSize: 10,
@@ -496,32 +569,59 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               onSelected: (action) async {
                                 if (action == 'make_scorer') {
-                                  await repo.updateRole(u.uid, UserRole.scorer);
+                                  if (u.uid != null) {
+                                    await repo.updateRole(u.uid!, UserRole.scorer);
+                                  } else {
+                                    await repo.createMember(
+                                      name: u.name,
+                                      phoneNumber: u.contact ?? u.name,
+                                      role: UserRole.scorer,
+                                      photoUrl: u.photoUrl,
+                                    );
+                                  }
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('${u.displayName} is now an Official Scorer. They can create matches & record scores!'),
+                                        content: Text('${u.name} is now an Official Scorer. They can create matches & record scores!'),
                                         backgroundColor: const Color(0xFF7C3AED),
                                       ),
                                     );
                                   }
                                 } else if (action == 'make_admin') {
-                                  await repo.updateRole(u.uid, UserRole.admin);
+                                  if (u.uid != null) {
+                                    await repo.updateRole(u.uid!, UserRole.admin);
+                                  } else {
+                                    await repo.createMember(
+                                      name: u.name,
+                                      phoneNumber: u.contact ?? u.name,
+                                      role: UserRole.admin,
+                                      photoUrl: u.photoUrl,
+                                    );
+                                  }
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('${u.displayName} promoted to Administrator!'),
+                                        content: Text('${u.name} promoted to Administrator!'),
                                         backgroundColor: const Color(0xFFD97706),
                                       ),
                                     );
                                   }
                                 } else if (action == 'make_member') {
                                   if (isSelf) return;
-                                  await repo.updateRole(u.uid, UserRole.member);
+                                  if (u.uid != null) {
+                                    await repo.updateRole(u.uid!, UserRole.member);
+                                  } else {
+                                    await repo.createMember(
+                                      name: u.name,
+                                      phoneNumber: u.contact ?? u.name,
+                                      role: UserRole.member,
+                                      photoUrl: u.photoUrl,
+                                    );
+                                  }
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('${u.displayName} role set to Member.'),
+                                        content: Text('${u.name} role set to Member.'),
                                         backgroundColor: const Color(0xFF16A34A),
                                       ),
                                     );
@@ -533,7 +633,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                     builder: (ctx) => AlertDialog(
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                       title: const Text('Remove User?', style: TextStyle(fontWeight: FontWeight.bold)),
-                                      content: Text('Are you sure you want to remove ${u.displayName}?'),
+                                      content: Text('Are you sure you want to remove ${u.name}?'),
                                       actions: [
                                         TextButton(
                                           onPressed: () => Navigator.pop(ctx, false),
@@ -552,11 +652,14 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                                     ),
                                   );
                                   if (confirm == true) {
-                                    await repo.removeUser(u.uid);
+                                    if (u.uid != null) await repo.removeUser(u.uid!);
+                                    if (u.linkedPlayer != null) {
+                                      await ref.read(playerControllerProvider.notifier).delete(u.linkedPlayer!.id);
+                                    }
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
-                                          content: Text('${u.displayName} removed successfully.'),
+                                          content: Text('${u.name} removed successfully.'),
                                           backgroundColor: Colors.red,
                                         ),
                                       );
