@@ -1,59 +1,46 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../../core/constants/app_constants.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../core/constants/cricket_enums.dart';
 import '../models/match.dart';
 
 class MatchRepository {
-  MatchRepository({FirebaseFirestore? firestore})
-      : _db = firestore ?? FirebaseFirestore.instance;
-
-  final FirebaseFirestore _db;
-
-  CollectionReference<Map<String, dynamic>> _matchesRef(String tournamentId) {
-    return _db
-        .collection(AppConstants.tournamentsCollection)
-        .doc(tournamentId)
-        .collection(AppConstants.matchesCollection);
-  }
-
-  Match _parseDoc(DocumentSnapshot<Map<String, dynamic>> doc, [String? fallbackTournamentId]) {
-    final data = doc.data() ?? {};
-    String tId = data['tournamentId'] as String? ?? fallbackTournamentId ?? '';
-    if (tId.isEmpty) {
-      final segments = doc.reference.path.split('/');
-      if (segments.length >= 2 && segments[0] == AppConstants.tournamentsCollection) {
-        tId = segments[1];
-      }
-    }
-    return Match.fromJson({...data, 'id': doc.id, 'tournamentId': tId});
-  }
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   Stream<List<Match>> watchAll(String tournamentId) {
-    return _matchesRef(tournamentId)
-        .orderBy('matchDate', descending: false)
-        .snapshots()
-        .map((snap) => snap.docs.map((d) => _parseDoc(d, tournamentId)).toList());
-  }
-
-  Stream<Match?> watchById(String tournamentId, String matchId) {
-    return _matchesRef(tournamentId).doc(matchId).snapshots().map((d) {
-      if (!d.exists || d.data() == null) return null;
-      return _parseDoc(d, tournamentId);
+    return _supabase
+        .from('matches')
+        .stream(primaryKey: ['id'])
+        .eq('tournament_id', tournamentId)
+        .map((data) {
+      final list = data.map((json) => Match.fromJson(json)).toList();
+      list.sort((a, b) => a.matchDate.compareTo(b.matchDate));
+      return list;
     });
   }
 
+  Stream<Match?> watchById(String tournamentId, String matchId) {
+    return _supabase
+        .from('matches')
+        .stream(primaryKey: ['id'])
+        .eq('id', matchId)
+        .map((data) => data.isNotEmpty ? Match.fromJson(data.first) : null);
+  }
+
   Future<String> create(String tournamentId, Match match) async {
-    final json = match.toJson()
-      ..remove('id')
-      ..['tournamentId'] = tournamentId
-      ..['createdAt'] = FieldValue.serverTimestamp();
-    final doc = await _matchesRef(tournamentId).add(json);
-    return doc.id;
+    final id = match.id.isEmpty ? const Uuid().v4() : match.id;
+    final json = match.toJson();
+    json['id'] = id;
+    json['tournament_id'] = tournamentId;
+    json['created_at'] = DateTime.now().toIso8601String();
+    
+    await _supabase.from('matches').insert(json);
+    return id;
   }
 
   Future<void> update(String tournamentId, Match match) async {
-    final json = match.toJson()..remove('id');
-    await _matchesRef(tournamentId).doc(match.id).update(json);
+    final json = match.toJson();
+    json.remove('id');
+    await _supabase.from('matches').update(json).eq('id', match.id);
   }
 
   Future<void> updatePartial({
@@ -61,11 +48,11 @@ class MatchRepository {
     required String matchId,
     required Map<String, dynamic> data,
   }) async {
-    await _matchesRef(tournamentId).doc(matchId).update(data);
+    await _supabase.from('matches').update(data).eq('id', matchId);
   }
 
   Future<void> delete(String tournamentId, String matchId) async {
-    await _matchesRef(tournamentId).doc(matchId).delete();
+    await _supabase.from('matches').delete().eq('id', matchId);
   }
 
   Future<void> setToss({
@@ -74,12 +61,11 @@ class MatchRepository {
     required String tossWinnerTeamId,
     required TossDecision tossDecision,
   }) async {
-    await _matchesRef(tournamentId).doc(matchId).update({
-      'tossWinnerId': tossWinnerTeamId,
-      'tossWinnerTeamId': tossWinnerTeamId,
-      'tossDecision': tossDecision.name,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    await _supabase.from('matches').update({
+      'toss_winner_id': tossWinnerTeamId,
+      'toss_decision': tossDecision.name,
+      // Supabase updated_at trigger usually handles time, but we can set it
+    }).eq('id', matchId);
   }
 
   Future<void> completeMatch({
@@ -89,60 +75,58 @@ class MatchRepository {
     required String resultText,
     bool isTie = false,
   }) async {
-    await _matchesRef(tournamentId).doc(matchId).update({
+    await _supabase.from('matches').update({
       'status': MatchStatus.completed.name,
-      'winnerTeamId': winnerTeamId,
-      'resultText': resultText,
-      'isTie': isTie,
-      'completedAt': FieldValue.serverTimestamp(),
-    });
+      'winner_team_id': winnerTeamId,
+      'result_text': resultText,
+      'is_tie': isTie,
+      'completed_at': DateTime.now().toIso8601String(),
+    }).eq('id', matchId);
   }
 
   Future<void> revertToScheduled({
     required String tournamentId,
     required String matchId,
   }) async {
-    await _matchesRef(tournamentId).doc(matchId).update({
+    await _supabase.from('matches').update({
       'status': MatchStatus.scheduled.name,
-      'liveScore': FieldValue.delete(),
-      'winnerTeamId': FieldValue.delete(),
-      'resultText': FieldValue.delete(),
-      'isTie': false,
-      'startedAt': FieldValue.delete(),
-      'completedAt': FieldValue.delete(),
-    });
+      'live_score': null,
+      'winner_team_id': null,
+      'result_text': null,
+      'is_tie': false,
+      'started_at': null,
+      'completed_at': null,
+    }).eq('id', matchId);
   }
 
   Stream<List<Match>> getLiveMatches() {
-    return _db
-        .collectionGroup(AppConstants.matchesCollection)
-        .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => _parseDoc(d))
+    return _supabase
+        .from('matches')
+        .stream(primaryKey: ['id'])
+        .map((data) => data
+            .map((json) => Match.fromJson(json))
             .where((m) => m.status == MatchStatus.live || (m.status != MatchStatus.completed && m.liveScore != null))
             .toList());
   }
 
   Stream<List<Match>> getUpcomingMatches() {
-    return _db
-        .collectionGroup(AppConstants.matchesCollection)
-        .snapshots()
-        .map((snap) {
-      final list = snap.docs
-          .map((d) => _parseDoc(d))
-          .where((m) => m.status == MatchStatus.scheduled)
-          .toList();
+    return _supabase
+        .from('matches')
+        .stream(primaryKey: ['id'])
+        .eq('status', MatchStatus.scheduled.name)
+        .map((data) {
+      final list = data.map((json) => Match.fromJson(json)).toList();
       list.sort((a, b) => a.matchDate.compareTo(b.matchDate));
       return list.take(15).toList();
     });
   }
 
   Stream<List<Match>> getAllMatches() {
-    return _db
-        .collectionGroup(AppConstants.matchesCollection)
-        .snapshots()
-        .map((snap) {
-      final list = snap.docs.map((d) => _parseDoc(d)).toList();
+    return _supabase
+        .from('matches')
+        .stream(primaryKey: ['id'])
+        .map((data) {
+      final list = data.map((json) => Match.fromJson(json)).toList();
       list.sort((a, b) => b.matchDate.compareTo(a.matchDate));
       return list;
     });

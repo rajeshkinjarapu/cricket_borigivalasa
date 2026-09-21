@@ -1,46 +1,56 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../core/constants/cricket_enums.dart';
 import '../models/tournament.dart';
 
 class TournamentRepository {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   Stream<List<Tournament>> getActiveTournaments() {
-    return _db
-        .collection('tournaments')
-        .where('status', isNotEqualTo: TournamentStatus.completed.name)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Tournament.fromJson({...doc.data(), 'id': doc.id}))
+    return _supabase
+        .from('tournaments')
+        .stream(primaryKey: ['id'])
+        .neq('status', TournamentStatus.completed.name)
+        .map((data) => data
+            .map((json) => Tournament.fromJson(json))
             .toList());
   }
 
   Stream<List<Tournament>> getAllTournaments() => watchAll();
 
   Stream<List<Tournament>> watchAll() {
-    return _db
-        .collection('tournaments')
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Tournament.fromJson({...doc.data(), 'id': doc.id}))
+    return _supabase
+        .from('tournaments')
+        .stream(primaryKey: ['id'])
+        .map((data) => data
+            .map((json) => Tournament.fromJson(json))
             .toList());
   }
 
   Stream<Tournament?> watchById(String id) {
-    return _db.collection('tournaments').doc(id).snapshots().map((doc) =>
-        doc.exists ? Tournament.fromJson({...doc.data()!, 'id': doc.id}) : null);
+    return _supabase
+        .from('tournaments')
+        .stream(primaryKey: ['id'])
+        .eq('id', id)
+        .map((data) => data.isNotEmpty ? Tournament.fromJson(data.first) : null);
   }
 
   Future<String> create(Tournament t) async {
-    final doc = await _db.collection('tournaments').add(t.toJson()..remove('id'));
-    return doc.id;
+    final id = t.id.isEmpty ? const Uuid().v4() : t.id;
+    final map = t.toJson();
+    map['id'] = id;
+    
+    await _supabase.from('tournaments').insert(map);
+    return id;
   }
 
   Future<void> update(Tournament t) async {
-    await _db.collection('tournaments').doc(t.id).update(t.toJson()..remove('id'));
+    final map = t.toJson();
+    map.remove('id'); // ID is primary key, don't update it
+    await _supabase.from('tournaments').update(map).eq('id', t.id);
   }
 
   Future<void> delete(String id) async {
-    await _db.collection('tournaments').doc(id).delete();
+    await _supabase.from('tournaments').delete().eq('id', id);
   }
 }

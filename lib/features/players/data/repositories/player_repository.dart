@@ -1,23 +1,22 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../models/player.dart';
 
 class PlayerRepository {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   Stream<List<Player>> watchAll() {
-    return _db.collection('players').snapshots().map((snapshot) {
-      final list = snapshot.docs
-          .map((doc) => Player.fromJson({...doc.data(), 'id': doc.id}))
-          .toList();
+    return _supabase.from('players').stream(primaryKey: ['id']).map((data) {
+      final list = data.map((json) => Player.fromJson(json)).toList();
       list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       return list;
     });
   }
 
   Stream<List<Player>> watchByTeam(String teamId) {
-    return _db.collection('players').snapshots().map((snapshot) {
-      final list = snapshot.docs
-          .map((doc) => Player.fromJson({...doc.data(), 'id': doc.id}))
+    return _supabase.from('players').stream(primaryKey: ['id']).map((data) {
+      final list = data
+          .map((json) => Player.fromJson(json))
           .where((p) => p.teamId == teamId || p.teamIds.contains(teamId))
           .toList();
       list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -26,52 +25,62 @@ class PlayerRepository {
   }
 
   Stream<Player?> watchById(String id) {
-    return _db.collection('players').doc(id).snapshots().map((doc) => doc.exists ? Player.fromJson({...doc.data()!, 'id': doc.id}) : null);
+    return _supabase
+        .from('players')
+        .stream(primaryKey: ['id'])
+        .eq('id', id)
+        .map((data) => data.isNotEmpty ? Player.fromJson(data.first) : null);
   }
 
   Future<String> create(Player player) async {
-    final doc = await _db.collection('players').add(player.toJson()..remove('id'));
-    return doc.id;
+    final id = player.id.isEmpty ? const Uuid().v4() : player.id;
+    final map = player.toJson();
+    map['id'] = id;
+    
+    await _supabase.from('players').insert(map);
+    return id;
   }
 
   Future<void> update(Player player) async {
-    await _db.collection('players').doc(player.id).update(player.toJson()..remove('id'));
+    final map = player.toJson();
+    map.remove('id');
+    await _supabase.from('players').update(map).eq('id', player.id);
   }
 
   Future<void> delete(String id) async {
-    await _db.collection('players').doc(id).delete();
+    await _supabase.from('players').delete().eq('id', id);
   }
 
   Future<void> addPlayerToTeam(String playerId, String teamId) async {
-    final docRef = _db.collection('players').doc(playerId);
-    final doc = await docRef.get();
-    if (!doc.exists) return;
-    final data = doc.data()!;
-    final currentTeamId = data['teamId'] as String? ?? '';
-    final rawList = (data['teamIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+    final res = await _supabase.from('players').select('team_id, team_ids').eq('id', playerId).maybeSingle();
+    if (res == null) return;
+    
+    final currentTeamId = res['team_id'] as String? ?? '';
+    final rawList = (res['team_ids'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
     final currentTeamIds = {...rawList};
     if (currentTeamId.isNotEmpty) currentTeamIds.add(currentTeamId);
     currentTeamIds.add(teamId);
-    await docRef.update({
-      'teamId': currentTeamId.isEmpty ? teamId : currentTeamId,
-      'teamIds': currentTeamIds.toList(),
-    });
+    
+    await _supabase.from('players').update({
+      'team_id': currentTeamId.isEmpty ? teamId : currentTeamId,
+      'team_ids': currentTeamIds.toList(),
+    }).eq('id', playerId);
   }
 
   Future<void> removePlayerFromTeam(String playerId, String teamId) async {
-    final docRef = _db.collection('players').doc(playerId);
-    final doc = await docRef.get();
-    if (!doc.exists) return;
-    final data = doc.data()!;
-    final currentTeamId = data['teamId'] as String? ?? '';
-    final rawList = (data['teamIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+    final res = await _supabase.from('players').select('team_id, team_ids').eq('id', playerId).maybeSingle();
+    if (res == null) return;
+    
+    final currentTeamId = res['team_id'] as String? ?? '';
+    final rawList = (res['team_ids'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
     final currentTeamIds = {...rawList};
     if (currentTeamId.isNotEmpty) currentTeamIds.add(currentTeamId);
     currentTeamIds.remove(teamId);
+    
     final newPrimary = currentTeamIds.isNotEmpty ? currentTeamIds.first : '';
-    await docRef.update({
-      'teamId': currentTeamId == teamId ? newPrimary : currentTeamId,
-      'teamIds': currentTeamIds.toList(),
-    });
+    await _supabase.from('players').update({
+      'team_id': currentTeamId == teamId ? newPrimary : currentTeamId,
+      'team_ids': currentTeamIds.toList(),
+    }).eq('id', playerId);
   }
 }

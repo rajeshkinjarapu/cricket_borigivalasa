@@ -1,41 +1,33 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import '../../../../core/constants/app_constants.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../auth/data/models/app_user.dart';
 
 class MemberRepository {
-  MemberRepository({FirebaseFirestore? f, FirebaseAuth? a})
-    : _db = f ?? FirebaseFirestore.instance,
-      _auth = a ?? FirebaseAuth.instance;
-  final FirebaseFirestore _db;
-  final FirebaseAuth _auth;
-  String? get currentUid => _auth.currentUser?.uid;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
-  Stream<List<AppUser>> watchAll() => _db
-      .collection(AppConstants.usersCollection)
-      .snapshots()
-      .map((s) {
-        final list = s.docs
-            .map((d) => AppUser.fromJson({...d.data(), 'uid': d.id}))
-            .toList();
-        list.sort((a, b) {
-          if (a.createdAt == null && b.createdAt == null) return 0;
-          if (a.createdAt == null) return 1;
-          if (b.createdAt == null) return -1;
-          return b.createdAt!.compareTo(a.createdAt!);
-        });
-        return list;
+  String? get currentUid => _supabase.auth.currentUser?.id;
+
+  Stream<List<AppUser>> watchAll() {
+    return _supabase.from('profiles').stream(primaryKey: ['id']).map((data) {
+      final list = data.map((json) => AppUser.fromJson(json)).toList();
+      list.sort((a, b) {
+        if (a.createdAt == null && b.createdAt == null) return 0;
+        if (a.createdAt == null) return 1;
+        if (b.createdAt == null) return -1;
+        return b.createdAt!.compareTo(a.createdAt!);
       });
+      return list;
+    });
+  }
 
   Future<void> updateRole(String uid, UserRole role) async {
-    await _db.collection(AppConstants.usersCollection).doc(uid)
-      .update({'role': role.name});
+    await _supabase.from('profiles').update({'role': role.name}).eq('id', uid);
   }
 
   Future<void> removeUser(String uid) async {
-    await _db.collection(AppConstants.usersCollection).doc(uid).delete();
+    await _supabase.from('profiles').delete().eq('id', uid);
+    // Note: In Supabase, deleting a profile might not delete the auth user unless
+    // there's a trigger, but for now we just delete the profile.
   }
 
   Future<String?> createMember({
@@ -55,56 +47,62 @@ class MemberRepository {
     String? createdUid;
     if (hasPhone) {
       try {
-        final tempApp = await Firebase.initializeApp(
-          name: 'temp_add_member_${DateTime.now().millisecondsSinceEpoch}',
-          options: Firebase.app().options,
+        // Use a temporary client to avoid logging out the current admin
+        final tempClient = SupabaseClient(
+          'https://qlphckdozxtqhwnpokec.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFscGhja2Rvenh0cWh3bnBva2VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MDcwNTQsImV4cCI6MjEwNTQ4MzA1NH0.J4I7nbtYXPTzM0FO2eA_7k32g9j-TU1gk3LPBnGsp1c',
         );
-        try {
-          final cred = await FirebaseAuth.instanceFor(app: tempApp)
-              .createUserWithEmailAndPassword(email: authEmail, password: password);
-          final u = cred.user!;
-          await u.updateDisplayName(name.trim());
-          createdUid = u.uid;
-        } catch (_) {
-        } finally {
-          await tempApp.delete();
+        
+        final response = await tempClient.auth.signUp(
+          email: authEmail,
+          password: password,
+          data: {'display_name': name.trim()},
+        );
+        
+        if (response.user != null) {
+          createdUid = response.user!.id;
         }
-      } catch (_) {}
+        
+        // Dispose the temp client
+        tempClient.dispose();
+      } catch (e) {
+        // Check if user already exists
+      }
     }
 
-    final appUser = AppUser(
-      uid: createdUid ?? '',
-      email: authEmail,
-      displayName: name.trim(),
-      role: role,
-      photoUrl: photoUrl,
-      createdAt: DateTime.now(),
-    );
-
     if (createdUid != null) {
-      await _db.collection(AppConstants.usersCollection).doc(createdUid).set(
-        appUser.toJson()..remove('uid'),
-        SetOptions(merge: true),
+      final appUser = AppUser(
+        uid: createdUid,
+        email: authEmail,
+        displayName: name.trim(),
+        role: role,
+        photoUrl: photoUrl,
+        createdAt: DateTime.now(),
       );
+      
+      final map = appUser.toJson();
+      map['id'] = createdUid;
+      map.remove('uid');
+      
+      await _supabase.from('profiles').upsert(map);
       return createdUid;
     } else {
       if (hasPhone) {
-        final existing = await _db.collection(AppConstants.usersCollection)
-            .where('email', isEqualTo: authEmail)
-            .limit(1)
-            .get();
-        if (existing.docs.isNotEmpty) {
-          await _db.collection(AppConstants.usersCollection).doc(existing.docs.first.id).update({
-            'displayName': name.trim(),
+        final existing = await _supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', authEmail)
+            .maybeSingle();
+            
+        if (existing != null) {
+          await _supabase.from('profiles').update({
+            'display_name': name.trim(),
             'role': role.name,
-          });
-          return existing.docs.first.id;
+          }).eq('id', existing['id']);
+          return existing['id'] as String;
         }
       }
-      final doc = await _db.collection(AppConstants.usersCollection).add(
-        appUser.toJson()..remove('uid'),
-      );
-      return doc.id;
+      return null;
     }
   }
 }

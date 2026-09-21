@@ -1,40 +1,51 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../models/app_user.dart';
 
 class AuthRepository {
-  AuthRepository({FirebaseAuth? auth, FirebaseFirestore? firestore})
-    : _a = auth ?? FirebaseAuth.instance,
-      _db = firestore ?? FirebaseFirestore.instance;
-  final FirebaseAuth _a;
-  final FirebaseFirestore _db;
-  User? get currentFirebaseUser => _a.currentUser;
+  AuthRepository({SupabaseClient? supabase})
+    : _supabase = supabase ?? Supabase.instance.client;
+    
+  final SupabaseClient _supabase;
+  
+  User? get currentUser => _supabase.auth.currentUser;
 
-  Stream<AppUser?> authStateChanges() => _a.authStateChanges().asyncExpand((u) {
-    if (u == null) return Stream<AppUser?>.value(null);
-    return _db.collection(AppConstants.usersCollection).doc(u.uid)
-      .snapshots().map((d) {
-        if (!d.exists || d.data() == null) return null;
-        return AppUser.fromJson({...d.data()!, 'uid': d.id});
-      });
+  Stream<AppUser?> authStateChanges() => _supabase.auth.onAuthStateChange.asyncMap((data) async {
+    final session = data.session;
+    if (session == null || session.user == null) return null;
+    
+    try {
+      final res = await _supabase
+          .from('profiles')
+          .select()
+          .eq('id', session.user.id)
+          .maybeSingle();
+          
+      if (res == null) return null;
+      return AppUser.fromJson({...res, 'uid': session.user.id});
+    } catch (e) {
+      return null;
+    }
   });
 
   Future<void> signIn({required String identifier, required String password}) async {
     String authEmail = identifier.trim();
     if (!authEmail.contains('@') && double.tryParse(authEmail) != null) {
-      // Treat as mobile number login for members
       authEmail = '$authEmail@member.cricket.com';
     }
-    final cred = await _a.signInWithEmailAndPassword(email: authEmail, password: password);
     
-    if (authEmail.toLowerCase() == 'rajeshkinjarapu@gmail.com' && cred.user != null) {
-      await _db.collection(AppConstants.usersCollection).doc(cred.user!.uid)
-          .set({'role': UserRole.admin.name}, SetOptions(merge: true));
+    final response = await _supabase.auth.signInWithPassword(
+      email: authEmail,
+      password: password,
+    );
+    
+    if (authEmail.toLowerCase() == 'rajeshkinjarapu@gmail.com' && response.user != null) {
+      await _supabase.from('profiles').upsert({
+        'id': response.user!.id,
+        'role': UserRole.admin.name,
+      });
     }
   }
 
@@ -42,80 +53,80 @@ class AuthRepository {
       required String displayName}) async {
     String authEmail = identifier.trim();
     if (!authEmail.contains('@') && double.tryParse(authEmail) != null) {
-      // Treat as mobile number signup for members
       authEmail = '$authEmail@member.cricket.com';
     }
     
-    // Use a temporary Firebase App so that the main instance isn't automatically logged in.
-    final tempApp = await Firebase.initializeApp(
-        name: 'temp_signup_${DateTime.now().millisecondsSinceEpoch}', 
-        options: Firebase.app().options);
+    // In Supabase, signUp automatically signs the user in by default, unless configured otherwise.
+    // Assuming standard config:
+    final response = await _supabase.auth.signUp(
+      email: authEmail,
+      password: password,
+      data: {'display_name': displayName.trim()},
+    );
     
-    try {
-      final c = await FirebaseAuth.instanceFor(app: tempApp)
-          .createUserWithEmailAndPassword(email: authEmail, password: password);
-      final u = c.user!;
-      await u.updateDisplayName(displayName.trim());
+    if (response.user != null) {
+      final au = AppUser(
+        uid: response.user!.id, 
+        email: authEmail,
+        displayName: displayName.trim(), 
+        role: UserRole.member,
+        createdAt: DateTime.now()
+      );
       
-      final au = AppUser(uid: u.uid, email: authEmail,
-        displayName: displayName.trim(), role: UserRole.member,
-        createdAt: DateTime.now());
+      final map = au.toJson();
+      map['id'] = response.user!.id;
+      map.remove('uid');
       
-      await _db.collection(AppConstants.usersCollection).doc(u.uid)
-        .set(au.toJson()..remove('uid'));
-    } finally {
-      await tempApp.delete();
+      // Upsert profile data
+      await _supabase.from('profiles').upsert(map);
     }
   }
 
-  Future<void> signOut() => _a.signOut();
+  Future<void> signOut() => _supabase.auth.signOut();
 
   Future<void> updateProfile({
     String? displayName,
     Uint8List? imageBytes,
     String? fileExtension,
   }) async {
-    final user = _a.currentUser;
+    final user = _supabase.auth.currentUser;
     if (user == null) throw Exception('Not logged in');
 
     String? photoUrl;
 
     if (imageBytes != null && fileExtension != null) {
       try {
-        final ref = FirebaseStorage.instance
-            .ref()
-            .child('users/profile_images/${user.uid}.$fileExtension');
-        
-        final uploadTask = await ref.putData(
+        final path = 'users/${user.id}/profile.$fileExtension';
+        await _supabase.storage.from('avatars').uploadBinary(
+          path, 
           imageBytes,
-          SettableMetadata(contentType: 'image/$fileExtension'),
+          fileOptions: FileOptions(upsert: true),
         );
-        photoUrl = await uploadTask.ref.getDownloadURL();
+        photoUrl = _supabase.storage.from('avatars').getPublicUrl(path);
       } catch (e) {
-        // Fallback to base64 Data URI if Firebase Storage fails/restricted
         final base64String = base64Encode(imageBytes);
         photoUrl = 'data:image/$fileExtension;base64,$base64String';
       }
     }
 
-    // Update Firebase Auth
-    if (displayName != null) await user.updateDisplayName(displayName);
-    if (photoUrl != null && photoUrl.startsWith('http')) {
-      try {
-        await user.updatePhotoURL(photoUrl);
-      } catch (_) {}
+    // Update Supabase Auth metadata
+    final Map<String, dynamic> userMetadata = {};
+    if (displayName != null) userMetadata['display_name'] = displayName;
+    if (photoUrl != null) userMetadata['avatar_url'] = photoUrl;
+    
+    if (userMetadata.isNotEmpty) {
+      await _supabase.auth.updateUser(UserAttributes(
+        data: userMetadata,
+      ));
     }
 
-    // Update Firestore
+    // Update profiles table
     final updates = <String, dynamic>{};
-    if (displayName != null) updates['displayName'] = displayName;
-    if (photoUrl != null) updates['photoUrl'] = photoUrl;
+    if (displayName != null) updates['display_name'] = displayName;
+    if (photoUrl != null) updates['photo_url'] = photoUrl;
 
     if (updates.isNotEmpty) {
-      await _db.collection(AppConstants.usersCollection).doc(user.uid).set(
-        updates,
-        SetOptions(merge: true),
-      );
+      await _supabase.from('profiles').update(updates).eq('id', user.id);
     }
   }
 
@@ -123,41 +134,33 @@ class AuthRepository {
     required String currentPassword,
     required String newPassword,
   }) async {
-    final user = _a.currentUser;
+    final user = _supabase.auth.currentUser;
     if (user == null) throw Exception('Not logged in');
-
-    // Re-authenticate first (Firebase requires this before sensitive operations)
-    final credential = EmailAuthProvider.credential(
-      email: user.email!,
-      password: currentPassword,
-    );
-    await user.reauthenticateWithCredential(credential);
-
-    // Now update password
-    await user.updatePassword(newPassword);
+    
+    // Note: Supabase requires reauthentication for password change or the session to be active.
+    // If we need to verify currentPassword, we can try signing in again:
+    await _supabase.auth.signInWithPassword(email: user.email!, password: currentPassword);
+    
+    await _supabase.auth.updateUser(UserAttributes(
+      password: newPassword,
+    ));
   }
 
   Future<void> updateEmail({
     required String newEmail,
     required String currentPassword,
   }) async {
-    final user = _a.currentUser;
+    final user = _supabase.auth.currentUser;
     if (user == null) throw Exception('Not logged in');
 
-    // Re-authenticate before changing email
-    final credential = EmailAuthProvider.credential(
-      email: user.email!,
-      password: currentPassword,
-    );
-    await user.reauthenticateWithCredential(credential);
+    await _supabase.auth.signInWithPassword(email: user.email!, password: currentPassword);
+    
+    await _supabase.auth.updateUser(UserAttributes(
+      email: newEmail.trim(),
+    ));
 
-    // Update Firebase Auth email
-    await user.verifyBeforeUpdateEmail(newEmail.trim());
-
-    // Update Firestore email field
-    await _db.collection(AppConstants.usersCollection).doc(user.uid).set(
-      {'email': newEmail.trim()},
-      SetOptions(merge: true),
-    );
+    await _supabase.from('profiles').update(
+      {'email': newEmail.trim()}
+    ).eq('id', user.id);
   }
 }

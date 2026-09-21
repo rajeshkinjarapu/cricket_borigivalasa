@@ -38,23 +38,23 @@ class AppUser {
   Map<String, dynamic> toJson() => {
     'uid': uid,
     'email': email,
-    'displayName': displayName,
+    'display_name': displayName,
     'role': role.name,
-    'photoUrl': photoUrl,
-    'createdAt': createdAt?.toIso8601String(),
+    'photo_url': photoUrl,
+    'created_at': createdAt?.toIso8601String(),
   };
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
-    uid: json['uid'] as String? ?? '',
+    uid: json['uid'] as String? ?? json['id'] as String? ?? '',
     email: json['email'] as String? ?? '',
-    displayName: json['displayName'] as String? ?? '',
+    displayName: json['display_name'] as String? ?? json['displayName'] as String? ?? '',
     role: UserRole.values.firstWhere(
       (r) => r.name == json['role'],
       orElse: () => UserRole.member,
     ),
-    photoUrl: json['photoUrl'] as String?,
-    createdAt: json['createdAt'] != null
-        ? DateTime.tryParse(json['createdAt'].toString())
+    photoUrl: json['photo_url'] as String? ?? json['photoUrl'] as String?,
+    createdAt: (json['created_at'] ?? json['createdAt']) != null
+        ? DateTime.tryParse((json['created_at'] ?? json['createdAt']).toString())
         : null,
   );
 

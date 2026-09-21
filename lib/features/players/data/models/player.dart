@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../../../core/constants/cricket_enums.dart';
 
 class PlayerStats {
@@ -23,25 +23,25 @@ class PlayerStats {
   factory PlayerStats.fromJson(Map<String, dynamic>? json) {
     if (json == null) return PlayerStats();
     return PlayerStats(
-      matchesPlayed: json['matchesPlayed'] as int? ?? 0,
-      runsScored: json['runsScored'] as int? ?? 0,
-      highestScore: json['highestScore'] as int? ?? 0,
-      wicketsTaken: json['wicketsTaken'] as int? ?? 0,
-      bestBowling: json['bestBowling'] as String? ?? '-',
-      battingAverage: (json['battingAverage'] as num?)?.toDouble() ?? 0.0,
-      economyRate: (json['economyRate'] as num?)?.toDouble() ?? 0.0,
+      matchesPlayed: json['matches_played'] as int? ?? 0,
+      runsScored: json['runs_scored'] as int? ?? 0,
+      highestScore: json['highest_score'] as int? ?? 0,
+      wicketsTaken: json['wickets'] as int? ?? 0,
+      bestBowling: json['best_bowling'] as String? ?? '-',
+      battingAverage: (json['batting_average'] as num?)?.toDouble() ?? 0.0,
+      economyRate: (json['economy_rate'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'matchesPlayed': matchesPlayed,
-      'runsScored': runsScored,
-      'highestScore': highestScore,
-      'wicketsTaken': wicketsTaken,
-      'bestBowling': bestBowling,
-      'battingAverage': battingAverage,
-      'economyRate': economyRate,
+      'matches_played': matchesPlayed,
+      'runs_scored': runsScored,
+      'highest_score': highestScore,
+      'wickets': wicketsTaken,
+      'best_bowling': bestBowling,
+      'batting_average': battingAverage,
+      'economy_rate': economyRate,
     };
   }
 }
@@ -77,8 +77,8 @@ class Player {
         createdAt = createdAt ?? DateTime.now();
 
   factory Player.fromJson(Map<String, dynamic> json) {
-    final tId = json['teamId'] as String? ?? '';
-    final tIds = (json['teamIds'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+    final tId = json['team_id'] as String? ?? '';
+    final tIds = (json['team_ids'] as List<dynamic>?)?.map((e) => e as String).toList() ??
         (tId.isNotEmpty ? [tId] : <String>[]);
 
     return Player(
@@ -91,18 +91,18 @@ class Player {
         orElse: () => PlayerRole.batter,
       ),
       battingStyle: BattingStyle.values.firstWhere(
-        (e) => e.name == (json['battingStyle'] as String?),
+        (e) => e.name == (json['batting_style'] as String?),
         orElse: () => BattingStyle.rightHand,
       ),
       bowlingStyle: BowlingStyle.values.firstWhere(
-        (e) => e.name == (json['bowlingStyle'] as String?),
+        (e) => e.name == (json['bowling_style'] as String?),
         orElse: () => BowlingStyle.none,
       ),
-      jerseyNumber: json['jerseyNumber'] as int?,
-      phoneNumber: json['phoneNumber'] as String?,
-      profilePicUrl: json['profilePicUrl'] as String?,
-      stats: PlayerStats.fromJson(json['stats'] as Map<String, dynamic>?),
-      createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      jerseyNumber: json['jersey_number'] as int?,
+      phoneNumber: json['phone_number'] as String?,
+      profilePicUrl: json['profile_pic_url'] as String?,
+      stats: PlayerStats.fromJson(json), // Flattened in Supabase
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now() : DateTime.now(),
     );
   }
 
@@ -110,16 +110,16 @@ class Player {
     return {
       'id': id,
       'name': name,
-      'teamId': teamId,
-      'teamIds': teamIds.isNotEmpty ? teamIds : (teamId.isNotEmpty ? [teamId] : []),
+      'team_id': teamId,
+      'team_ids': teamIds.isNotEmpty ? teamIds : (teamId.isNotEmpty ? [teamId] : []),
       'role': role.name,
-      'battingStyle': battingStyle.name,
-      'bowlingStyle': bowlingStyle.name,
-      'jerseyNumber': jerseyNumber,
-      'phoneNumber': phoneNumber,
-      'profilePicUrl': profilePicUrl,
-      'stats': stats.toJson(),
-      'createdAt': Timestamp.fromDate(createdAt),
+      'batting_style': battingStyle.name,
+      'bowling_style': bowlingStyle.name,
+      'jersey_number': jerseyNumber,
+      'phone_number': phoneNumber,
+      'profile_pic_url': profilePicUrl,
+      ...stats.toJson(),
+      'created_at': createdAt.toIso8601String(),
     };
   }
 

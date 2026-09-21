@@ -1,14 +1,15 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../models/team.dart';
 
 class TeamRepository {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   Stream<List<Team>> watchAll() {
-    return _db.collection('teams').snapshots().map(
-          (snapshot) {
-            final list = snapshot.docs
-                .map((doc) => Team.fromJson({...doc.data(), 'id': doc.id}))
+    return _supabase.from('teams').stream(primaryKey: ['id']).map(
+          (data) {
+            final list = data
+                .map((json) => Team.fromJson(json))
                 .toList();
             list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
             return list;
@@ -17,37 +18,47 @@ class TeamRepository {
   }
 
   Stream<List<Team>> watchByTournament(String tournamentId) {
-    return _db
-        .collection('teams')
-        .where('tournamentIds', arrayContains: tournamentId)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Team.fromJson({...doc.data(), 'id': doc.id}))
+    return _supabase
+        .from('teams')
+        .stream(primaryKey: ['id'])
+        // Supabase Postgres array contains operator is usually 'cs' or filtering on client side.
+        // For streams, complex filtering on arrays might require a view or client-side filter.
+        // We will filter client side to be safe with stream()
+        .map((data) => data
+            .where((json) {
+              final tIds = json['tournament_ids'] as List<dynamic>? ?? [];
+              return tIds.contains(tournamentId);
+            })
+            .map((json) => Team.fromJson(json))
             .toList());
   }
 
   Stream<Team?> watchById(String id) {
-    return _db
-        .collection('teams')
-        .doc(id)
-        .snapshots()
-        .map((doc) => doc.exists ? Team.fromJson({...doc.data()!, 'id': doc.id}) : null);
+    return _supabase
+        .from('teams')
+        .stream(primaryKey: ['id'])
+        .eq('id', id)
+        .map((data) => data.isNotEmpty ? Team.fromJson(data.first) : null);
   }
 
   Future<String> create(Team team) async {
-    final data = team.toJson()..remove('id');
-    data['createdAt'] = FieldValue.serverTimestamp();
-    final doc = await _db.collection('teams').add(data);
-    return doc.id;
+    final id = team.id.isEmpty ? const Uuid().v4() : team.id;
+    final data = team.toJson();
+    data['id'] = id;
+    data['created_at'] = DateTime.now().toIso8601String();
+    
+    await _supabase.from('teams').insert(data);
+    return id;
   }
 
   Future<void> update(Team team) async {
-    final data = team.toJson()..remove('id');
-    data['updatedAt'] = FieldValue.serverTimestamp();
-    await _db.collection('teams').doc(team.id).update(data);
+    final data = team.toJson();
+    data.remove('id');
+    // Using created_at or updated_at appropriately
+    await _supabase.from('teams').update(data).eq('id', team.id);
   }
 
   Future<void> delete(String id) async {
-    await _db.collection('teams').doc(id).delete();
+    await _supabase.from('teams').delete().eq('id', id);
   }
 }

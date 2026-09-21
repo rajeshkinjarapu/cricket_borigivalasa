@@ -1,9 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/constants/cricket_enums.dart';
 
 DateTime? _parseDateTime(dynamic value) {
   if (value == null) return null;
-  if (value is Timestamp) return value.toDate();
+
   if (value is DateTime) return value;
   if (value is String) return DateTime.tryParse(value);
   if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
@@ -49,51 +48,51 @@ class BallEvent {
 
   factory BallEvent.fromJson(Map<String, dynamic> json) {
     return BallEvent(
-      batRuns: json['batRuns'] as int? ?? 0,
-      extraRuns: json['extraRuns'] as int? ?? 0,
+      batRuns: json['runs_scored'] as int? ?? (json['batRuns'] as int? ?? 0),
+      extraRuns: json['extras_runs'] as int? ?? (json['extraRuns'] as int? ?? 0),
       extraType: ExtraType.values.firstWhere(
-        (e) => e.name == (json['extraType'] as String?),
+        (e) => e.name == (json['extras_type'] as String? ?? json['extraType'] as String?),
         orElse: () => ExtraType.none,
       ),
-      isWicket: json['isWicket'] as bool? ?? false,
-      wicketType: json['wicketType'] != null
+      isWicket: json['is_wicket'] as bool? ?? (json['isWicket'] as bool? ?? false),
+      wicketType: (json['wicket_type'] ?? json['wicketType']) != null
           ? WicketType.values.firstWhere(
-              (e) => e.name == (json['wicketType'] as String?),
+              (e) => e.name == (json['wicket_type'] as String? ?? json['wicketType'] as String?),
               orElse: () => WicketType.bowled,
             )
           : null,
-      dismissedPlayerId: json['dismissedPlayerId'] as String?,
+      dismissedPlayerId: json['player_out_id'] as String? ?? json['dismissedPlayerId'] as String?,
       dismissedPlayerName: json['dismissedPlayerName'] as String?,
-      fielderId: json['fielderId'] as String?,
+      fielderId: json['fielder_id'] as String? ?? json['fielderId'] as String?,
       fielderName: json['fielderName'] as String?,
-      batsmanId: json['batsmanId'] as String? ?? '',
+      batsmanId: json['batter_id'] as String? ?? json['batsmanId'] as String? ?? '',
       batsmanName: json['batsmanName'] as String? ?? '',
-      bowlerId: json['bowlerId'] as String? ?? '',
+      bowlerId: json['bowler_id'] as String? ?? json['bowlerId'] as String? ?? '',
       bowlerName: json['bowlerName'] as String? ?? '',
       newBatsmanId: json['newBatsmanId'] as String?,
       newBatsmanName: json['newBatsmanName'] as String?,
-      timestamp: _parseDateTime(json['timestamp']) ?? DateTime.now(),
+      timestamp: _parseDateTime(json['ball_time'] ?? json['timestamp']) ?? DateTime.now(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'batRuns': batRuns,
-      'extraRuns': extraRuns,
-      'extraType': extraType.name,
-      'isWicket': isWicket,
-      'wicketType': wicketType?.name,
-      'dismissedPlayerId': dismissedPlayerId,
-      'dismissedPlayerName': dismissedPlayerName,
-      'fielderId': fielderId,
-      'fielderName': fielderName,
-      'batsmanId': batsmanId,
-      'batsmanName': batsmanName,
-      'bowlerId': bowlerId,
-      'bowlerName': bowlerName,
-      'newBatsmanId': newBatsmanId,
-      'newBatsmanName': newBatsmanName,
-      'timestamp': timestamp.toIso8601String(),
+      'runs_scored': batRuns,
+      'extras_runs': extraRuns,
+      'extras_type': extraType.name,
+      'is_wicket': isWicket,
+      'wicket_type': wicketType?.name,
+      'player_out_id': dismissedPlayerId,
+      'dismissed_player_name': dismissedPlayerName,
+      'fielder_id': fielderId,
+      'fielder_name': fielderName,
+      'batter_id': batsmanId,
+      'batsman_name': batsmanName,
+      'bowler_id': bowlerId,
+      'bowler_name': bowlerName,
+      'new_batsman_id': newBatsmanId,
+      'new_batsman_name': newBatsmanName,
+      'ball_time': timestamp.toIso8601String(),
     };
   }
 

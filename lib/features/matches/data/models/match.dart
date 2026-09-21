@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../../../core/constants/cricket_enums.dart';
 
 class Match {
@@ -79,77 +79,71 @@ class Match {
 
   factory Match.fromJson(Map<String, dynamic> json) {
     DateTime parseDate(dynamic v) {
-      if (v is Timestamp) return v.toDate();
+      if (v == null) return DateTime.now();
       if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
       return DateTime.now();
     }
 
     return Match(
       id: json['id'] as String? ?? '',
-      tournamentId: json['tournamentId'] as String? ?? '',
-      teamAId: json['teamAId'] as String? ?? 'teamA',
-      teamBId: json['teamBId'] as String? ?? 'teamB',
-      teamA: json['teamA'] as String? ?? (json['teamAName'] as String? ?? 'Team A'),
-      teamB: json['teamB'] as String? ?? (json['teamBName'] as String? ?? 'Team B'),
+      tournamentId: json['tournament_id'] as String? ?? '',
+      teamAId: json['team_a_id'] as String? ?? 'teamA',
+      teamBId: json['team_b_id'] as String? ?? 'teamB',
+      teamA: json['team_a'] as String? ?? (json['teamA'] as String? ?? 'Team A'),
+      teamB: json['team_b'] as String? ?? (json['teamB'] as String? ?? 'Team B'),
       status: MatchStatus.values.firstWhere(
         (e) => e.name == (json['status'] as String?),
         orElse: () => MatchStatus.scheduled,
       ),
-      matchDate: json['matchDate'] != null
-          ? parseDate(json['matchDate'])
-          : (json['scheduledAt'] != null ? parseDate(json['scheduledAt']) : DateTime.now()),
+      matchDate: json['match_date'] != null
+          ? parseDate(json['match_date'])
+          : (json['scheduled_at'] != null ? parseDate(json['scheduled_at']) : DateTime.now()),
       venue: json['venue'] as String? ?? 'Ground',
-      totalOvers: json['totalOvers'] as int? ?? 20,
-      matchNumber: json['matchNumber'] as int?,
-      tossWinnerId: json['tossWinnerId'] as String? ?? (json['tossWinnerTeamId'] as String?),
-      tossDecision: json['tossDecision'] != null
+      totalOvers: json['total_overs'] as int? ?? 20,
+      matchNumber: json['match_number'] as int?,
+      tossWinnerId: json['toss_winner_id'] as String?,
+      tossDecision: json['toss_decision'] != null
           ? TossDecision.values.firstWhere(
-              (e) => e.name == (json['tossDecision'] as String?),
+              (e) => e.name == (json['toss_decision'] as String?),
               orElse: () => TossDecision.bat,
             )
           : null,
-      liveScore: json['liveScore'] as Map<String, dynamic>?,
-      winnerTeamId: json['winnerTeamId'] as String?,
-      resultText: json['resultText'] as String?,
-      isTie: json['isTie'] as bool? ?? false,
-      startedAt: json['startedAt'] != null ? parseDate(json['startedAt']) : null,
-      completedAt: json['completedAt'] != null ? parseDate(json['completedAt']) : null,
-      createdAt: json['createdAt'] != null ? parseDate(json['createdAt']) : null,
-      manOfTheMatchId: json['manOfTheMatchId'] as String?,
-      manOfTheMatchName: json['manOfTheMatchName'] as String?,
+      liveScore: json['live_score'] as Map<String, dynamic>?,
+      winnerTeamId: json['winner_team_id'] as String?,
+      resultText: json['result_text'] as String?,
+      isTie: json['is_tie'] as bool? ?? false,
+      startedAt: json['started_at'] != null ? parseDate(json['started_at']) : null,
+      completedAt: json['completed_at'] != null ? parseDate(json['completed_at']) : null,
+      createdAt: json['created_at'] != null ? parseDate(json['created_at']) : null,
+      manOfTheMatchId: json['man_of_the_match_id'] as String?,
+      manOfTheMatchName: json['man_of_the_match_name'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'tournamentId': tournamentId,
-      'teamAId': teamAId,
-      'teamBId': teamBId,
-      'teamA': teamA,
-      'teamB': teamB,
-      'teamAName': teamA,
-      'teamBName': teamB,
-      'teamAShort': teamAShort,
-      'teamBShort': teamBShort,
+      'tournament_id': tournamentId,
+      'team_a_id': teamAId,
+      'team_b_id': teamBId,
+      'team_a': teamA,
+      'team_b': teamB,
       'status': status.name,
-      'matchDate': Timestamp.fromDate(matchDate),
-      'scheduledAt': Timestamp.fromDate(matchDate),
+      'match_date': matchDate.toIso8601String(),
       'venue': venue,
-      'totalOvers': totalOvers,
-      'matchNumber': matchNumber,
-      'tossWinnerId': tossWinnerId,
-      'tossWinnerTeamId': tossWinnerId,
-      'tossDecision': tossDecision?.name,
-      'liveScore': liveScore,
-      'winnerTeamId': winnerTeamId,
-      'resultText': resultText,
-      'isTie': isTie,
-      'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
-      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
-      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
-      'manOfTheMatchId': manOfTheMatchId,
-      'manOfTheMatchName': manOfTheMatchName,
+      'total_overs': totalOvers,
+      'match_number': matchNumber,
+      'toss_winner_id': tossWinnerId,
+      'toss_decision': tossDecision?.name,
+      'live_score': liveScore,
+      'winner_team_id': winnerTeamId,
+      'result_text': resultText,
+      'is_tie': isTie,
+      'started_at': startedAt?.toIso8601String(),
+      'completed_at': completedAt?.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
+      'man_of_the_match_id': manOfTheMatchId,
+      'man_of_the_match_name': manOfTheMatchName,
     };
   }
 

@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class Team {
   final String id;
@@ -25,12 +25,12 @@ class Team {
     return Team(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
-      shortName: json['shortName'] as String? ?? '',
-      logoUrl: json['logoUrl'] as String?,
-      captainId: json['captainId'] as String?,
-      captainName: json['captainName'] as String?,
-      tournamentIds: (json['tournamentIds'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
-      createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      shortName: json['short_name'] as String? ?? '',
+      logoUrl: json['logo_url'] as String?,
+      captainId: json['captain_id'] as String?,
+      captainName: json['captain_name'] as String?,
+      tournamentIds: (json['tournament_ids'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now() : DateTime.now(),
     );
   }
 
@@ -38,12 +38,12 @@ class Team {
     return {
       'id': id,
       'name': name,
-      'shortName': shortName,
-      'logoUrl': logoUrl,
-      'captainId': captainId,
-      'captainName': captainName,
-      'tournamentIds': tournamentIds,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'short_name': shortName,
+      'logo_url': logoUrl,
+      'captain_id': captainId,
+      'captain_name': captainName,
+      'tournament_ids': tournamentIds,
+      'created_at': createdAt.toIso8601String(),
     };
   }
 

@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../../../core/constants/cricket_enums.dart';
 
 class Tournament {
@@ -36,11 +36,11 @@ class Tournament {
         (e) => e.name == (json['format'] as String?),
         orElse: () => TournamentFormat.t20,
       ),
-      organizerId: json['organizerId'] as String? ?? '',
-      startDate: (json['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      endDate: (json['endDate'] as Timestamp?)?.toDate(),
+      organizerId: json['organizer_id'] as String? ?? '',
+      startDate: json['start_date'] != null ? DateTime.tryParse(json['start_date'].toString()) ?? DateTime.now() : DateTime.now(),
+      endDate: json['end_date'] != null ? DateTime.tryParse(json['end_date'].toString()) : null,
       venue: json['venue'] as String?,
-      teamsCount: json['teamsCount'] as int? ?? 0,
+      teamsCount: json['teams_count'] as int? ?? 0,
     );
   }
 
@@ -50,11 +50,11 @@ class Tournament {
       'name': name,
       'status': status.name,
       'format': format.name,
-      'organizerId': organizerId,
-      'startDate': Timestamp.fromDate(startDate),
-      'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
+      'organizer_id': organizerId,
+      'start_date': startDate.toIso8601String(),
+      'end_date': endDate?.toIso8601String(),
       'venue': venue,
-      'teamsCount': teamsCount,
+      'teams_count': teamsCount,
     };
   }
   
