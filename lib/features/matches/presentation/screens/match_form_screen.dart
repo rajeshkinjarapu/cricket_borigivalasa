@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/cricket_enums.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../tournaments/data/models/tournament.dart';
 import '../../../tournaments/presentation/providers/tournament_providers.dart';
 import '../../../teams/data/models/team.dart';
@@ -224,6 +225,19 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
           venue: _venueController.text.trim(),
           matchDate: _matchDate,
         ));
+
+        // Send notification to all members about the new match
+        if (targetMatchId != null && targetMatchId.isNotEmpty) {
+          await notificationService.sendMatchNotification(
+            tournamentId: effectiveTournamentId,
+            matchId: targetMatchId!,
+            teamA: teamAResolved.name,
+            teamB: teamBResolved.name,
+            venue: _venueController.text.trim(),
+            matchDate: _matchDate,
+            isLive: false,
+          );
+        }
       }
 
       if (mounted) {

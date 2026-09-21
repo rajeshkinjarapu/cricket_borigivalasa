@@ -31,6 +31,25 @@ final allMatchesProvider = StreamProvider<List<Match>>((ref) {
   return ref.watch(matchRepositoryProvider).getAllMatches();
 });
 
+// Recent notifications provider for hero banner
+final recentNotificationsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  final _db = FirebaseFirestore.instance;
+  return _db
+      .collection('notifications')
+      .orderBy('createdAt', descending: true)
+      .limit(3)
+      .snapshots()
+      .map((snapshot) {
+    return snapshot.docs.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      return {
+        'id': doc.id,
+        ...data,
+      };
+    }).toList();
+  });
+});
+
 final _db = FirebaseFirestore.instance;
 
 final totalTeamsCountProvider = StreamProvider<int>((ref) {

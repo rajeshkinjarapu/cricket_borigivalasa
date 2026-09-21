@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/cricket_enums.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../matches/presentation/providers/match_providers.dart';
 import '../../../matches/data/models/match.dart';
 import '../../../players/data/models/player.dart';
@@ -36,8 +37,8 @@ class LiveScorerScreen extends ConsumerWidget {
     if (match != null &&
         match.status != MatchStatus.live &&
         match.status != MatchStatus.completed) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(matchRepositoryProvider).updatePartial(
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await ref.read(matchRepositoryProvider).updatePartial(
           tournamentId: tournamentId,
           matchId: matchId,
           data: {
@@ -45,6 +46,15 @@ class LiveScorerScreen extends ConsumerWidget {
             'startedAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
           },
+        );
+        
+        // Send live notification to all members
+        await notificationService.markMatchAsLive(
+          tournamentId: tournamentId,
+          matchId: matchId,
+          teamA: match.teamA,
+          teamB: match.teamB,
+          venue: match.venue,
         );
       });
     }
