@@ -1,16 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/services/notification_service.dart';
 import '../providers/dashboard_providers.dart';
 import '../widgets/live_match_card.dart';
 import '../widgets/upcoming_match_card.dart';
 import '../widgets/leaderboard_section.dart';
 import '../widgets/app_drawer.dart';
 
-class MemberDashboard extends ConsumerWidget {
+class MemberDashboard extends ConsumerStatefulWidget {
   const MemberDashboard({super.key});
+
+  @override
+  ConsumerState<MemberDashboard> createState() => _MemberDashboardState();
+}
+
+class _MemberDashboardState extends ConsumerState<MemberDashboard> {
+  ImageProvider? _getAvatarImage(String? photoUrl) {
+    if (photoUrl == null || photoUrl.isEmpty) return null;
+    try {
+      // Handle base64 encoded images
+      if (photoUrl.startsWith('data:image') || photoUrl.length > 500) {
+        final base64String = photoUrl.contains(',') ? photoUrl.split(',').last : photoUrl;
+        return MemoryImage(base64Decode(base64String));
+      }
+      // Handle network images
+      return NetworkImage(photoUrl);
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,6 +41,7 @@ class MemberDashboard extends ConsumerWidget {
 
     final liveMatchesAsync = ref.watch(liveMatchesProvider);
     final upcomingMatchesAsync = ref.watch(upcomingMatchesProvider);
+    final notificationsAsync = ref.watch(recentNotificationsProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -41,6 +64,83 @@ class MemberDashboard extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           children: [
+            // Hero Banner - Live Match Notification
+            notificationsAsync.when(
+              data: (notifications) {
+                if (notifications.isEmpty) return const SizedBox.shrink();
+                final latestNotification = notifications.first;
+                final isLiveMatch = latestNotification['type'] == 'match_live';
+                
+                if (!isLiveMatch) return const SizedBox.shrink();
+                
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.red.shade700, Colors.orange.shade600],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.red.withOpacity(0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.live_tv, color: Colors.white, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  latestNotification['title'] ?? 'LIVE MATCH',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  latestNotification['body'] ?? '',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+
             // Profile Info Card
             Container(
               padding: const EdgeInsets.all(20),
@@ -68,14 +168,11 @@ class MemberDashboard extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(color: Colors.white, width: 3),
                         color: Colors.white.withOpacity(0.2),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
-                        ],
-                        image: (u?.photoUrl != null && u!.photoUrl!.isNotEmpty)
-                            ? DecorationImage(image: NetworkImage(u.photoUrl!), fit: BoxFit.cover)
+                        image: _getAvatarImage(u?.photoUrl) != null
+                            ? DecorationImage(image: _getAvatarImage(u?.photoUrl)!, fit: BoxFit.cover)
                             : null,
                       ),
-                      child: (u?.photoUrl == null || u!.photoUrl!.isEmpty)
+                      child: _getAvatarImage(u?.photoUrl) == null
                           ? Center(
                               child: Text(
                                 (u?.displayName.isNotEmpty ?? false) ? u!.displayName[0].toUpperCase() : 'M',

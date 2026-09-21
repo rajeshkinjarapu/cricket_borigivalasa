@@ -1,12 +1,39 @@
-*.class
-*.log
-.DS_Store
+```
+# Dependencies
 .dart_tool/
-.flutter-plugins
-.packages
-.pub/
+.build/
+dependencies/
+
+# Build outputs
 build/
-android/key.properties
-*.jks
-*.keystore
-ios/Runner/GoogleService-Info.plist
+**/BUILD/
+**/*.g.dart
+
+# Environment
+.env
+.env.local
+.env.*
+
+# Logs
+*.log
+**/logs
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+coverage/
+test-results/
+
+# Distribution
+dist/
+*.zip
+*.tar.gz
+```
