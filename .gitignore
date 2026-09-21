@@ -1,8 +1,18 @@
 ```
 # Dependencies
-.pub/
 .dart_tool/
 .build/
+dependencies/
+
+# Build outputs
+build/
+**/BUILD/
+**/*.g.dart
+
+# Environment
+.env
+.env.local
+.env.*
 
 # Logs
 *.log
@@ -12,38 +22,18 @@
 .DS_Store
 Thumbs.db
 
-# Environment variables
-.env
-.env.local
-*.env*
-
-# Coverage
-coverage/
-*.lcov
-
-# Temporary files
-*.tmp
-*.temp
-**/temp/
-
-# IDE files
+# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# Build outputs
-build/
-dist/
-target/
+# Testing
+coverage/
+test-results/
 
-# Compressed files
+# Distribution
+dist/
 *.zip
 *.tar.gz
-*.tar.xz
-*.gz
-*.bz2
-*.xz
-*.7z
-*.rar
 ```
