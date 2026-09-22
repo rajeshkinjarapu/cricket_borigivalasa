@@ -18,7 +18,10 @@ class TeamListTab extends ConsumerWidget {
       children: [
         teamsAsync.when(
           data: (teams) {
-            if (teams.isEmpty) {
+            // Filter out County teams based on database flag
+            final displayTeams = teams.where((t) => !t.isCounty).toList();
+
+            if (displayTeams.isEmpty) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -30,58 +33,58 @@ class TeamListTab extends ConsumerWidget {
                 ),
               );
             }
-            return GridView.builder(
+            
+            return ListView.builder(
               padding: const EdgeInsets.all(16).copyWith(bottom: 80),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.85,
-              ),
-              itemCount: teams.length,
+              itemCount: displayTeams.length,
               itemBuilder: (context, index) {
-                final team = teams[index];
-                return InkWell(
-                  onTap: () {
-                    // Navigate to Team Detail Screen later (Phase 6b)
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
+                final team = displayTeams[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      // Navigate to Team Detail Screen later (Phase 6b)
+                    },
                     child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
                         children: [
                           CircleAvatar(
-                            radius: 36,
+                            radius: 28,
                             backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
                             child: team.logoUrl != null
-                                ? ClipOval(child: Image.network(team.logoUrl!, width: 72, height: 72, fit: BoxFit.cover))
+                                ? ClipOval(child: Image.network(team.logoUrl!, width: 56, height: 56, fit: BoxFit.cover))
                                 : Text(
                                     team.shortName.isNotEmpty ? team.shortName : team.name[0].toUpperCase(),
-                                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
                                   ),
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            team.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  team.name,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  team.captainName != null ? 'Captain: ${team.captainName}' : 'No Captain',
+                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            team.captainName != null ? 'C: ${team.captainName}' : 'No Captain',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          const Icon(Icons.chevron_right_rounded, color: Colors.grey),
                         ],
                       ),
                     ),

@@ -139,7 +139,10 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                 ),
               ),
               data: (teams) {
-                final filtered = teams.where((t) {
+                // Filter out County teams
+                final normalTeams = teams.where((t) => !t.isCounty).toList();
+                
+                final filtered = normalTeams.where((t) {
                   if (_searchQuery.isEmpty) return true;
                   final nameMatch = t.name.toLowerCase().contains(_searchQuery);
                   final shortMatch = t.shortName.toLowerCase().contains(_searchQuery);

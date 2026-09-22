@@ -123,6 +123,10 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     try {
       await ref.read(matchRepositoryProvider).delete(widget.tournamentId, widget.matchId);
       if (mounted) {
+        // Manually invalidate the providers to force a re-fetch since Supabase realtime doesn't broadcast deletions by default
+        ref.invalidate(tournamentMatchesProvider(widget.tournamentId));
+        ref.invalidate(matchListProvider(widget.tournamentId));
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Match deleted successfully!'), backgroundColor: Color(0xFF16A34A)),
         );
@@ -344,10 +348,22 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                           SizedBox(
                             height: 52,
                             child: ElevatedButton.icon(
-                              onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads'),
+                              onPressed: () async {
+                                if (isCounty) {
+                                  if (match.status != MatchStatus.live) {
+                                    final controller = ref.read(matchControllerProvider.notifier);
+                                    await controller.update(match.copyWith(status: MatchStatus.live));
+                                  }
+                                  if (mounted) {
+                                    context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring');
+                                  }
+                                } else {
+                                  context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads');
+                                }
+                              },
                               icon: const Icon(Icons.how_to_reg_rounded, size: 22, color: Colors.white),
                               label: Text(
-                                isCounty ? 'CONFIRM SQUAD & START COUNTY' : 'SELECT SQUADS (TEAM A & B)',
+                                isCounty ? 'START COUNTY (GO TO SCOREBOARD)' : 'SELECT SQUADS (TEAM A & B)',
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w900,

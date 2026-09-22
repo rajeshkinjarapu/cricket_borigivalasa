@@ -112,6 +112,28 @@ class AuthRepository {
       
       // Upsert profile data
       await _supabase.from('profiles').upsert(map);
+
+      // Automatically add them to the 'players' table so they show up in squads
+      try {
+        final existingPlayer = await _supabase.from('players').select('id').eq('id', response.user!.id).maybeSingle();
+        if (existingPlayer == null) {
+          final isPhone = !identifier.trim().contains('@') || authEmail.endsWith('@member.cricket.com');
+          final phoneToSave = isPhone ? identifier.trim() : null;
+          
+          await _supabase.from('players').insert({
+            'id': response.user!.id,
+            'name': displayName.trim(),
+            'phone_number': phoneToSave,
+            'role': 'batter',
+            'batting_style': 'rightHand',
+            'bowling_style': 'none',
+            'team_id': 'default_team',
+            'created_at': DateTime.now().toIso8601String(),
+          });
+        }
+      } catch (e) {
+        print('Error adding player on signup: $e');
+      }
     }
   }
 

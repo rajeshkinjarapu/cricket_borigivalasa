@@ -168,6 +168,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
     required Team? selectedTeam,
     required String manualName,
     required List<Team> existingTeams,
+    bool isCountyTeam = false,
   }) async {
     if (!isManual && selectedTeam != null) {
       return (id: selectedTeam.id, name: selectedTeam.name);
@@ -188,6 +189,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
       id: '',
       name: trimmed,
       shortName: short.isNotEmpty ? short : 'TM',
+      isCounty: isCountyTeam,
     ));
 
     return (id: newTeamId ?? 'team_${DateTime.now().millisecondsSinceEpoch}', name: trimmed);
@@ -417,6 +419,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
           selectedTeam: null,
           manualName: nameA,
           existingTeams: existingTeams,
+          isCountyTeam: true,
         );
 
         final teamBResolved = await _resolveTeam(
@@ -424,6 +427,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
           selectedTeam: null,
           manualName: nameB,
           existingTeams: existingTeams,
+          isCountyTeam: true,
         );
 
         // Auto-associate batsman & bowler in player records
@@ -620,6 +624,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
         selectedTeam: _teamA,
         manualName: _teamANameController.text,
         existingTeams: existingTeams,
+        isCountyTeam: false,
       );
 
       final teamBResolved = await _resolveTeam(
@@ -627,6 +632,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
         selectedTeam: _teamB,
         manualName: _teamBNameController.text,
         existingTeams: existingTeams,
+        isCountyTeam: false,
       );
 
       String? targetMatchId = widget.matchId;
@@ -806,7 +812,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                       const SizedBox(height: 16),
 
                       // Tournament Selector
-                      if (tournaments.isNotEmpty) ...[
+                      if (tournaments.isNotEmpty && _matchType == MatchTypeOption.normal) ...[
                         _buildTournamentSelector(tournaments),
                         const SizedBox(height: 16),
                       ],
@@ -1753,7 +1759,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                 TextFormField(
                   controller: _countyBatsman1Controller,
                   decoration: InputDecoration(
-                    hintText: 'Enter Batsman name (e.g. Rajesh)',
+                    hintText: 'Enter Batsman name',
                     prefixIcon: const Icon(Icons.person_outline_rounded, color: Color(0xFF2563EB)),
                     filled: true,
                     fillColor: Colors.white,
@@ -1902,7 +1908,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                 TextFormField(
                   controller: _countyBowler1Controller,
                   decoration: InputDecoration(
-                    hintText: 'Enter Bowler name (e.g. Suresh)',
+                    hintText: 'Enter Bowler name',
                     prefixIcon: const Icon(Icons.sports_baseball_rounded, color: Color(0xFFD97706)),
                     filled: true,
                     fillColor: Colors.white,
@@ -2028,30 +2034,6 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
             ),
             validator: (v) => (v == null || int.tryParse(v) == null) ? 'Enter valid target score' : null,
           ),
-          const SizedBox(height: 6),
-
-          // Quick Target Chips
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: [15, 20, 25, 30, 36, 40, 50].map((runs) {
-              final isSelected = _countyTargetController.text.trim() == runs.toString();
-              return ChoiceChip(
-                label: Text('$runs Runs'),
-                selected: isSelected,
-                selectedColor: const Color(0xFFD97706),
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF334155),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11.5,
-                ),
-                backgroundColor: const Color(0xFFF1F5F9),
-                onSelected: (_) {
-                  setState(() => _countyTargetController.text = runs.toString());
-                },
-              );
-            }).toList(),
-          ),
           const SizedBox(height: 16),
 
           // 2. TOTAL BALLS QUOTA INPUT
@@ -2073,36 +2055,6 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
               ),
             ),
             validator: (v) => (v == null || int.tryParse(v) == null) ? 'Enter valid balls count' : null,
-          ),
-          const SizedBox(height: 6),
-
-          // Quick Balls Chips
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              (balls: 6, label: '6 Balls (1 Ov)'),
-              (balls: 12, label: '12 Balls (2 Ov)'),
-              (balls: 18, label: '18 Balls (3 Ov)'),
-              (balls: 24, label: '24 Balls (4 Ov)'),
-              (balls: 30, label: '30 Balls (5 Ov)'),
-            ].map((item) {
-              final isSelected = _countyBallsController.text.trim() == item.balls.toString();
-              return ChoiceChip(
-                label: Text(item.label),
-                selected: isSelected,
-                selectedColor: const Color(0xFF1E3A8A),
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF334155),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11.5,
-                ),
-                backgroundColor: const Color(0xFFF1F5F9),
-                onSelected: (_) {
-                  setState(() => _countyBallsController.text = item.balls.toString());
-                },
-              );
-            }).toList(),
           ),
           const SizedBox(height: 16),
 

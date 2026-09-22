@@ -8,6 +8,7 @@ class Team {
   final String? captainId;
   final String? captainName;
   final List<String> tournamentIds;
+  final bool isCounty;
   final DateTime createdAt;
 
   Team({
@@ -18,6 +19,7 @@ class Team {
     this.captainId,
     this.captainName,
     this.tournamentIds = const [],
+    this.isCounty = false,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -30,6 +32,7 @@ class Team {
       captainId: json['captain_id'] as String?,
       captainName: json['captain_name'] as String?,
       tournamentIds: (json['tournament_ids'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      isCounty: json['is_county'] as bool? ?? false,
       createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now() : DateTime.now(),
     );
   }
@@ -43,6 +46,7 @@ class Team {
       'captain_id': captainId,
       'captain_name': captainName,
       'tournament_ids': tournamentIds,
+      'is_county': isCounty,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -55,6 +59,7 @@ class Team {
     String? captainId,
     String? captainName,
     List<String>? tournamentIds,
+    bool? isCounty,
     DateTime? createdAt,
   }) {
     return Team(
@@ -65,6 +70,7 @@ class Team {
       captainId: captainId ?? this.captainId,
       captainName: captainName ?? this.captainName,
       tournamentIds: tournamentIds ?? this.tournamentIds,
+      isCounty: isCounty ?? this.isCounty,
       createdAt: createdAt ?? this.createdAt,
     );
   }
