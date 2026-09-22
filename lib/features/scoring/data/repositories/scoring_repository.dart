@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -5,7 +6,12 @@ import '../../../players/data/models/player.dart';
 import '../../../teams/data/models/team.dart';
 import '../../domain/scoring_engine.dart';
 import '../models/ball_event.dart';
+import '../models/batting_scorecard.dart';
+import '../models/bowling_scorecard.dart';
 import '../models/innings.dart';
+
+export '../models/batting_scorecard.dart';
+export '../models/bowling_scorecard.dart';
 
 class ScoringRepository {
   ScoringRepository({SupabaseClient? s}) : _supabase = s ?? Supabase.instance.client;
@@ -37,7 +43,7 @@ class ScoringRepository {
       .stream(primaryKey: ['id'])
       .eq('innings_id', _innId(m, n))
       .map((data) => data.map((d) => BallEvent.fromJson(d)).toList()
-        ..sort((a, b) => (d['ball_time'] as String? ?? '').compareTo(d['ball_time'] as String? ?? '')));
+        ..sort((a, b) => a.timestamp.compareTo(b.timestamp)));
         
     await for (final combo in _combineLatest(inningsStream, ballsStream)) {
       final inn = combo[0] as Innings?;
@@ -47,10 +53,10 @@ class ScoringRepository {
         continue;
       }
       final snap = ScoringEngine.reduce(
-        openingStrikerId: inn.openingStrikerId ?? '',
-        openingStrikerName: inn.openingStrikerName ?? '',
-        openingNonStrikerId: inn.openingNonStrikerId ?? '',
-        openingNonStrikerName: inn.openingNonStrikerName ?? '', 
+        openingStrikerId: inn.openingStrikerId,
+        openingStrikerName: inn.openingStrikerName,
+        openingNonStrikerId: inn.openingNonStrikerId,
+        openingNonStrikerName: inn.openingNonStrikerName, 
         balls: balls,
       );
       yield snap.batting.values.toList()..sort((a, b) => a.battingOrder.compareTo(b.battingOrder));
@@ -63,7 +69,7 @@ class ScoringRepository {
       .stream(primaryKey: ['id'])
       .eq('innings_id', _innId(m, n))
       .map((data) => data.map((d) => BallEvent.fromJson(d)).toList()
-        ..sort((a, b) => (d['ball_time'] as String? ?? '').compareTo(d['ball_time'] as String? ?? '')));
+        ..sort((a, b) => a.timestamp.compareTo(b.timestamp)));
         
     await for (final combo in _combineLatest(inningsStream, ballsStream)) {
       final inn = combo[0] as Innings?;
@@ -73,10 +79,10 @@ class ScoringRepository {
         continue;
       }
       final snap = ScoringEngine.reduce(
-        openingStrikerId: inn.openingStrikerId ?? '',
-        openingStrikerName: inn.openingStrikerName ?? '',
-        openingNonStrikerId: inn.openingNonStrikerId ?? '',
-        openingNonStrikerName: inn.openingNonStrikerName ?? '', 
+        openingStrikerId: inn.openingStrikerId,
+        openingStrikerName: inn.openingStrikerName,
+        openingNonStrikerId: inn.openingNonStrikerId,
+        openingNonStrikerName: inn.openingNonStrikerName, 
         balls: balls,
       );
       final maidens = _computeMaidens(balls);
@@ -84,14 +90,32 @@ class ScoringRepository {
     }
   }
 
-  Stream<List<dynamic>> _combineLatest(Stream<dynamic> a, Stream<dynamic> b) async* {
+  Stream<List<dynamic>> _combineLatest(Stream<dynamic> a, Stream<dynamic> b) {
+    late StreamController<List<dynamic>> controller;
     dynamic lastA, lastB;
     bool hasA = false, hasB = false;
-    
-    // Simplistic combine latest for the sake of flutter implementation
-    // Ideally we use RxDart CombineLatestStream
-    // For now we just return an empty stream to avoid complexity, but let's implement a workaround.
-    // Actually, `ScorecardSnapshot` requires opening batsmen. We can fetch them.
+    StreamSubscription? subA, subB;
+
+    controller = StreamController<List<dynamic>>.broadcast(
+      onListen: () {
+        subA = a.listen((valA) {
+          lastA = valA;
+          hasA = true;
+          if (hasB && !controller.isClosed) controller.add([lastA, lastB]);
+        }, onError: controller.addError);
+
+        subB = b.listen((valB) {
+          lastB = valB;
+          hasB = true;
+          if (hasA && !controller.isClosed) controller.add([lastA, lastB]);
+        }, onError: controller.addError);
+      },
+      onCancel: () {
+        subA?.cancel();
+        subB?.cancel();
+      },
+    );
+    return controller.stream;
   }
 
   Future<List<BallEvent>> loadAllBalls(String t, String m, int n) async {
@@ -139,19 +163,22 @@ class ScoringRepository {
     
     // Insert the ball event
     final ballData = ball.toJson();
-    ballData['id'] = const Uuid().v4();
+    final ballId = const Uuid().v4();
+    ballData['id'] = ballId;
     ballData['match_id'] = matchId;
     ballData['innings_id'] = _innId(matchId, inningsNumber);
+    ballData['over_number'] = innings.legalBalls ~/ 6;
+    ballData['ball_number'] = (innings.legalBalls % 6) + 1;
     
     // Calculate new runs
     final allBalls = await loadAllBalls(tournamentId, matchId, inningsNumber);
     allBalls.add(BallEvent.fromJson(ballData));
     
     final snap = ScoringEngine.reduce(
-      openingStrikerId: innings.openingStrikerId ?? '',
-      openingStrikerName: innings.openingStrikerName ?? '',
-      openingNonStrikerId: innings.openingNonStrikerId ?? '',
-      openingNonStrikerName: innings.openingNonStrikerName ?? '', 
+      openingStrikerId: innings.openingStrikerId,
+      openingStrikerName: innings.openingStrikerName,
+      openingNonStrikerId: innings.openingNonStrikerId,
+      openingNonStrikerName: innings.openingNonStrikerName, 
       balls: allBalls
     );
     
@@ -197,15 +224,17 @@ class ScoringRepository {
     if (balls.isEmpty) return;
     
     final lastBall = balls.last;
-    await _supabase.from('ball_events').delete().eq('id', lastBall.id);
+    if (lastBall.id != null) {
+      await _supabase.from('ball_events').delete().eq('id', lastBall.id!);
+    }
     
     balls.removeLast();
     
     final snap = ScoringEngine.reduce(
-      openingStrikerId: innings.openingStrikerId ?? '',
-      openingStrikerName: innings.openingStrikerName ?? '',
-      openingNonStrikerId: innings.openingNonStrikerId ?? '',
-      openingNonStrikerName: innings.openingNonStrikerName ?? '', 
+      openingStrikerId: innings.openingStrikerId,
+      openingStrikerName: innings.openingStrikerName,
+      openingNonStrikerId: innings.openingNonStrikerId,
+      openingNonStrikerName: innings.openingNonStrikerName, 
       balls: balls
     );
     
@@ -239,6 +268,22 @@ class ScoringRepository {
   }
 
   Map<String, int> _computeMaidens(List<BallEvent> balls) {
-    return {}; // simplified
+    final overBalls = <String, Map<int, List<BallEvent>>>{};
+    for (final b in balls) {
+      overBalls.putIfAbsent(b.bowlerId, () => {}).putIfAbsent(b.overNumber, () => []).add(b);
+    }
+    final maidens = <String, int>{};
+    for (final bowlerEntry in overBalls.entries) {
+      int count = 0;
+      for (final overList in bowlerEntry.value.values) {
+        final legalCount = overList.where((b) => b.isLegalDelivery).length;
+        if (legalCount >= 6) {
+          final runs = overList.fold<int>(0, (sum, b) => sum + b.bowlerRunsConceded);
+          if (runs == 0) count++;
+        }
+      }
+      maidens[bowlerEntry.key] = count;
+    }
+    return maidens;
   }
 }

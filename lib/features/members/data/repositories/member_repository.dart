@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../auth/data/models/app_user.dart';
 
@@ -24,10 +25,12 @@ class MemberRepository {
     await _supabase.from('profiles').update({'role': role.name}).eq('id', uid);
   }
 
+  Future<void> updateMemberPhoto(String uid, String photoUrl) async {
+    await _supabase.from('profiles').update({'photo_url': photoUrl}).eq('id', uid);
+  }
+
   Future<void> removeUser(String uid) async {
     await _supabase.from('profiles').delete().eq('id', uid);
-    // Note: In Supabase, deleting a profile might not delete the auth user unless
-    // there's a trigger, but for now we just delete the profile.
   }
 
   Future<String?> createMember({
@@ -47,7 +50,6 @@ class MemberRepository {
     String? createdUid;
     if (hasPhone) {
       try {
-        // Use a temporary client to avoid logging out the current admin
         final tempClient = SupabaseClient(
           'https://qlphckdozxtqhwnpokec.supabase.co',
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFscGhja2Rvenh0cWh3bnBva2VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MDcwNTQsImV4cCI6MjEwNTQ4MzA1NH0.J4I7nbtYXPTzM0FO2eA_7k32g9j-TU1gk3LPBnGsp1c',
@@ -63,10 +65,9 @@ class MemberRepository {
           createdUid = response.user!.id;
         }
         
-        // Dispose the temp client
         tempClient.dispose();
       } catch (e) {
-        // Check if user already exists
+        // Fallback to direct profiles row
       }
     }
 
@@ -87,22 +88,38 @@ class MemberRepository {
       await _supabase.from('profiles').upsert(map);
       return createdUid;
     } else {
-      if (hasPhone) {
-        final existing = await _supabase
-            .from('profiles')
-            .select('id')
-            .eq('email', authEmail)
-            .maybeSingle();
-            
-        if (existing != null) {
-          await _supabase.from('profiles').update({
-            'display_name': name.trim(),
-            'role': role.name,
-          }).eq('id', existing['id']);
-          return existing['id'] as String;
+      final existing = await _supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', authEmail)
+          .maybeSingle();
+          
+      if (existing != null) {
+        final existingId = existing['id'] as String;
+        final updateMap = <String, dynamic>{
+          'display_name': name.trim(),
+          'role': role.name,
+        };
+        if (photoUrl != null && photoUrl.isNotEmpty) {
+          updateMap['photo_url'] = photoUrl;
         }
+        await _supabase.from('profiles').update(updateMap).eq('id', existingId);
+        return existingId;
+      } else {
+        final newId = const Uuid().v4();
+        final map = <String, dynamic>{
+          'id': newId,
+          'email': authEmail,
+          'display_name': name.trim(),
+          'role': role.name,
+          'created_at': DateTime.now().toIso8601String(),
+        };
+        if (photoUrl != null && photoUrl.isNotEmpty) {
+          map['photo_url'] = photoUrl;
+        }
+        await _supabase.from('profiles').insert(map);
+        return newId;
       }
-      return null;
     }
   }
 }

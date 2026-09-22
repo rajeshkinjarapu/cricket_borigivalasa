@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/cricket_enums.dart';
+import '../../../../core/utils/avatar_helper.dart';
 import '../../../auth/data/models/app_user.dart';
 import '../../../players/data/models/player.dart';
 import '../../../players/presentation/providers/player_providers.dart';
@@ -60,18 +60,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
     _selectedFilter = widget.initialFilter;
   }
 
-  ImageProvider? _getImageProvider(String? photoUrl) {
-    if (photoUrl == null || photoUrl.isEmpty) return null;
-    try {
-      if (photoUrl.startsWith('data:image') || photoUrl.length > 500) {
-        final base64String = photoUrl.contains(',') ? photoUrl.split(',').last : photoUrl;
-        return MemoryImage(base64Decode(base64String));
-      }
-      return NetworkImage(photoUrl);
-    } catch (_) {
-      return null;
-    }
-  }
+  ImageProvider? _getImageProvider(String? photoUrl) => getAppAvatarProvider(photoUrl);
 
   void _showAddModal(BuildContext context, {bool defaultToScorer = false}) {
     Navigator.of(context).push(
@@ -816,7 +805,7 @@ class _AddMemberOrScorerScreenState extends ConsumerState<AddMemberOrScorerScree
   final _phoneCtrl = TextEditingController();
   late UserRole _selectedRole;
   bool _alsoCreatePlayer = true;
-  PlayerRole _playerRole = PlayerRole.allRounder;
+  final PlayerRole _playerRole = PlayerRole.allRounder;
   String? _photoBase64;
   bool _isSaving = false;
 

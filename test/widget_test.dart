@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cricket_scoring_app/main.dart';
@@ -14,6 +15,13 @@ class FakeAuthController extends StateNotifier<AsyncValue<void>> implements Auth
 
   @override
   Future<void> signOut() async {}
+
+  @override
+  Future<bool> updateProfile({
+    String? displayName,
+    Uint8List? imageBytes,
+    String? fileExtension,
+  }) async => true;
 }
 
 void main() {

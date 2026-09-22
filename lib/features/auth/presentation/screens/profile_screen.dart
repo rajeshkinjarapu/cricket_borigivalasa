@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/avatar_helper.dart';
 import '../providers/auth_providers.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -15,6 +17,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isUploadingPhoto = false;
+  Uint8List? _localPhotoBytes;
 
   // ─── Change Password Dialog ───
   Future<void> _showChangePasswordDialog() async {
@@ -494,49 +497,42 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  ImageProvider? _getImageProvider(String? photoUrl) {
-    if (photoUrl == null || photoUrl.isEmpty) return null;
-    try {
-      if (photoUrl.startsWith('data:image') ||
-          !photoUrl.startsWith('http')) {
-        final base64String = photoUrl.contains(',')
-            ? photoUrl.split(',').last
-            : photoUrl;
-        return MemoryImage(base64Decode(base64String));
-      }
-      return NetworkImage(photoUrl);
-    } catch (_) {
-      return null;
-    }
-  }
-
   Future<void> _pickAndUploadPhoto() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
-      maxWidth: 800,
-      maxHeight: 800,
-      imageQuality: 85,
+      maxWidth: 400,
+      maxHeight: 400,
+      imageQuality: 70,
     );
     if (pickedFile == null) return;
 
-    setState(() => _isUploadingPhoto = true);
     final bytes = await pickedFile.readAsBytes();
     final ext = pickedFile.name.split('.').last.toLowerCase();
+
+    setState(() {
+      _isUploadingPhoto = true;
+      _localPhotoBytes = bytes;
+    });
 
     try {
       await ref
           .read(authRepositoryProvider)
-          .updateProfile(imageBytes: bytes, fileExtension: ext);
+          .updateProfile(imageBytes: bytes, fileExtension: ext.isNotEmpty ? ext : 'jpg');
+      await ref.read(authRepositoryProvider).refreshProfile();
       ref.invalidate(authStateProvider);
+      ref.invalidate(currentUserProvider);
       if (mounted) {
         setState(() => _isUploadingPhoto = false);
-        _showSuccessSnack('Profile photo updated!');
+        _showSuccessSnack('Profile photo updated successfully!');
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isUploadingPhoto = false);
-        _showErrorSnack('Failed to update photo.');
+        setState(() {
+          _isUploadingPhoto = false;
+          _localPhotoBytes = null;
+        });
+        _showErrorSnack('Failed to update photo: $e');
       }
     }
   }
@@ -557,7 +553,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     final bool isAdmin = user.role == UserRole.admin;
-    final imageProvider = _getImageProvider(user.photoUrl);
+    final imageProvider = _localPhotoBytes != null
+        ? MemoryImage(_localPhotoBytes!)
+        : getAppAvatarProvider(user.photoUrl);
     final Color brandColor =
         isAdmin ? const Color(0xFFD97706) : const Color(0xFF1E3A8A);
 

@@ -1,9 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../members/presentation/providers/member_providers.dart';
+import '../../../../core/utils/avatar_helper.dart';
 import '../../widgets/dashboard_tile.dart';
 import '../providers/dashboard_providers.dart';
 import '../widgets/live_match_card.dart';
@@ -11,19 +11,6 @@ import '../widgets/app_drawer.dart';
 
 class AdminDashboard extends ConsumerWidget {
   const AdminDashboard({super.key});
-
-  ImageProvider? _getAvatarImage(String? photoUrl) {
-    if (photoUrl == null || photoUrl.isEmpty) return null;
-    try {
-      if (photoUrl.startsWith('data:image') || photoUrl.length > 500) {
-        final base64String = photoUrl.contains(',') ? photoUrl.split(',').last : photoUrl;
-        return MemoryImage(base64Decode(base64String));
-      }
-      return NetworkImage(photoUrl);
-    } catch (_) {
-      return null;
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -87,13 +74,13 @@ class AdminDashboard extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Colors.white, width: 3),
                         color: Colors.white.withOpacity(0.25),
-                        image: _getAvatarImage(u?.photoUrl) != null
+                        image: getAppAvatarProvider(u?.photoUrl) != null
                             ? DecorationImage(
-                                image: _getAvatarImage(u?.photoUrl)!,
+                                image: getAppAvatarProvider(u?.photoUrl)!,
                                 fit: BoxFit.cover)
                             : null,
                       ),
-                      child: _getAvatarImage(u?.photoUrl) == null
+                      child: getAppAvatarProvider(u?.photoUrl) == null
                           ? Center(
                               child: Text(
                                 (u?.displayName.isNotEmpty ?? false)

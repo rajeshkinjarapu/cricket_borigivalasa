@@ -81,23 +81,48 @@ class Player {
     final tIds = (json['team_ids'] as List<dynamic>?)?.map((e) => e as String).toList() ??
         (tId.isNotEmpty ? [tId] : <String>[]);
 
+    final roleRaw = (json['role'] as String?)?.toLowerCase();
+    PlayerRole parsedRole = PlayerRole.batter;
+    if (roleRaw == 'bowler') {
+      parsedRole = PlayerRole.bowler;
+    } else if (roleRaw == 'allrounder' || roleRaw == 'all_rounder') {
+      parsedRole = PlayerRole.allRounder;
+    } else if (roleRaw == 'wicketkeeper' || roleRaw == 'wicket_keeper') {
+      parsedRole = PlayerRole.wicketKeeper;
+    } else if (roleRaw == 'batsman' || roleRaw == 'batter') {
+      parsedRole = PlayerRole.batter;
+    }
+
+    final batRaw = (json['batting_style'] as String?)?.toLowerCase();
+    final parsedBatting = (batRaw == 'lefthanded' || batRaw == 'lefthand')
+        ? BattingStyle.leftHand
+        : BattingStyle.rightHand;
+
+    final bowlRaw = json['bowling_style'] as String?;
+    BowlingStyle parsedBowling = BowlingStyle.none;
+    if (bowlRaw != null && bowlRaw.isNotEmpty && bowlRaw != 'none') {
+      parsedBowling = BowlingStyle.values.firstWhere(
+        (e) => e.name == bowlRaw,
+        orElse: () {
+          if (bowlRaw == 'rightArmSpin') return BowlingStyle.rightArmOffSpin;
+          if (bowlRaw == 'leftArmSpin') return BowlingStyle.leftArmOrthodox;
+          if (bowlRaw == 'rightArmFast') return BowlingStyle.rightArmFast;
+          if (bowlRaw == 'rightArmMedium') return BowlingStyle.rightArmMedium;
+          if (bowlRaw == 'leftArmFast') return BowlingStyle.leftArmFast;
+          if (bowlRaw == 'leftArmMedium') return BowlingStyle.leftArmMedium;
+          return BowlingStyle.none;
+        },
+      );
+    }
+
     return Player(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
       teamId: tId,
       teamIds: tIds,
-      role: PlayerRole.values.firstWhere(
-        (e) => e.name == (json['role'] as String?),
-        orElse: () => PlayerRole.batter,
-      ),
-      battingStyle: BattingStyle.values.firstWhere(
-        (e) => e.name == (json['batting_style'] as String?),
-        orElse: () => BattingStyle.rightHand,
-      ),
-      bowlingStyle: BowlingStyle.values.firstWhere(
-        (e) => e.name == (json['bowling_style'] as String?),
-        orElse: () => BowlingStyle.none,
-      ),
+      role: parsedRole,
+      battingStyle: parsedBatting,
+      bowlingStyle: parsedBowling,
       jerseyNumber: json['jersey_number'] as int?,
       phoneNumber: json['phone_number'] as String?,
       profilePicUrl: json['profile_pic_url'] as String?,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/animated_cricket_logo.dart';
 import '../providers/auth_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -48,9 +49,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final errorMsg = errorState?.toString() ?? 'Invalid credentials';
     
     String displayError = errorMsg;
-    if (errorMsg.contains('user-not-found')) displayError = 'No account found with this email/phone.';
-    else if (errorMsg.contains('wrong-password') || errorMsg.contains('invalid-credential')) displayError = 'Incorrect password.';
-    else if (errorMsg.contains('invalid-email')) displayError = 'Invalid email format.';
+    if (errorMsg.contains('email_not_confirmed') || errorMsg.contains('Email not confirmed')) {
+      displayError = 'Please check your Gmail and click the confirmation link before logging in, or turn off Confirm email in Supabase.';
+    } else if (errorMsg.contains('invalid_credentials') || errorMsg.contains('Invalid login credentials')) {
+      displayError = 'Incorrect email or password. If you haven\'t registered in Supabase yet, please click Register below.';
+    } else if (errorMsg.contains('user-not-found')) {
+      displayError = 'No account found with this email/phone.';
+    } else if (errorMsg.contains('wrong-password') || errorMsg.contains('invalid-credential')) {
+      displayError = 'Incorrect password.';
+    } else if (errorMsg.contains('invalid-email')) {
+      displayError = 'Invalid email format.';
+    }
     
     ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(displayError), backgroundColor: Colors.red));
@@ -74,105 +83,77 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: FadeTransition(
-                opacity: _fadeAnim,
-                child: SlideTransition(
-                  position: _slideAnim,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // ─── Cricket Ball Decorative Top ───
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _smallDecor(accentGold),
-                          const SizedBox(width: 8),
-                          _smallDecor(Colors.white.withOpacity(0.4)),
-                          const SizedBox(width: 8),
-                          _smallDecor(accentGold),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Center(
+                child: SingleChildScrollView(
+                  physics: constraints.maxHeight >= 600
+                      ? const NeverScrollableScrollPhysics()
+                      : const ClampingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                      maxWidth: 440,
+                    ),
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                        child: FadeTransition(
+                          opacity: _fadeAnim,
+                          child: SlideTransition(
+                            position: _slideAnim,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // ─── Continuous Animated Logo ───
+                                const AnimatedCricketLogo(size: 115),
+                                const SizedBox(height: 16),
 
-                      // ─── Logo ───
-                      TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: 0.6, end: 1.0),
-                        duration: const Duration(milliseconds: 900),
-                        curve: Curves.elasticOut,
-                        builder: (context, scale, _) => Transform.scale(
-                          scale: scale,
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: accentGold, width: 3),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: accentGold.withOpacity(0.35),
-                                  blurRadius: 24,
-                                  spreadRadius: 4,
-                                  offset: const Offset(0, 6),
+                              // ─── App Title ───
+                              const Text(
+                                'BORIGIVALASA',
+                                style: TextStyle(
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 5,
                                 ),
-                              ],
-                            ),
-                            child: ClipOval(
-                              child: Image.asset(
-                                'assets/images/logo.png',
-                                fit: BoxFit.cover,
                               ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: accentGold,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  'CRICKET',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: darkBlue,
+                                    letterSpacing: 4,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
 
-                      // ─── App Title ───
-                      const Text(
-                        'BORIGIVALASA',
-                        style: TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: 5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: accentGold,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          'CRICKET',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: darkBlue,
-                            letterSpacing: 4,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // ─── Card ───
-                      Container(
-                        decoration: BoxDecoration(
-                          color: cream,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 32,
-                              offset: const Offset(0, 16),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(28),
+                              // ─── Card ───
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: cream,
+                                  borderRadius: BorderRadius.circular(24),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 32,
+                                      offset: const Offset(0, 16),
+                                    ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.all(26),
                         child: Form(
                           key: _f,
                           child: Column(
@@ -334,7 +315,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         ),
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 16),
                       // Bottom pitch lines decoration
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -353,17 +334,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 12),
                       
                       // App developer credit
                       const Text(
                         'App developed by Rajesh Kinjarapu',
                         style: TextStyle(
                           color: Colors.white70,
-                          fontSize: 13,
+                          fontSize: 12,
                           letterSpacing: 0.5,
                         ),
                       ),
+                      const SizedBox(height: 8),
                     ],
                   ),
                 ),
@@ -373,6 +355,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
       ),
     );
+  },
+),
+          ),
+        ),
+      );
   }
 
   Widget _buildField({
@@ -410,10 +397,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       validator: validator,
     );
   }
-
-  Widget _smallDecor(Color color) => Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 }

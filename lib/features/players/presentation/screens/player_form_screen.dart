@@ -1,15 +1,15 @@
 import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../../core/constants/app_constants.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/cricket_enums.dart';
+import '../../../../core/utils/avatar_helper.dart';
 import '../../../auth/data/models/app_user.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../members/presentation/providers/member_providers.dart';
 import '../../data/models/player.dart';
 import '../providers/player_providers.dart';
 
@@ -62,6 +62,19 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
       _profilePicUrl = _resolvedPlayer!.profilePicUrl;
       _isLoaded = true;
     }
+
+    // Auto-match current user profile photo if editing own player
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_profilePicUrl == null || _profilePicUrl!.isEmpty) {
+        final cur = ref.read(currentUserProvider);
+        final name = _nameController.text.trim().toLowerCase();
+        if (cur != null && (cur.displayName.trim().toLowerCase() == name || cur.uid == _resolvedPlayer?.id || cur.uid == widget.playerId)) {
+          if (cur.photoUrl != null && cur.photoUrl!.isNotEmpty) {
+            setState(() => _profilePicUrl = cur.photoUrl);
+          }
+        }
+      }
+    });
   }
 
   @override
@@ -82,7 +95,16 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
     _role = p.role;
     _battingStyle = p.battingStyle;
     _bowlingStyle = p.bowlingStyle;
-    _profilePicUrl = p.profilePicUrl;
+    
+    // Set photo if player has one, or check logged in user
+    if (p.profilePicUrl != null && p.profilePicUrl!.isNotEmpty) {
+      _profilePicUrl = p.profilePicUrl;
+    } else {
+      final cur = ref.read(currentUserProvider);
+      if (cur != null && (cur.uid == p.id || cur.displayName.trim().toLowerCase() == p.name.trim().toLowerCase())) {
+        _profilePicUrl = cur.photoUrl;
+      }
+    }
   }
 
   Future<void> _pickPhoto() async {
@@ -90,9 +112,9 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
       final picker = ImagePicker();
       final picked = await picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 500,
-        maxHeight: 500,
-        imageQuality: 80,
+        maxWidth: 400,
+        maxHeight: 400,
+        imageQuality: 75,
       );
       if (picked == null) return;
       final bytes = await picked.readAsBytes();
@@ -107,20 +129,6 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
     }
   }
 
-  ImageProvider? _previewImage(String? photoUrl) {
-    if (photoUrl == null || photoUrl.isEmpty) return null;
-    try {
-      if (photoUrl.startsWith('data:image') || photoUrl.length > 500) {
-        final base64String = photoUrl.contains(',') ? photoUrl.split(',').last : photoUrl;
-        return MemoryImage(base64Decode(base64String));
-      }
-      return NetworkImage(photoUrl);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Automatically provisions login credentials if mobile number is provided
   Future<void> _provisionUserAccount({
     required String name,
     required String phoneNumber,
@@ -129,62 +137,13 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
     final cleanPhone = phoneNumber.trim().replaceAll(' ', '').replaceAll('-', '');
     if (cleanPhone.length < 5) return;
 
-    final authEmail = '$cleanPhone@member.cricket.com';
-    final password = cleanPhone; // Default password is mobile number
-
     try {
-      // 1. Create in Firebase Auth using temporary app so Admin is NOT signed out
-      final tempApp = await Firebase.initializeApp(
-        name: 'temp_create_player_${DateTime.now().millisecondsSinceEpoch}',
-        options: Firebase.app().options,
+      await ref.read(memberRepositoryProvider).createMember(
+        name: name.trim(),
+        phoneNumber: cleanPhone,
+        role: UserRole.member,
+        photoUrl: photoUrl,
       );
-
-      String? createdUid;
-      try {
-        final cred = await FirebaseAuth.instanceFor(app: tempApp)
-            .createUserWithEmailAndPassword(email: authEmail, password: password);
-        final u = cred.user!;
-        await u.updateDisplayName(name.trim());
-        createdUid = u.uid;
-      } catch (e) {
-        debugPrint('Note: Auth creation info ($authEmail): $e');
-      } finally {
-        await tempApp.delete();
-      }
-
-      // 2. Add / Update in Firestore `users` collection
-      final firestore = FirebaseFirestore.instance;
-      if (createdUid != null) {
-        final appUser = AppUser(
-          uid: createdUid,
-          email: authEmail,
-          displayName: name.trim(),
-          role: UserRole.member,
-          photoUrl: photoUrl,
-          createdAt: DateTime.now(),
-        );
-        await firestore
-            .collection(AppConstants.usersCollection)
-            .doc(createdUid)
-            .set(appUser.toJson()..remove('uid'), SetOptions(merge: true));
-      } else {
-        // Query if user doc already exists with this email
-        final existing = await firestore
-            .collection(AppConstants.usersCollection)
-            .where('email', isEqualTo: authEmail)
-            .limit(1)
-            .get();
-
-        if (existing.docs.isEmpty) {
-          await firestore.collection(AppConstants.usersCollection).add({
-            'email': authEmail,
-            'displayName': name.trim(),
-            'role': UserRole.member.name,
-            'photoUrl': photoUrl,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-        }
-      }
     } catch (e) {
       debugPrint('Error provisioning user record: $e');
     }
@@ -201,19 +160,41 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
 
     try {
       if (widget.isEdit && _resolvedPlayer != null) {
-        // Update existing player
-        await controller.update(_resolvedPlayer!.copyWith(
+        // Update existing player, preserving teamId
+        final updatedPlayer = _resolvedPlayer!.copyWith(
           name: name,
-          teamId: '', // Players are global club players, can play in any team
+          teamId: _resolvedPlayer!.teamId,
           role: _role,
           battingStyle: _battingStyle,
           bowlingStyle: _bowlingStyle,
           jerseyNumber: jerseyNo,
           phoneNumber: phone.isNotEmpty ? phone : null,
           profilePicUrl: _profilePicUrl,
-        ));
+        );
 
-        // If phone number is updated, provision/sync credentials
+        await controller.update(updatedPlayer);
+
+        // 1. Guaranteed photo sync to profiles table in Supabase
+        if (_profilePicUrl != null && _profilePicUrl!.isNotEmpty) {
+          try {
+            await Supabase.instance.client.from('profiles').update({
+              'photo_url': _profilePicUrl,
+              'display_name': name,
+            }).or('id.eq.${_resolvedPlayer!.id},display_name.eq.$name');
+
+            final curUser = ref.read(currentUserProvider);
+            if (curUser != null &&
+                (curUser.displayName.trim().toLowerCase() == name.toLowerCase() ||
+                 curUser.uid == _resolvedPlayer!.id)) {
+              await ref.read(authRepositoryProvider).updatePhotoUrl(_profilePicUrl!);
+              await ref.read(authRepositoryProvider).refreshProfile();
+            }
+          } catch (e) {
+            debugPrint('Error syncing photo to profiles: $e');
+          }
+        }
+
+        // 2. If phone number is provided, sync or create credentials
         if (phone.isNotEmpty) {
           await _provisionUserAccount(
             name: name,
@@ -225,7 +206,7 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Player updated successfully!'),
+              content: Text('Player details and photo saved successfully!'),
               backgroundColor: Color(0xFF16A34A),
             ),
           );
@@ -233,17 +214,29 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
         }
       } else {
         // Create new player
-        await controller.create(Player(
+        final newPlayer = Player(
           id: '',
           name: name,
-          teamId: '', // Players belong to club, can play in any team
+          teamId: widget.teamId ?? '',
           role: _role,
           battingStyle: _battingStyle,
           bowlingStyle: _bowlingStyle,
           jerseyNumber: jerseyNo,
           phoneNumber: phone.isNotEmpty ? phone : null,
           profilePicUrl: _profilePicUrl,
-        ));
+        );
+
+        final newId = await controller.create(newPlayer);
+
+        // Guaranteed photo sync to profiles table
+        if (_profilePicUrl != null && _profilePicUrl!.isNotEmpty && newId != null) {
+          try {
+            await Supabase.instance.client.from('profiles').update({
+              'photo_url': _profilePicUrl,
+              'display_name': name,
+            }).or('id.eq.$newId,display_name.eq.$name');
+          } catch (_) {}
+        }
 
         // Auto-provision login credentials if mobile number is provided
         if (phone.isNotEmpty) {
@@ -358,7 +351,7 @@ class _PlayerFormScreenState extends ConsumerState<PlayerFormScreen> {
     }
 
     final isEditMode = widget.isEdit || _resolvedPlayer != null;
-    final imageProvider = _previewImage(_profilePicUrl);
+    final imageProvider = getAppAvatarProvider(_profilePicUrl);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),

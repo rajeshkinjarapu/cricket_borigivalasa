@@ -1,19 +1,17 @@
 import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/cricket_enums.dart';
+import '../../../../core/utils/avatar_helper.dart';
 import '../../../auth/data/models/app_user.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../players/data/models/player.dart';
 import '../../../players/presentation/providers/player_providers.dart';
 import '../../../players/presentation/screens/add_players_screen.dart';
+import '../../../members/presentation/providers/member_providers.dart';
 import '../providers/team_providers.dart';
 import '../../data/models/team.dart';
 
@@ -27,18 +25,7 @@ class TeamDetailScreen extends ConsumerWidget {
   final String teamId;
   final String tournamentId;
 
-  ImageProvider? _getImageProvider(String? url) {
-    if (url == null || url.isEmpty) return null;
-    try {
-      if (url.startsWith('data:image') || url.length > 500) {
-        final base64String = url.contains(',') ? url.split(',').last : url;
-        return MemoryImage(base64Decode(base64String));
-      }
-      return NetworkImage(url);
-    } catch (_) {
-      return null;
-    }
-  }
+  ImageProvider? _getImageProvider(String? url) => getAppAvatarProvider(url);
 
   Color _getRoleColor(PlayerRole role) {
     switch (role) {
@@ -680,58 +667,13 @@ class _AddPlayersModalSheetState extends ConsumerState<AddPlayersModalSheet>
     final cleanPhone = phone.trim().replaceAll(' ', '').replaceAll('-', '');
     if (cleanPhone.length < 5) return;
 
-    final authEmail = '$cleanPhone@member.cricket.com';
-    final password = cleanPhone;
-
     try {
-      final tempApp = await Firebase.initializeApp(
-        name: 'temp_squad_create_${DateTime.now().millisecondsSinceEpoch}',
-        options: Firebase.app().options,
+      await ref.read(memberRepositoryProvider).createMember(
+        name: name.trim(),
+        phoneNumber: cleanPhone,
+        role: UserRole.member,
+        photoUrl: photoUrl,
       );
-
-      String? createdUid;
-      try {
-        final cred = await FirebaseAuth.instanceFor(app: tempApp)
-            .createUserWithEmailAndPassword(email: authEmail, password: password);
-        final u = cred.user!;
-        await u.updateDisplayName(name.trim());
-        createdUid = u.uid;
-      } catch (_) {
-      } finally {
-        await tempApp.delete();
-      }
-
-      final firestore = FirebaseFirestore.instance;
-      if (createdUid != null) {
-        final appUser = AppUser(
-          uid: createdUid,
-          email: authEmail,
-          displayName: name.trim(),
-          role: UserRole.member,
-          photoUrl: photoUrl,
-          createdAt: DateTime.now(),
-        );
-        await firestore
-            .collection(AppConstants.usersCollection)
-            .doc(createdUid)
-            .set(appUser.toJson()..remove('uid'), SetOptions(merge: true));
-      } else {
-        final existing = await firestore
-            .collection(AppConstants.usersCollection)
-            .where('email', isEqualTo: authEmail)
-            .limit(1)
-            .get();
-
-        if (existing.docs.isEmpty) {
-          await firestore.collection(AppConstants.usersCollection).add({
-            'email': authEmail,
-            'displayName': name.trim(),
-            'role': 'member',
-            'createdAt': FieldValue.serverTimestamp(),
-            'photoUrl': photoUrl,
-          });
-        }
-      }
     } catch (_) {}
   }
 

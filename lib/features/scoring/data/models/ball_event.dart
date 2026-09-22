@@ -10,6 +10,9 @@ DateTime? _parseDateTime(dynamic value) {
 }
 
 class BallEvent {
+  final String? id;
+  final int ballNumber;
+  final int overNumber;
   final int batRuns;
   final int extraRuns;
   final ExtraType extraType;
@@ -28,6 +31,9 @@ class BallEvent {
   final DateTime timestamp;
 
   BallEvent({
+    this.id,
+    this.ballNumber = 0,
+    this.overNumber = 0,
     this.batRuns = 0,
     this.extraRuns = 0,
     this.extraType = ExtraType.none,
@@ -48,6 +54,9 @@ class BallEvent {
 
   factory BallEvent.fromJson(Map<String, dynamic> json) {
     return BallEvent(
+      id: json['id'] as String?,
+      ballNumber: json['ball_number'] as int? ?? (json['ballNumber'] as int? ?? 0),
+      overNumber: json['over_number'] as int? ?? (json['overNumber'] as int? ?? 0),
       batRuns: json['runs_scored'] as int? ?? (json['batRuns'] as int? ?? 0),
       extraRuns: json['extras_runs'] as int? ?? (json['extraRuns'] as int? ?? 0),
       extraType: ExtraType.values.firstWhere(
@@ -77,6 +86,9 @@ class BallEvent {
 
   Map<String, dynamic> toJson() {
     return {
+      if (id != null) 'id': id,
+      'ball_number': ballNumber,
+      'over_number': overNumber,
       'runs_scored': batRuns,
       'extras_runs': extraRuns,
       'extras_type': extraType.name,
@@ -94,6 +106,50 @@ class BallEvent {
       'new_batsman_name': newBatsmanName,
       'ball_time': timestamp.toIso8601String(),
     };
+  }
+
+  BallEvent copyWith({
+    String? id,
+    int? ballNumber,
+    int? overNumber,
+    int? batRuns,
+    int? extraRuns,
+    ExtraType? extraType,
+    bool? isWicket,
+    WicketType? wicketType,
+    String? dismissedPlayerId,
+    String? dismissedPlayerName,
+    String? fielderId,
+    String? fielderName,
+    String? batsmanId,
+    String? batsmanName,
+    String? bowlerId,
+    String? bowlerName,
+    String? newBatsmanId,
+    String? newBatsmanName,
+    DateTime? timestamp,
+  }) {
+    return BallEvent(
+      id: id ?? this.id,
+      ballNumber: ballNumber ?? this.ballNumber,
+      overNumber: overNumber ?? this.overNumber,
+      batRuns: batRuns ?? this.batRuns,
+      extraRuns: extraRuns ?? this.extraRuns,
+      extraType: extraType ?? this.extraType,
+      isWicket: isWicket ?? this.isWicket,
+      wicketType: wicketType ?? this.wicketType,
+      dismissedPlayerId: dismissedPlayerId ?? this.dismissedPlayerId,
+      dismissedPlayerName: dismissedPlayerName ?? this.dismissedPlayerName,
+      fielderId: fielderId ?? this.fielderId,
+      fielderName: fielderName ?? this.fielderName,
+      batsmanId: batsmanId ?? this.batsmanId,
+      batsmanName: batsmanName ?? this.batsmanName,
+      bowlerId: bowlerId ?? this.bowlerId,
+      bowlerName: bowlerName ?? this.bowlerName,
+      newBatsmanId: newBatsmanId ?? this.newBatsmanId,
+      newBatsmanName: newBatsmanName ?? this.newBatsmanName,
+      timestamp: timestamp ?? this.timestamp,
+    );
   }
 
   bool get isLegalDelivery => extraType != ExtraType.wide && extraType != ExtraType.noball;

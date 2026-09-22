@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -42,8 +41,7 @@ class LiveScorerScreen extends ConsumerWidget {
           matchId: matchId,
           data: {
             'status': MatchStatus.live.name,
-            'startedAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
+            'started_at': DateTime.now().toIso8601String(),
           },
         );
       });
@@ -1796,7 +1794,7 @@ class _MoMSelectionSheetState extends ConsumerState<_MoMSelectionSheet> {
             Expanded(
               child: ListView.builder(
                 itemCount: allPlayers.length,
-                itemBuilder: (context, index) {
+                itemBuilder: (_, index) {
                   final p = allPlayers[index];
                   final isTeamA = teamAPlayers.any((t) => t.id == p.id);
                   final teamName = isTeamA ? matchData.teamAShort : matchData.teamBShort;
@@ -1816,13 +1814,15 @@ class _MoMSelectionSheetState extends ConsumerState<_MoMSelectionSheet> {
                                 tournamentId: widget.tournamentId,
                                 matchId: matchData.id,
                                 data: {
-                                  'manOfTheMatchId': p.id,
-                                  'manOfTheMatchName': p.name,
+                                  'man_of_the_match_id': p.id,
+                                  'man_of_the_match_name': p.name,
                                 },
                               );
-                              if (mounted) Navigator.pop(context);
+                              if (!mounted) return;
+                              Navigator.pop(this.context);
                             } catch (e) {
-                              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(content: Text('Error: $e')));
                               setState(() => _isSaving = false);
                             }
                           },

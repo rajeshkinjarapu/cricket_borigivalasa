@@ -136,13 +136,13 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
             : teamAPlayers.map((p) => p.id).toSet();
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF1F5F9),
+          backgroundColor: const Color(0xFFF4F7FA),
           appBar: AppBar(
             backgroundColor: const Color(0xFF1E3A8A),
             foregroundColor: Colors.white,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
               onPressed: () {
                 if (context.canPop()) {
                   context.pop();
@@ -155,114 +155,107 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Match Squads Selection',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: Colors.white),
+                  'Match Squads',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white, letterSpacing: -0.5),
                 ),
                 Text(
                   '${match.teamA} vs ${match.teamB}',
-                  style: const TextStyle(fontSize: 11.5, color: Colors.white70, fontWeight: FontWeight.w500),
+                  style: const TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
           body: Column(
             children: [
-              // ── Clean Top Team Selector Tabs ──
+              // ── Modern Segmented Team Selector ──
               Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    // Tab 1: Team A
-                    Expanded(
-                      child: _buildTeamTab(
-                        title: match.teamA,
-                        count: teamAPlayers.length,
-                        isSelected: _selectedSquadTabIndex == 0,
-                        onTap: () => setState(() => _selectedSquadTabIndex = 0),
+                color: const Color(0xFF1E3A8A),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildTeamTab(
+                          title: match.teamA,
+                          count: teamAPlayers.length,
+                          isSelected: _selectedSquadTabIndex == 0,
+                          onTap: () => setState(() => _selectedSquadTabIndex = 0),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Tab 2: Team B
-                    Expanded(
-                      child: _buildTeamTab(
-                        title: match.teamB,
-                        count: teamBPlayers.length,
-                        isSelected: _selectedSquadTabIndex == 1,
-                        onTap: () => setState(() => _selectedSquadTabIndex = 1),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: _buildTeamTab(
+                          title: match.teamB,
+                          count: teamBPlayers.length,
+                          isSelected: _selectedSquadTabIndex == 1,
+                          onTap: () => setState(() => _selectedSquadTabIndex = 1),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
               // ── Active Team Squad Content ──
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
                   children: [
                     // Squad Header with Dual Action Buttons (Database & Manual)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Flexible(
-                          child: Text(
-                            '$activeTeamName (${activePlayers.length} Players)',
-                            style: const TextStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                activeTeamName,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF0F172A),
+                                  letterSpacing: -0.5,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${activePlayers.length} / 11 Players Selected',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        if (canManage) ...[
-                          const SizedBox(width: 8),
+                        if (canManage && activePlayers.isNotEmpty) ...[
+                          const SizedBox(width: 12),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // 1. From Database
-                              ElevatedButton.icon(
-                                onPressed: () => _openAddPlayersPage(
-                                  context,
-                                  activeTeam,
-                                  activeTeamId,
-                                  activeTeamName,
-                                  oppositeTeamName,
-                                  oppositeTeamPlayerIds,
-                                  initialTab: 0,
-                                ),
-                                icon: const Icon(Icons.storage_rounded, size: 13),
-                                label: const Text('From DB'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1E3A8A),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  elevation: 0,
-                                  textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                              _IconActionBtn(
+                                icon: Icons.storage_rounded,
+                                color: const Color(0xFF3B82F6),
+                                onTap: () => _openAddPlayersPage(
+                                  context, activeTeam, activeTeamId, activeTeamName, oppositeTeamName, oppositeTeamPlayerIds, initialTab: 0,
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              // 2. Manual Player
-                              ElevatedButton.icon(
-                                onPressed: () => _openAddPlayersPage(
-                                  context,
-                                  activeTeam,
-                                  activeTeamId,
-                                  activeTeamName,
-                                  oppositeTeamName,
-                                  oppositeTeamPlayerIds,
-                                  initialTab: 1,
-                                ),
-                                icon: const Icon(Icons.person_add_rounded, size: 13),
-                                label: const Text('Manual'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF16A34A),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  elevation: 0,
-                                  textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                              const SizedBox(width: 8),
+                              _IconActionBtn(
+                                icon: Icons.person_add_rounded,
+                                color: const Color(0xFF10B981),
+                                onTap: () => _openAddPlayersPage(
+                                  context, activeTeam, activeTeamId, activeTeamName, oppositeTeamName, oppositeTeamPlayerIds, initialTab: 1,
                                 ),
                               ),
                             ],
@@ -270,73 +263,72 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                         ],
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
 
                     // Players List or Empty View
                     if (activePlayers.isEmpty)
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+                        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 4)),
+                          ],
+                          border: Border.all(color: const Color(0xFFE2E8F0).withOpacity(0.5)),
                         ),
                         child: Column(
                           children: [
-                            const Icon(Icons.person_search_rounded, size: 48, color: Color(0xFF94A3B8)),
-                            const SizedBox(height: 10),
-                            Text(
-                              'No players added to $activeTeamName yet.',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 13.5,
-                                color: Color(0xFF64748B),
-                                fontWeight: FontWeight.w600,
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                shape: BoxShape.circle,
                               ),
+                              child: const Icon(Icons.group_add_rounded, size: 48, color: Color(0xFF94A3B8)),
                             ),
                             const SizedBox(height: 16),
+                            const Text(
+                              'Squad is Empty',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Add players to $activeTeamName to get ready for the match.',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.4),
+                            ),
+                            const SizedBox(height: 24),
                             if (canManage)
-                              Wrap(
-                                spacing: 10,
-                                runSpacing: 10,
-                                alignment: WrapAlignment.center,
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () => _openAddPlayersPage(
-                                      context,
-                                      activeTeam,
-                                      activeTeamId,
-                                      activeTeamName,
-                                      oppositeTeamName,
-                                      oppositeTeamPlayerIds,
-                                      initialTab: 0,
+                                      context, activeTeam, activeTeamId, activeTeamName, oppositeTeamName, oppositeTeamPlayerIds, initialTab: 0,
                                     ),
-                                    icon: const Icon(Icons.storage_rounded, size: 16),
-                                    label: const Text('Select from Database'),
+                                    icon: const Icon(Icons.search_rounded, size: 18),
+                                    label: const Text('Choose Existing Player', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF1E3A8A),
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      elevation: 0,
                                     ),
                                   ),
-                                  ElevatedButton.icon(
+                                  const SizedBox(height: 12),
+                                  OutlinedButton.icon(
                                     onPressed: () => _openAddPlayersPage(
-                                      context,
-                                      activeTeam,
-                                      activeTeamId,
-                                      activeTeamName,
-                                      oppositeTeamName,
-                                      oppositeTeamPlayerIds,
-                                      initialTab: 1,
+                                      context, activeTeam, activeTeamId, activeTeamName, oppositeTeamName, oppositeTeamPlayerIds, initialTab: 1,
                                     ),
-                                    icon: const Icon(Icons.person_add_rounded, size: 16),
-                                    label: const Text('Add Manually'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF16A34A),
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                                    label: const Text('Create New Player', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF0F172A),
+                                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
                                   ),
                                 ],
@@ -348,8 +340,10 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 4)),
+                          ],
                         ),
                         child: ListView.separated(
                           shrinkWrap: true,
@@ -366,49 +360,39 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                         activeTeam.captainName!.toLowerCase() == player.name.toLowerCase()));
 
                             return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                               child: Row(
                                 children: [
                                   // Player Number
-                                  Container(
+                                  SizedBox(
                                     width: 24,
-                                    alignment: Alignment.center,
                                     child: Text(
                                       '${idx + 1}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF94A3B8),
-                                      ),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFFCBD5E1)),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
 
                                   // Avatar
                                   Container(
-                                    width: 40,
-                                    height: 40,
+                                    width: 44,
+                                    height: 44,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: roleColor.withOpacity(0.12),
-                                      border: Border.all(color: roleColor.withOpacity(0.3), width: 1.5),
-                                      image: playerImage != null
-                                          ? DecorationImage(image: playerImage, fit: BoxFit.cover)
-                                          : null,
+                                      color: roleColor.withOpacity(0.1),
+                                      border: Border.all(color: roleColor.withOpacity(0.2), width: 1),
+                                      image: playerImage != null ? DecorationImage(image: playerImage, fit: BoxFit.cover) : null,
                                     ),
                                     alignment: Alignment.center,
                                     child: playerImage == null
                                         ? Text(
                                             player.name.isNotEmpty ? player.name[0].toUpperCase() : 'P',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w800,
-                                              fontSize: 15,
-                                              color: roleColor,
-                                            ),
+                                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: roleColor),
                                           )
                                         : null,
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 14),
 
                                   // Name & Role
                                   Expanded(
@@ -422,72 +406,37 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                                 player.name,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 14,
-                                                  color: Color(0xFF0F172A),
-                                                ),
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF0F172A)),
                                               ),
                                             ),
                                             if (isCaptain) ...[
                                               const SizedBox(width: 6),
                                               Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                                                 decoration: BoxDecoration(
                                                   color: const Color(0xFFFEF3C7),
                                                   borderRadius: BorderRadius.circular(4),
-                                                  border: Border.all(color: const Color(0xFFFDE68A)),
                                                 ),
                                                 child: const Text(
-                                                  'CAPTAIN',
-                                                  style: TextStyle(
-                                                    color: Color(0xFFB45309),
-                                                    fontSize: 9.5,
-                                                    fontWeight: FontWeight.w900,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                            if (player.jerseyNumber != null) ...[
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                '#${player.jerseyNumber}',
-                                                style: const TextStyle(
-                                                  color: Color(0xFF64748B),
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 11.5,
+                                                  'CAPT',
+                                                  style: TextStyle(color: Color(0xFFD97706), fontSize: 9.5, fontWeight: FontWeight.w900),
                                                 ),
                                               ),
                                             ],
                                           ],
                                         ),
-                                        const SizedBox(height: 2),
+                                        const SizedBox(height: 4),
                                         Row(
                                           children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                              decoration: BoxDecoration(
-                                                color: roleColor.withOpacity(0.1),
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                player.role.label,
-                                                style: TextStyle(
-                                                  color: roleColor,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
+                                            Text(
+                                              player.role.label,
+                                              style: TextStyle(color: roleColor, fontSize: 12, fontWeight: FontWeight.w600),
                                             ),
-                                            if (player.phoneNumber != null && player.phoneNumber!.isNotEmpty) ...[
-                                              const SizedBox(width: 6),
-                                              Expanded(
-                                                child: Text(
-                                                  '📞 ${player.phoneNumber}',
-                                                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
+                                            if (player.jerseyNumber != null) ...[
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                '•   #${player.jerseyNumber}',
+                                                style: const TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w600, fontSize: 12),
                                               ),
                                             ],
                                           ],
@@ -499,16 +448,15 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                   // Quick Options Menu
                                   if (canManage)
                                     PopupMenuButton<String>(
-                                      icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF94A3B8)),
+                                      icon: const Icon(Icons.more_vert_rounded, size: 20, color: Color(0xFF94A3B8)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                       onSelected: (v) async {
                                         if (v == 'captain' && activeTeam != null) {
                                           await ref.read(teamControllerProvider.notifier).update(
                                                 activeTeam.copyWith(captainId: player.id, captainName: player.name),
                                               );
                                         } else if (v == 'remove') {
-                                          await ref
-                                              .read(playerControllerProvider.notifier)
-                                              .removePlayerFromTeam(player.id, activeTeamId);
+                                          await ref.read(playerControllerProvider.notifier).removePlayerFromTeam(player.id, activeTeamId);
                                         }
                                       },
                                       itemBuilder: (_) => [
@@ -518,7 +466,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                             children: [
                                               const Icon(Icons.star_rounded, color: Color(0xFFFFB300), size: 18),
                                               const SizedBox(width: 8),
-                                              Text(isCaptain ? 'Captain (Active)' : 'Make Captain'),
+                                              Text(isCaptain ? 'Captain (Active)' : 'Make Captain', style: const TextStyle(fontSize: 14)),
                                             ],
                                           ),
                                         ),
@@ -528,7 +476,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                             children: [
                                               Icon(Icons.person_remove_rounded, color: Colors.red, size: 18),
                                               SizedBox(width: 8),
-                                              Text('Remove from Squad', style: TextStyle(color: Colors.red)),
+                                              Text('Remove from Squad', style: TextStyle(color: Colors.red, fontSize: 14)),
                                             ],
                                           ),
                                         ),
@@ -546,64 +494,69 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
 
               // ── Bottom Fixed Action Bar ──
               Container(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 10,
-                      offset: const Offset(0, -3),
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 20,
+                      offset: const Offset(0, -5),
                     ),
                   ],
+                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    ElevatedButton.icon(
+                    ElevatedButton(
                       onPressed: () {
                         if (match.hasToss) {
-                          context.pushReplacement(
-                            '/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring',
-                          );
+                          context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring');
                         } else {
-                          context.pushReplacement(
-                            '/tournaments/${widget.tournamentId}/matches/${widget.matchId}',
-                          );
+                          context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}');
                         }
                       },
-                      icon: Icon(
-                        match.hasToss ? Icons.play_circle_fill_rounded : Icons.how_to_vote_rounded,
-                        size: 20,
-                      ),
-                      label: Text(
-                        match.hasToss ? 'CONFIRM SQUADS & START SCORING' : 'CONFIRM SQUADS & GO TO TOSS',
-                        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800),
-                      ),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: const Color(0xFF16A34A),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: const Color(0xFF10B981),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         elevation: 0,
                       ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(match.hasToss ? Icons.play_circle_fill_rounded : Icons.sports_cricket_rounded, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            match.hasToss ? 'CONFIRM & START SCORING' : 'CONFIRM SQUADS & GO TO TOSS',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 6),
-                    TextButton(
-                      onPressed: () {
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: () {
                         if (context.canPop()) {
                           context.pop();
                         } else {
                           context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}');
                         }
                       },
-                      child: const Text(
-                        'Back to Match Center',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF64748B),
+                      borderRadius: BorderRadius.circular(8),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Back to Match Center',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF64748B),
+                          ),
                         ),
                       ),
                     ),
@@ -625,17 +578,14 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFFE2E8F0),
-            width: 1.5,
-          ),
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))] : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -646,34 +596,57 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: isSelected ? Colors.white : const Color(0xFF334155),
+                  color: isSelected ? const Color(0xFF1E3A8A) : Colors.white70,
                 ),
               ),
             ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.white.withOpacity(0.22)
-                    : const Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '$count Players',
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  color: isSelected
-                      ? Colors.white
-                      : const Color(0xFF475569),
+            if (count > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFF1E3A8A).withOpacity(0.1) : Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: isSelected ? const Color(0xFF1E3A8A) : Colors.white,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _IconActionBtn extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _IconActionBtn({required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Icon(icon, color: color, size: 20),
       ),
     );
   }

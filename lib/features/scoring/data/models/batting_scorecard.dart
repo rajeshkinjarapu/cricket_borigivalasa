@@ -1,3 +1,5 @@
+typedef BattingScorecardRow = BattingScorecard;
+
 class BattingScorecard {
   final String playerId;
   final String playerName;

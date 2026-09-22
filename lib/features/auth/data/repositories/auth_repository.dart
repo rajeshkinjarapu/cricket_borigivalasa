@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,26 +10,48 @@ class AuthRepository {
     : _supabase = supabase ?? Supabase.instance.client;
     
   final SupabaseClient _supabase;
+  final StreamController<AppUser?> _profileUpdateController = StreamController<AppUser?>.broadcast();
   
   User? get currentUser => _supabase.auth.currentUser;
 
-  Stream<AppUser?> authStateChanges() => _supabase.auth.onAuthStateChange.asyncMap((data) async {
-    final session = data.session;
-    if (session == null || session.user == null) return null;
-    
-    try {
-      final res = await _supabase
-          .from('profiles')
-          .select()
-          .eq('id', session.user.id)
-          .maybeSingle();
-          
-      if (res == null) return null;
-      return AppUser.fromJson({...res, 'uid': session.user.id});
-    } catch (e) {
-      return null;
-    }
-  });
+  Stream<AppUser?> authStateChanges() {
+    late StreamController<AppUser?> controller;
+    StreamSubscription? authSub;
+    StreamSubscription? updateSub;
+
+    controller = StreamController<AppUser?>.broadcast(
+      onListen: () async {
+        final current = await getProfile();
+        if (!controller.isClosed) controller.add(current);
+
+        authSub = _supabase.auth.onAuthStateChange.listen((data) async {
+          if (controller.isClosed) return;
+          if (data.session == null) {
+            controller.add(null);
+          } else {
+            final p = await getProfile();
+            if (!controller.isClosed) controller.add(p);
+          }
+        });
+
+        updateSub = _profileUpdateController.stream.listen((user) {
+          if (!controller.isClosed) controller.add(user);
+        });
+      },
+      onCancel: () {
+        authSub?.cancel();
+        updateSub?.cancel();
+      },
+    );
+
+    return controller.stream;
+  }
+
+  Future<AppUser?> refreshProfile() async {
+    final user = await getProfile();
+    _profileUpdateController.add(user);
+    return user;
+  }
 
   Future<void> signIn({required String identifier, required String password}) async {
     String authEmail = identifier.trim();
@@ -42,11 +65,21 @@ class AuthRepository {
     );
     
     if (authEmail.toLowerCase() == 'rajeshkinjarapu@gmail.com' && response.user != null) {
-      await _supabase.from('profiles').upsert({
-        'id': response.user!.id,
-        'role': UserRole.admin.name,
-      });
+      final existing = await _supabase.from('profiles').select().eq('id', response.user!.id).maybeSingle();
+      if (existing == null) {
+        await _supabase.from('profiles').insert({
+          'id': response.user!.id,
+          'email': authEmail,
+          'display_name': response.user!.userMetadata?['display_name'] as String? ?? 'Rajesh Kinjarapu',
+          'role': UserRole.admin.name,
+        });
+      } else {
+        await _supabase.from('profiles').update({
+          'role': UserRole.admin.name,
+        }).eq('id', response.user!.id);
+      }
     }
+    await refreshProfile();
   }
 
   Future<void> signUp({required String identifier, required String password,
@@ -82,7 +115,30 @@ class AuthRepository {
     }
   }
 
-  Future<void> signOut() => _supabase.auth.signOut();
+  Future<void> signOut() async {
+    await _supabase.auth.signOut();
+    _profileUpdateController.add(null);
+  }
+
+  Future<AppUser?> getProfile() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return null;
+    try {
+      final res = await _supabase
+          .from('profiles')
+          .select()
+          .eq('id', user.id)
+          .maybeSingle();
+      if (res == null) return null;
+      return AppUser.fromJson({
+        ...res,
+        'uid': user.id,
+        'photo_url': res['photo_url'] ?? user.userMetadata?['avatar_url'],
+      });
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<void> updateProfile({
     String? displayName,
@@ -100,7 +156,7 @@ class AuthRepository {
         await _supabase.storage.from('avatars').uploadBinary(
           path, 
           imageBytes,
-          fileOptions: FileOptions(upsert: true),
+          fileOptions: const FileOptions(upsert: true),
         );
         photoUrl = _supabase.storage.from('avatars').getPublicUrl(path);
       } catch (e) {
@@ -109,18 +165,7 @@ class AuthRepository {
       }
     }
 
-    // Update Supabase Auth metadata
-    final Map<String, dynamic> userMetadata = {};
-    if (displayName != null) userMetadata['display_name'] = displayName;
-    if (photoUrl != null) userMetadata['avatar_url'] = photoUrl;
-    
-    if (userMetadata.isNotEmpty) {
-      await _supabase.auth.updateUser(UserAttributes(
-        data: userMetadata,
-      ));
-    }
-
-    // Update profiles table
+    // 1. Update profiles table in Supabase first
     final updates = <String, dynamic>{};
     if (displayName != null) updates['display_name'] = displayName;
     if (photoUrl != null) updates['photo_url'] = photoUrl;
@@ -128,6 +173,35 @@ class AuthRepository {
     if (updates.isNotEmpty) {
       await _supabase.from('profiles').update(updates).eq('id', user.id);
     }
+
+    // 2. Safely update Supabase Auth metadata (ONLY pass HTTP URL, never large base64)
+    try {
+      final Map<String, dynamic> userMetadata = {};
+      if (displayName != null) userMetadata['display_name'] = displayName;
+      if (photoUrl != null && photoUrl.startsWith('http')) {
+        userMetadata['avatar_url'] = photoUrl;
+      }
+      if (userMetadata.isNotEmpty) {
+        await _supabase.auth.updateUser(UserAttributes(
+          data: userMetadata,
+        ));
+      }
+    } catch (_) {}
+
+    // 3. Immediately refresh and notify all providers & screens
+    await refreshProfile();
+  }
+
+  Future<void> updatePhotoUrl(String photoUrl) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+    try {
+      await _supabase.from('profiles').update({'photo_url': photoUrl}).eq('id', user.id);
+      if (photoUrl.startsWith('http')) {
+        await _supabase.auth.updateUser(UserAttributes(data: {'avatar_url': photoUrl}));
+      }
+    } catch (_) {}
+    await refreshProfile();
   }
 
   Future<void> changePassword({

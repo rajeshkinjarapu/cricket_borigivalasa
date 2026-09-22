@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/avatar_helper.dart';
 import '../providers/dashboard_providers.dart';
 import '../widgets/live_match_card.dart';
 import '../widgets/upcoming_match_card.dart';
@@ -71,11 +72,11 @@ class MemberDashboard extends ConsumerWidget {
                         boxShadow: [
                           BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
                         ],
-                        image: (u?.photoUrl != null && u!.photoUrl!.isNotEmpty)
-                            ? DecorationImage(image: NetworkImage(u.photoUrl!), fit: BoxFit.cover)
+                        image: getAppAvatarProvider(u?.photoUrl) != null
+                            ? DecorationImage(image: getAppAvatarProvider(u?.photoUrl)!, fit: BoxFit.cover)
                             : null,
                       ),
-                      child: (u?.photoUrl == null || u!.photoUrl!.isEmpty)
+                      child: getAppAvatarProvider(u?.photoUrl) == null
                           ? Center(
                               child: Text(
                                 (u?.displayName.isNotEmpty ?? false) ? u!.displayName[0].toUpperCase() : 'M',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/animated_cricket_logo.dart';
 import '../providers/auth_providers.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
@@ -103,14 +104,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     );
   }
 
-  Widget _smallDecor(Color c) {
-    return Container(
-      width: 6,
-      height: 6,
-      decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authControllerProvider).isLoading;
@@ -121,7 +114,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
     return Scaffold(
       body: Container(
-        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFF0F172A), Color(0xFF1E3A8A), Color(0xFF3B82F6)],
@@ -130,71 +122,43 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // ─── Cricket Ball Decorative Top ───
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _smallDecor(accentGold),
-                      const SizedBox(width: 8),
-                      _smallDecor(Colors.white.withOpacity(0.4)),
-                      const SizedBox(width: 8),
-                      _smallDecor(accentGold),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Center(
+                child: SingleChildScrollView(
+                  physics: constraints.maxHeight >= 680
+                      ? const NeverScrollableScrollPhysics()
+                      : const ClampingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                      maxWidth: 440,
+                    ),
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // ─── Continuous Animated Logo ───
+                            const AnimatedCricketLogo(size: 110),
+                            const SizedBox(height: 14),
 
-                  // ─── Logo ───
-                  TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: 0.6, end: 1.0),
-                    duration: const Duration(milliseconds: 900),
-                    curve: Curves.elasticOut,
-                    builder: (context, scale, _) => Transform.scale(
-                      scale: scale,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: accentGold, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: accentGold.withOpacity(0.35),
-                              blurRadius: 24,
-                              spreadRadius: 4,
-                              offset: const Offset(0, 6),
+                            // App Title
+                            const Text(
+                              'BORIGIVALASA',
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 4,
+                              ),
                             ),
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // App Title
-                  const Text(
-                    'BORIGIVALASA',
-                    style: TextStyle(
-                      fontSize: 34,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                     decoration: BoxDecoration(
                       color: accentGold,
                       borderRadius: BorderRadius.circular(20),
@@ -202,14 +166,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     child: const Text(
                       'CRICKET',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: darkBlue,
-                        letterSpacing: 4,
+                        letterSpacing: 3,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
 
                   // Card
                   Container(
@@ -224,7 +188,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
                     child: Form(
                       key: _f,
                       child: Column(
@@ -414,5 +378,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         ),
       ),
     );
+  },
+),
+          ),
+        ),
+      );
   }
 }

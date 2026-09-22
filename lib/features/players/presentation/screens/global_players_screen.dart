@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/cricket_enums.dart';
+import '../../../../core/utils/avatar_helper.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/models/player.dart';
 import '../providers/player_providers.dart';
@@ -203,7 +203,7 @@ class _GlobalPlayersScreenState extends ConsumerState<GlobalPlayersScreen> {
                           MaterialPageRoute(builder: (_) => PlayerFormScreen(player: player)),
                         );
                       },
-                      onDelete: () => _confirmDeletePlayer(context, player),
+                      onDelete: () => _confirmDeletePlayer(player),
                     );
                   },
                 );
@@ -250,7 +250,7 @@ class _GlobalPlayersScreenState extends ConsumerState<GlobalPlayersScreen> {
     );
   }
 
-  Future<void> _confirmDeletePlayer(BuildContext context, Player player) async {
+  Future<void> _confirmDeletePlayer(Player player) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -303,19 +303,6 @@ class _PlayerCard extends StatelessWidget {
     required this.onDelete,
   });
 
-  ImageProvider? _getPlayerImage(String? photoUrl) {
-    if (photoUrl == null || photoUrl.isEmpty) return null;
-    try {
-      if (photoUrl.startsWith('data:image') || photoUrl.length > 500) {
-        final base64String = photoUrl.contains(',') ? photoUrl.split(',').last : photoUrl;
-        return MemoryImage(base64Decode(base64String));
-      }
-      return NetworkImage(photoUrl);
-    } catch (_) {
-      return null;
-    }
-  }
-
   Color _getRoleColor(PlayerRole role) {
     switch (role) {
       case PlayerRole.batter:
@@ -345,7 +332,7 @@ class _PlayerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final roleColor = _getRoleColor(player.role);
-    final imageProvider = _getPlayerImage(player.profilePicUrl);
+    final imageProvider = getAppAvatarProvider(player.profilePicUrl);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

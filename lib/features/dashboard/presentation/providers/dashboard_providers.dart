@@ -1,15 +1,16 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../tournaments/data/repositories/tournament_repository.dart';
 import '../../../tournaments/data/models/tournament.dart';
 import '../../../matches/data/repositories/match_repository.dart';
 import '../../../matches/data/models/match.dart';
 import '../../../players/data/models/player.dart';
+import '../../../teams/data/repositories/team_repository.dart';
 import '../../../members/presentation/providers/member_providers.dart';
 import '../../../players/presentation/providers/player_providers.dart';
 
 final tournamentRepositoryProvider = Provider((ref) => TournamentRepository());
 final matchRepositoryProvider = Provider((ref) => MatchRepository());
+final teamRepositoryProvider = Provider((ref) => TeamRepository());
 
 final activeTournamentsProvider = StreamProvider<List<Tournament>>((ref) {
   return ref.watch(tournamentRepositoryProvider).getActiveTournaments();
@@ -31,13 +32,8 @@ final allMatchesProvider = StreamProvider<List<Match>>((ref) {
   return ref.watch(matchRepositoryProvider).getAllMatches();
 });
 
-final _db = FirebaseFirestore.instance;
-
 final totalTeamsCountProvider = StreamProvider<int>((ref) {
-  return _db
-      .collection('teams')
-      .snapshots()
-      .map((snap) => snap.docs.length);
+  return ref.watch(teamRepositoryProvider).watchAll().map((teams) => teams.length);
 });
 
 final totalUnifiedMembersCountProvider = Provider<AsyncValue<int>>((ref) {
@@ -93,24 +89,15 @@ final totalUnifiedMembersCountProvider = Provider<AsyncValue<int>>((ref) {
 });
 
 final totalPlayersCountProvider = StreamProvider<int>((ref) {
-  return _db
-      .collection('players')
-      .snapshots()
-      .map((snap) => snap.docs.length);
+  return ref.watch(allPlayersProvider.stream).map((players) => players.length);
 });
 
 final totalTournamentsCountProvider = StreamProvider<int>((ref) {
-  return _db
-      .collection('tournaments')
-      .snapshots()
-      .map((snap) => snap.docs.length);
+  return ref.watch(tournamentRepositoryProvider).getAllTournaments().map((t) => t.length);
 });
 
 final totalMatchesCountProvider = StreamProvider<int>((ref) {
-  return _db
-      .collectionGroup('matches')
-      .snapshots()
-      .map((snap) => snap.docs.length);
+  return ref.watch(matchRepositoryProvider).getAllMatches().map((m) => m.length);
 });
 
 final activeMatchesCountProvider = StreamProvider<int>((ref) {
@@ -118,43 +105,34 @@ final activeMatchesCountProvider = StreamProvider<int>((ref) {
 });
 
 // ── Leaderboard Providers ──
-final _playersRef = FirebaseFirestore.instance.collection('players');
 
 /// Top batters by runs scored
 final battingLeaderboardProvider = StreamProvider<List<Player>>((ref) {
-  return _playersRef.snapshots().map((snap) {
-    final players = snap.docs
-        .map((d) => Player.fromJson({...d.data(), 'id': d.id}))
-        .where((p) => p.stats.runsScored > 0)
-        .toList();
-    players.sort((a, b) => b.stats.runsScored.compareTo(a.stats.runsScored));
-    return players.take(10).toList();
+  return ref.watch(allPlayersProvider.stream).map((players) {
+    final list = players.where((p) => p.stats.runsScored > 0).toList();
+    list.sort((a, b) => b.stats.runsScored.compareTo(a.stats.runsScored));
+    return list.take(10).toList();
   });
 });
 
 /// Top bowlers by wickets taken
 final bowlingLeaderboardProvider = StreamProvider<List<Player>>((ref) {
-  return _playersRef.snapshots().map((snap) {
-    final players = snap.docs
-        .map((d) => Player.fromJson({...d.data(), 'id': d.id}))
-        .where((p) => p.stats.wicketsTaken > 0)
-        .toList();
-    players.sort((a, b) => b.stats.wicketsTaken.compareTo(a.stats.wicketsTaken));
-    return players.take(10).toList();
+  return ref.watch(allPlayersProvider.stream).map((players) {
+    final list = players.where((p) => p.stats.wicketsTaken > 0).toList();
+    list.sort((a, b) => b.stats.wicketsTaken.compareTo(a.stats.wicketsTaken));
+    return list.take(10).toList();
   });
 });
 
 /// All players sorted by composite score: runs + wickets*20
 final overallLeaderboardProvider = StreamProvider<List<Player>>((ref) {
-  return _playersRef.snapshots().map((snap) {
-    final players = snap.docs
-        .map((d) => Player.fromJson({...d.data(), 'id': d.id}))
-        .toList();
-    players.sort((a, b) {
+  return ref.watch(allPlayersProvider.stream).map((players) {
+    final list = List<Player>.from(players);
+    list.sort((a, b) {
       final scoreA = a.stats.runsScored + (a.stats.wicketsTaken * 20);
       final scoreB = b.stats.runsScored + (b.stats.wicketsTaken * 20);
       return scoreB.compareTo(scoreA);
     });
-    return players.take(10).toList();
+    return list.take(10).toList();
   });
 });

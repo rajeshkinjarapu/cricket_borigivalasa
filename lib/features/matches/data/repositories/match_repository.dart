@@ -28,9 +28,59 @@ class MatchRepository {
 
   Future<String> create(String tournamentId, Match match) async {
     final id = match.id.isEmpty ? const Uuid().v4() : match.id;
+    final effectiveTournamentId = tournamentId.isNotEmpty ? tournamentId : 'default_tournament';
+
+    // 1. Ensure tournament exists in tournaments table to prevent foreign key violation
+    try {
+      final t = await _supabase.from('tournaments').select('id').eq('id', effectiveTournamentId).maybeSingle();
+      if (t == null) {
+        await _supabase.from('tournaments').insert({
+          'id': effectiveTournamentId,
+          'name': 'Borigivalasa Cricket League',
+          'status': 'ongoing',
+          'format': 't20',
+          'start_date': DateTime.now().toIso8601String(),
+          'venue': match.venue.isNotEmpty ? match.venue : 'Chintathota Cricket Ground',
+          'teams_count': 0,
+        });
+      }
+    } catch (_) {}
+
+    // 2. Ensure team A exists in teams table
+    try {
+      final ta = await _supabase.from('teams').select('id').eq('id', match.teamAId).maybeSingle();
+      if (ta == null) {
+        final short = match.teamA.length <= 4
+            ? match.teamA.toUpperCase()
+            : match.teamA.substring(0, 3).toUpperCase();
+        await _supabase.from('teams').insert({
+          'id': match.teamAId,
+          'name': match.teamA,
+          'short_name': short,
+          'tournament_ids': [effectiveTournamentId],
+        });
+      }
+    } catch (_) {}
+
+    // 3. Ensure team B exists in teams table
+    try {
+      final tb = await _supabase.from('teams').select('id').eq('id', match.teamBId).maybeSingle();
+      if (tb == null) {
+        final short = match.teamB.length <= 4
+            ? match.teamB.toUpperCase()
+            : match.teamB.substring(0, 3).toUpperCase();
+        await _supabase.from('teams').insert({
+          'id': match.teamBId,
+          'name': match.teamB,
+          'short_name': short,
+          'tournament_ids': [effectiveTournamentId],
+        });
+      }
+    } catch (_) {}
+
     final json = match.toJson();
     json['id'] = id;
-    json['tournament_id'] = tournamentId;
+    json['tournament_id'] = effectiveTournamentId;
     json['created_at'] = DateTime.now().toIso8601String();
     
     await _supabase.from('matches').insert(json);

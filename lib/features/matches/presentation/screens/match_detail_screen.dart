@@ -3,13 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+
 import '../../../../core/constants/cricket_enums.dart';
-import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
-import '../../../players/data/models/player.dart';
-import '../../../players/presentation/providers/player_providers.dart';
 import '../../../teams/data/models/team.dart';
 import '../../../teams/presentation/providers/team_providers.dart';
+import '../../../players/presentation/providers/player_providers.dart';
 import '../../data/models/match.dart';
 import '../providers/match_providers.dart';
 
@@ -46,59 +45,99 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     }
   }
 
-  Future<void> _saveToss(Match match) async {
-    if (_selectedTossWinner == null || _selectedDecision == null) return;
+  Future<void> _recordToss(Match match) async {
+    if (_selectedTossWinner == null || _selectedDecision == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select who won the toss and their decision.'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSavingToss = true);
-    final ok = await ref.read(matchControllerProvider.notifier).setToss(
-      tournamentId: widget.tournamentId,
-      matchId: widget.matchId,
-      tossWinnerTeamId: _selectedTossWinner!,
-      tossDecision: _selectedDecision!,
-    );
-    if (mounted) {
-      setState(() => _isSavingToss = false);
-      if (ok) {
+    try {
+      await ref.read(matchRepositoryProvider).setToss(
+            tournamentId: widget.tournamentId,
+            matchId: widget.matchId,
+            tossWinnerTeamId: _selectedTossWinner!,
+            tossDecision: _selectedDecision!,
+          );
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Toss recorded! Proceed to select playing squads.'),
+            content: Text('Toss recorded successfully!'),
             backgroundColor: Color(0xFF16A34A),
           ),
         );
-        context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads');
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving toss: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingToss = false);
     }
   }
 
-  Future<void> _deleteMatch(BuildContext context, Match match) async {
-    final confirmed = await showConfirmDialog(
-      context,
-      title: 'Delete Match?',
-      message: 'Are you sure you want to permanently delete this match (${match.teamA} vs ${match.teamB})? All match data will be lost.',
-      confirmLabel: 'Delete Match',
-      destructive: true,
+  Future<void> _deleteMatch(Match match) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 28),
+            SizedBox(width: 10),
+            Text('Delete Match', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete the match between "${match.teamA}" and "${match.teamB}"?',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF475569)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Delete Match', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
 
-    if (confirmed == true && mounted) {
-      setState(() => _isDeleting = true);
-      final ok = await ref.read(matchControllerProvider.notifier).delete(widget.tournamentId, widget.matchId);
+    if (confirmed != true) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      await ref.read(matchRepositoryProvider).delete(widget.tournamentId, widget.matchId);
       if (mounted) {
-        setState(() => _isDeleting = false);
-        if (ok) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Match deleted successfully'),
-              backgroundColor: Color(0xFFDC2626),
-            ),
-          );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Match deleted successfully!'), backgroundColor: Color(0xFF16A34A)),
+        );
+        if (context.canPop()) {
           context.pop();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to delete match'),
-              backgroundColor: Color(0xFFDC2626),
-            ),
-          );
+          context.go('/tournaments/${widget.tournamentId}');
         }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting match: $e'), backgroundColor: Colors.red),
+        );
       }
     }
   }
@@ -109,42 +148,27 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
       tournamentId: widget.tournamentId,
       matchId: widget.matchId,
     )));
+
     final currentUser = ref.watch(currentUserProvider);
-    final isAdmin = currentUser?.role == UserRole.admin;
     final canScore = currentUser?.role == UserRole.admin || currentUser?.role == UserRole.scorer;
+    final isAdmin = currentUser?.role == UserRole.admin;
 
     return matchAsync.when(
       loading: () => const Scaffold(
         backgroundColor: Color(0xFFF8FAFC),
-        body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF1E3A8A)),
-        ),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF1E3A8A))),
       ),
       error: (e, _) => Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
           backgroundColor: const Color(0xFF1E3A8A),
           foregroundColor: Colors.white,
           title: const Text('Match Error'),
         ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 48),
-                const SizedBox(height: 12),
-                Text('Error loading match: $e', textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF64748B))),
-              ],
-            ),
-          ),
-        ),
+        body: Center(child: Text('Error loading match: $e')),
       ),
       data: (match) {
         if (match == null) {
           return Scaffold(
-            backgroundColor: const Color(0xFFF8FAFC),
             appBar: AppBar(
               backgroundColor: const Color(0xFF1E3A8A),
               foregroundColor: Colors.white,
@@ -169,37 +193,86 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
         final teamAPlayers = teamAPlayersAsync.value ?? [];
         final teamBPlayers = teamBPlayersAsync.value ?? [];
 
-        final isTossDone = match.hasToss;
+        final isCounty = match.liveScore?['matchType'] == 'county' || match.liveScore?['isCounty'] == true;
+        final isTossDone = match.hasToss || isCounty; // In County, batsman always bats first
         final tossWinnerName = match.tossWinnerId == match.teamAId ? match.teamA : match.teamB;
         final battingFirstTeam = match.tossDecision == TossDecision.bat
             ? (match.tossWinnerId == match.teamAId ? match.teamA : match.teamB)
             : (match.tossWinnerId == match.teamAId ? match.teamB : match.teamA);
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF1F5F9),
+          backgroundColor: const Color(0xFFF8FAFC),
           appBar: AppBar(
-            backgroundColor: const Color(0xFF1E3A8A),
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0F172A), Color(0xFF1E3A8A), Color(0xFF065F46)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
             foregroundColor: Colors.white,
             elevation: 0,
-            title: const Text(
-              'Match Dashboard',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19, color: Colors.white),
+            leading: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
+              ),
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  Navigator.of(context).maybePop();
+                }
+              },
+            ),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isCounty ? 'County Duel Dashboard' : 'Match Dashboard',
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white),
+                ),
+                Text(
+                  isCounty ? '⚡ Target Chase Contest' : 'Match Overview & Live Status',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF93C5FD)),
+                ),
+              ],
             ),
             actions: [
               if (isAdmin) ...[
                 IconButton(
-                  icon: const Icon(Icons.edit_rounded, color: Colors.white),
+                  icon: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
+                  ),
                   tooltip: 'Edit Match',
                   onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/edit'),
                 ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  icon: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 18),
+                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   onSelected: (val) {
                     if (val == 'edit') {
                       context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/edit');
                     } else if (val == 'delete') {
-                      _deleteMatch(context, match);
+                      _deleteMatch(match);
                     }
                   },
                   itemBuilder: (ctx) => [
@@ -209,7 +282,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                         children: [
                           Icon(Icons.edit_rounded, size: 20, color: Color(0xFF1E3A8A)),
                           SizedBox(width: 10),
-                          Text('Edit Match Details', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                          Text('Edit Match Details', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
                         ],
                       ),
                     ),
@@ -219,13 +292,13 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                         children: [
                           Icon(Icons.delete_forever_rounded, size: 20, color: Color(0xFFDC2626)),
                           SizedBox(width: 10),
-                          Text('Delete Match', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5, color: Color(0xFFDC2626))),
+                          Text('Delete Match', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFFDC2626))),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 8),
               ],
             ],
           ),
@@ -245,86 +318,102 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // ── 1. HERO VS STADIUM CARD ──
-                      _buildVsHeroCard(context, match, teamA, teamB, teamAPlayers.length, teamBPlayers.length),
+                      // ── 1. COLORFUL STADIUM VS HERO CARD ──
+                      _buildVsHeroCard(
+                        context,
+                        match,
+                        teamA,
+                        teamB,
+                        teamAPlayers.length,
+                        teamBPlayers.length,
+                        isCounty,
+                      ),
                       const SizedBox(height: 16),
 
-                      // ── 2. SCHEDULED MATCH STATE (TOSS + SQUAD SELECTION) ──
+                      // ── 2. TOSS / COUNTY CHALLENGE STATUS CARD ──
                       if (match.status == MatchStatus.scheduled) ...[
                         if (!isTossDone && canScore) ...[
                           _buildTossSetupCard(context, match),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 16),
                         ],
                         if (isTossDone) ...[
-                          _buildTossRecordedCard(context, match, tossWinnerName, battingFirstTeam),
-                          const SizedBox(height: 14),
+                          _buildTossRecordedCard(context, match, tossWinnerName, battingFirstTeam, isCounty),
+                          const SizedBox(height: 16),
 
-                          // ── GREEN PROMINENT SELECT SQUADS BUTTON ──
-                          ElevatedButton.icon(
-                            onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads'),
-                            icon: const Icon(Icons.how_to_reg_rounded, size: 22),
-                            label: const Text(
-                              'SELECT SQUADS (TEAM A & B)',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
+                          // ── GREEN PROMINENT SQUADS / SCORING BUTTON ──
+                          SizedBox(
+                            height: 52,
+                            child: ElevatedButton.icon(
+                              onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads'),
+                              icon: const Icon(Icons.how_to_reg_rounded, size: 22, color: Colors.white),
+                              label: Text(
+                                isCounty ? 'CONFIRM SQUAD & START COUNTY' : 'SELECT SQUADS (TEAM A & B)',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF16A34A),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                elevation: 3,
+                                shadowColor: const Color(0xFF16A34A).withOpacity(0.4),
                               ),
                             ),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: const Color(0xFF16A34A), // Emerald Green
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              elevation: 3,
-                              shadowColor: const Color(0xFF16A34A).withOpacity(0.4),
-                            ),
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 16),
                         ],
                       ],
 
-                      // ── 3. LIVE MATCH STATE ──
+                      // ── 3. LIVE MATCH CONTROLS ──
                       if (match.status == MatchStatus.live) ...[
                         _buildLiveStatusBanner(),
                         const SizedBox(height: 14),
                         if (canScore) ...[
-                          ElevatedButton.icon(
-                            onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring'),
-                            icon: const Icon(Icons.edit_note_rounded, size: 24),
-                            label: const Text(
-                              'OPEN LIVE SCORER CONSOLE',
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14.5, letterSpacing: 0.5),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: const Color(0xFFEA580C),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              elevation: 3,
+                          SizedBox(
+                            height: 52,
+                            child: ElevatedButton.icon(
+                              onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring'),
+                              icon: const Icon(Icons.edit_note_rounded, size: 24, color: Colors.white),
+                              label: const Text(
+                                'OPEN LIVE SCORER CONSOLE',
+                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14.5, letterSpacing: 0.5, color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFEA580C),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                elevation: 3,
+                                shadowColor: const Color(0xFFEA580C).withOpacity(0.4),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 10),
                         ],
-                        ElevatedButton.icon(
-                          onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/live'),
-                          icon: const Icon(Icons.stream_rounded, size: 22),
-                          label: const Text(
-                            'WATCH LIVE SCORES & STREAM',
-                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: const Color(0xFF1E3A8A),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            elevation: 2,
+                        SizedBox(
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/live'),
+                            icon: const Icon(Icons.stream_rounded, size: 22, color: Colors.white),
+                            label: const Text(
+                              'WATCH LIVE SCORES & STREAM',
+                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E3A8A),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 2,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 16),
                       ],
 
-                      // ── 4. COMPLETED MATCH STATE ──
+                      // ── 4. COMPLETED MATCH RESULT ──
                       if (match.status == MatchStatus.completed) ...[
                         Container(
                           padding: const EdgeInsets.all(18),
@@ -335,21 +424,21 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.4)),
+                            border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.5)),
                             boxShadow: [
                               BoxShadow(color: const Color(0xFFD97706).withOpacity(0.12), blurRadius: 10, offset: const Offset(0, 4)),
                             ],
                           ),
                           child: Column(
                             children: [
-                              const Icon(Icons.emoji_events_rounded, color: Color(0xFFD97706), size: 36),
+                              const Icon(Icons.emoji_events_rounded, color: Color(0xFFD97706), size: 38),
                               const SizedBox(height: 8),
                               Text(
                                 match.resultText ?? 'Match Completed',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w900,
                                   color: Color(0xFF78350F),
                                 ),
                               ),
@@ -357,27 +446,25 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 14),
-                        ElevatedButton.icon(
-                          onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/summary'),
-                          icon: const Icon(Icons.sports_score_rounded),
-                          label: const Text('VIEW MATCH SUMMARY', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5)),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: const Color(0xFF1E3A8A),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        SizedBox(
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/summary'),
+                            icon: const Icon(Icons.sports_score_rounded, color: Colors.white),
+                            label: const Text('VIEW FULL MATCH SUMMARY', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E3A8A),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 16),
                       ],
 
-                      // ── 5. QUICK NAVIGATION ACTION TILES ──
-                      _buildQuickNavSection(context, match),
-                      const SizedBox(height: 16),
-
-                      // ── 6. MATCH INFO & DETAILS CARD ──
-                      _buildMatchInfoCard(match),
-                      const SizedBox(height: 24),
+                      // ── 5. MATCH INFORMATION & DETAILS CARD (RESTRUCTURED) ──
+                      _buildMatchInfoCard(match, isCounty),
+                      const SizedBox(height: 28),
                     ],
                   ),
                 ),
@@ -386,10 +473,23 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     );
   }
 
-  // ── PREMIUM VS HERO BANNER WITH TEAM LOGOS ──
-  Widget _buildVsHeroCard(BuildContext context, Match match, Team? teamA, Team? teamB, int countA, int countB) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // COMPONENT: BEAUTIFUL STADIUM VS HERO BANNER
+  // ─────────────────────────────────────────────────────────────────────────
+  Widget _buildVsHeroCard(
+    BuildContext context,
+    Match match,
+    Team? teamA,
+    Team? teamB,
+    int countA,
+    int countB,
+    bool isCounty,
+  ) {
     final imageProviderA = _getImageProvider(teamA?.logoUrl);
     final imageProviderB = _getImageProvider(teamB?.logoUrl);
+
+    final targetRuns = match.liveScore?['targetRuns'];
+    final totalBalls = match.liveScore?['totalBalls'];
 
     final statusColor = match.status == MatchStatus.live
         ? const Color(0xFFEF4444)
@@ -398,17 +498,22 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
             : const Color(0xFF3B82F6);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A8A), Color(0xFF1E293B)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+        gradient: LinearGradient(
+          colors: isCounty
+              ? [const Color(0xFF0F172A), const Color(0xFF1E293B), const Color(0xFF78350F)]
+              : [const Color(0xFF0F172A), const Color(0xFF1E3A8A), const Color(0xFF0F2942)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isCounty ? const Color(0xFFD97706).withOpacity(0.5) : const Color(0xFF38BDF8).withOpacity(0.3),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1E3A8A).withOpacity(0.35),
+            color: (isCounty ? const Color(0xFFD97706) : const Color(0xFF1E3A8A)).withOpacity(0.25),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -416,341 +521,396 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
       ),
       child: Column(
         children: [
-          // Status Pill Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: statusColor.withOpacity(0.6), width: 1),
-            ),
+          // Top Badges Row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (match.status == MatchStatus.live) ...[
-                  Container(
-                    width: 7,
-                    height: 7,
-                    margin: const EdgeInsets.only(right: 6),
-                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                // Status Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: statusColor.withOpacity(0.6), width: 1),
                   ),
-                ],
-                Text(
-                  match.status.label.toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 0.8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (match.status == MatchStatus.live) ...[
+                        Container(
+                          width: 7,
+                          height: 7,
+                          margin: const EdgeInsets.only(right: 6),
+                          decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                        ),
+                      ],
+                      Text(
+                        match.status.label.toUpperCase(),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10.5, letterSpacing: 0.8),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Match Format Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isCounty
+                          ? [const Color(0xFFD97706), const Color(0xFFEF4444)]
+                          : [const Color(0xFF2563EB), const Color(0xFF0D9488)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(isCounty ? Icons.bolt_rounded : Icons.sports_cricket_rounded, color: Colors.white, size: 13),
+                      const SizedBox(width: 4),
+                      Text(
+                        isCounty ? 'COUNTY DUEL' : 'TOURNAMENT MATCH',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10.5, letterSpacing: 0.6),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 18),
 
-          // Teams VS Row with Logos & Squad Count
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Team A
-              Expanded(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        border: Border.all(color: Colors.white, width: 2.5),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3)),
-                        ],
-                        image: imageProviderA != null ? DecorationImage(image: imageProviderA, fit: BoxFit.cover) : null,
-                      ),
-                      alignment: Alignment.center,
-                      child: imageProviderA == null
-                          ? Text(
-                              teamA?.shortName ?? match.teamA.substring(0, (match.teamA.length >= 2 ? 2 : 1)).toUpperCase(),
-                              style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 20),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      match.teamA,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w800,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: countA >= 2 ? Colors.white.withOpacity(0.18) : const Color(0xFFEF4444).withOpacity(0.4),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '$countA Players',
-                        style: TextStyle(
-                          color: countA >= 2 ? const Color(0xFF93C5FD) : const Color(0xFFFCA5A5),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+          // County Target Bar if available
+          if (isCounty && targetRuns != null && totalBalls != null) ...[
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFDE68A).withOpacity(0.3)),
               ),
-
-              // VS Emblem
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
-                ),
-                child: const Text(
-                  'VS',
-                  style: TextStyle(
-                    color: Color(0xFFFACC15), // Bold Gold
-                    fontWeight: FontWeight.w900,
-                    fontSize: 15,
-                    letterSpacing: 0.5,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.track_changes_rounded, color: Color(0xFFFDE68A), size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'TARGET CHALLENGE: $targetRuns RUNS IN $totalBalls BALLS',
+                    style: const TextStyle(
+                      color: Color(0xFFFDE68A),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: 0.6,
+                    ),
                   ),
-                ),
+                ],
               ),
-
-              // Team B
-              Expanded(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        border: Border.all(color: Colors.white, width: 2.5),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3)),
-                        ],
-                        image: imageProviderB != null ? DecorationImage(image: imageProviderB, fit: BoxFit.cover) : null,
-                      ),
-                      alignment: Alignment.center,
-                      child: imageProviderB == null
-                          ? Text(
-                              teamB?.shortName ?? match.teamB.substring(0, (match.teamB.length >= 2 ? 2 : 1)).toUpperCase(),
-                              style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 20),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      match.teamB,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w800,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: countB >= 2 ? Colors.white.withOpacity(0.18) : const Color(0xFFEF4444).withOpacity(0.4),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '$countB Players',
-                        style: TextStyle(
-                          color: countB >= 2 ? const Color(0xFF93C5FD) : const Color(0xFFFCA5A5),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 18),
-          const Divider(color: Colors.white24, height: 1),
-          const SizedBox(height: 12),
-
-          // Venue, Overs & Date Details
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.place_rounded, color: Color(0xFF93C5FD), size: 15),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  match.venue.isNotEmpty ? match.venue : 'Cricket Ground',
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 12.5, fontWeight: FontWeight.w600),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(width: 4, height: 4, decoration: const BoxDecoration(color: Colors.white38, shape: BoxShape.circle)),
-              const SizedBox(width: 8),
-              const Icon(Icons.sports_cricket_rounded, color: Color(0xFF93C5FD), size: 15),
-              const SizedBox(width: 4),
-              Text(
-                '${match.totalOvers} Overs',
-                style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 12.5, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.calendar_today_rounded, color: Color(0xFF93C5FD), size: 13),
-              const SizedBox(width: 5),
-              Text(
-                DateFormat('MMM dd, yyyy • hh:mm a').format(match.matchDate),
-                style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 12, fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── TOSS SETUP CARD ──
-  Widget _buildTossSetupCard(BuildContext context, Match match) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.monetization_on_rounded, color: Color(0xFFD97706), size: 22),
-              SizedBox(width: 8),
-              Text(
-                'Toss Setup',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            'Who won the toss?',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFF475569)),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _buildChoiceChip(
-                  match.teamA,
-                  _selectedTossWinner == match.teamAId,
-                  () => setState(() => _selectedTossWinner = match.teamAId),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildChoiceChip(
-                  match.teamB,
-                  _selectedTossWinner == match.teamBId,
-                  () => setState(() => _selectedTossWinner = match.teamBId),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            'What did they choose?',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFF475569)),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _buildChoiceChip(
-                  '🏏 Batting',
-                  _selectedDecision == TossDecision.bat,
-                  () => setState(() => _selectedDecision = TossDecision.bat),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildChoiceChip(
-                  '🎯 Bowling',
-                  _selectedDecision == TossDecision.bowl,
-                  () => setState(() => _selectedDecision = TossDecision.bowl),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: (_selectedTossWinner != null && _selectedDecision != null && !_isSavingToss)
-                ? () => _saveToss(match)
-                : null,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              backgroundColor: const Color(0xFF1E3A8A),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: const Color(0xFFCBD5E1),
-              elevation: 0,
             ),
-            child: _isSavingToss
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Text(
-                    'Save Toss & Select Squads ➔',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+          ],
+
+          const SizedBox(height: 16),
+
+          // Teams / Persons VS Row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Team / Person A
+                Expanded(
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 68,
+                        height: 68,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          border: Border.all(
+                            color: isCounty ? const Color(0xFF60A5FA) : Colors.white,
+                            width: 2.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4)),
+                          ],
+                          image: imageProviderA != null ? DecorationImage(image: imageProviderA, fit: BoxFit.cover) : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: imageProviderA == null
+                            ? Text(
+                                teamA?.shortName ?? match.teamA.substring(0, (match.teamA.length >= 2 ? 2 : 1)).toUpperCase(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: isCounty ? const Color(0xFF1D4ED8) : const Color(0xFF1E3A8A),
+                                  fontSize: 20,
+                                ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        match.teamA,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isCounty
+                              ? const Color(0xFF2563EB).withOpacity(0.3)
+                              : (countA >= 2 ? Colors.white.withOpacity(0.18) : const Color(0xFFEF4444).withOpacity(0.4)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          isCounty ? '🏏 BATSMAN' : '$countA Players',
+                          style: TextStyle(
+                            color: isCounty ? const Color(0xFF93C5FD) : (countA >= 2 ? const Color(0xFF93C5FD) : const Color(0xFFFCA5A5)),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+
+                // Center VS Emblem
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: isCounty
+                          ? const LinearGradient(colors: [Color(0xFFD97706), Color(0xFFEF4444)])
+                          : const LinearGradient(colors: [Color(0xFF1E3A8A), Color(0xFF0284C7)]),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isCounty ? const Color(0xFFD97706) : const Color(0xFF0284C7)).withOpacity(0.5),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      'VS',
+                      style: TextStyle(
+                        color: Color(0xFFFACC15),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Team / Person B
+                Expanded(
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 68,
+                        height: 68,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          border: Border.all(
+                            color: isCounty ? const Color(0xFFFBBF24) : Colors.white,
+                            width: 2.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4)),
+                          ],
+                          image: imageProviderB != null ? DecorationImage(image: imageProviderB, fit: BoxFit.cover) : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: imageProviderB == null
+                            ? Text(
+                                teamB?.shortName ?? match.teamB.substring(0, (match.teamB.length >= 2 ? 2 : 1)).toUpperCase(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: isCounty ? const Color(0xFFB45309) : const Color(0xFF1E3A8A),
+                                  fontSize: 20,
+                                ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        match.teamB,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isCounty
+                              ? const Color(0xFFD97706).withOpacity(0.3)
+                              : (countB >= 2 ? Colors.white.withOpacity(0.18) : const Color(0xFFEF4444).withOpacity(0.4)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          isCounty ? '🎯 BOWLER' : '$countB Players',
+                          style: TextStyle(
+                            color: isCounty ? const Color(0xFFFDE68A) : (countB >= 2 ? const Color(0xFF93C5FD) : const Color(0xFFFCA5A5)),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // Ground & Schedule Glass Strip
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.2),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(22)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.place_rounded, color: Color(0xFF93C5FD), size: 15),
+                    const SizedBox(width: 5),
+                    Text(
+                      match.venue.isNotEmpty ? match.venue : 'Cricket Ground',
+                      style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 12, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.sports_cricket_rounded, color: Color(0xFFFDE68A), size: 15),
+                    const SizedBox(width: 5),
+                    Text(
+                      '${match.totalOvers} Overs',
+                      style: const TextStyle(color: Color(0xFFFDE68A), fontSize: 12, fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded, color: Color(0xFF93C5FD), size: 13),
+                    const SizedBox(width: 5),
+                    Text(
+                      DateFormat('dd MMM • hh:mm a').format(match.matchDate),
+                      style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 11.5, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  // ── TOSS RECORDED CARD ──
-  Widget _buildTossRecordedCard(BuildContext context, Match match, String tossWinner, String battingFirst) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // COMPONENT: TOSS / COUNTY CHALLENGE STATUS CARD
+  // ─────────────────────────────────────────────────────────────────────────
+  Widget _buildTossRecordedCard(
+    BuildContext context,
+    Match match,
+    String tossWinner,
+    String battingFirst,
+    bool isCounty,
+  ) {
+    if (isCounty) {
+      final targetRuns = match.liveScore?['targetRuns'] ?? 30;
+      final totalBalls = match.liveScore?['totalBalls'] ?? 12;
+
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFFDE68A)),
+          boxShadow: [
+            BoxShadow(color: const Color(0xFFD97706).withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 3)),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFD97706),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'County Challenge Active',
+                  style: TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.w900, fontSize: 14.5),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${match.teamA} is batting to chase $targetRuns runs in $totalBalls balls.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFF78350F), fontWeight: FontWeight.w700, fontSize: 13.5),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              '${match.teamB} is bowling to defend the target.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFFB45309), fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFF0FDF4),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFBBF7D0)),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF16A34A).withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3)),
+        ],
       ),
       child: Column(
         children: [
-          const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 30),
+          const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 28),
           const SizedBox(height: 8),
           Text(
-            '$tossWinner won the toss and elected to ${match.tossDecision!.label.toLowerCase()}.',
+            '$tossWinner won the toss and elected to ${match.tossDecision?.label.toLowerCase() ?? 'bat'}.',
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Color(0xFF15803D),
@@ -772,192 +932,223 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     );
   }
 
-  // ── QUICK NAVIGATION GRID ──
-  Widget _buildQuickNavSection(BuildContext context, Match match) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'MATCH CENTER',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF64748B),
-            letterSpacing: 1.0,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _buildNavTile(
-                icon: Icons.groups_rounded,
-                title: 'Playing Squads',
-                subtitle: 'View & Edit Teams',
-                color: const Color(0xFF3B82F6),
-                onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _buildNavTile(
-                icon: Icons.scoreboard_outlined,
-                title: 'Scorecard',
-                subtitle: 'Full Inning Details',
-                color: const Color(0xFF10B981),
-                onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scorecard'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _buildNavTile(
-                icon: Icons.bar_chart_rounded,
-                title: 'Match Charts',
-                subtitle: 'Manhattan & Run Rate',
-                color: const Color(0xFF8B5CF6),
-                onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/charts'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _buildNavTile(
-                icon: Icons.stream_rounded,
-                title: 'Live Center',
-                subtitle: 'Spectator View',
-                color: const Color(0xFFF59E0B),
-                onTap: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/live'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNavTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0F172A)),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11, color: Color(0xFF64748B)),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── MATCH DETAILS & OFFICIALS INFO CARD ──
-  Widget _buildMatchInfoCard(Match match) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // COMPONENT: TOSS SETUP CARD
+  // ─────────────────────────────────────────────────────────────────────────
+  Widget _buildTossSetupCard(BuildContext context, Match match) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3)),
+        ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Row(
             children: [
-              Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF1E3A8A)),
-              SizedBox(width: 6),
+              Icon(Icons.how_to_vote_rounded, color: Color(0xFF1E3A8A), size: 20),
+              SizedBox(width: 8),
               Text(
-                'Match Information',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
+                'Toss Setup',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A)),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-          const SizedBox(height: 12),
-          _buildInfoRow('Venue', match.venue.isNotEmpty ? match.venue : 'Cricket Ground'),
-          _buildInfoRow('Overs', '${match.totalOvers} Overs per side'),
-          _buildInfoRow('Match Date', DateFormat('dd MMMM yyyy, hh:mm a').format(match.matchDate)),
-          _buildInfoRow('Status', match.status.label),
-          if (match.hasToss)
-            _buildInfoRow(
-              'Toss',
-              '${match.tossWinnerId == match.teamAId ? match.teamA : match.teamB} (Elected to ${match.tossDecision?.label.toLowerCase()})',
+          const SizedBox(height: 14),
+          const Text('Who won the toss?', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildChoiceChip(
+                  match.teamA,
+                  _selectedTossWinner == match.teamAId,
+                  () => setState(() => _selectedTossWinner = match.teamAId),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildChoiceChip(
+                  match.teamB,
+                  _selectedTossWinner == match.teamBId,
+                  () => setState(() => _selectedTossWinner = match.teamBId),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Text('Elected to?', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildChoiceChip(
+                  'Bat First',
+                  _selectedDecision == TossDecision.bat,
+                  () => setState(() => _selectedDecision = TossDecision.bat),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildChoiceChip(
+                  'Bowl First',
+                  _selectedDecision == TossDecision.bowl,
+                  () => setState(() => _selectedDecision = TossDecision.bowl),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _isSavingToss ? null : () => _recordToss(match),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              backgroundColor: const Color(0xFF1E3A8A),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-          if (match.resultText != null && match.resultText!.isNotEmpty)
-            _buildInfoRow('Result', match.resultText!),
+            child: _isSavingToss
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('CONFIRM TOSS DECISION', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // COMPONENT: REDESIGNED MATCH INFO CARD (CLEAN & COMPLETE)
+  // ─────────────────────────────────────────────────────────────────────────
+  Widget _buildMatchInfoCard(Match match, bool isCounty) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF1E3A8A)),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Match Information',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF0F172A)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 14),
+
+          _buildInfoItem(
+            icon: Icons.place_rounded,
+            iconColor: const Color(0xFFEF4444),
+            label: 'Ground / Venue',
+            value: match.venue.isNotEmpty ? match.venue : 'Cricket Ground',
+          ),
+          _buildInfoItem(
+            icon: Icons.sports_cricket_rounded,
+            iconColor: const Color(0xFF16A34A),
+            label: 'Match Format',
+            value: isCounty
+                ? 'County Duel (${match.liveScore?['countyMode'] ?? '1v1'}) • ${match.totalOvers} Overs'
+                : '${match.totalOvers} Overs per side',
+          ),
+          if (isCounty && match.liveScore?['targetRuns'] != null)
+            _buildInfoItem(
+              icon: Icons.track_changes_rounded,
+              iconColor: const Color(0xFFD97706),
+              label: 'Target Quota',
+              value: '${match.liveScore!['targetRuns']} Runs in ${match.liveScore!['totalBalls']} Balls',
+            ),
+          _buildInfoItem(
+            icon: Icons.calendar_month_rounded,
+            iconColor: const Color(0xFF2563EB),
+            label: 'Scheduled Date',
+            value: DateFormat('EEEE, dd MMMM yyyy • hh:mm a').format(match.matchDate),
+          ),
+          _buildInfoItem(
+            icon: Icons.flag_rounded,
+            iconColor: const Color(0xFF8B5CF6),
+            label: 'Match Status',
+            value: match.status.label,
+          ),
+          if (match.hasToss || isCounty)
+            _buildInfoItem(
+              icon: Icons.how_to_vote_rounded,
+              iconColor: const Color(0xFF0D9488),
+              label: 'Toss / Batting First',
+              value: isCounty
+                  ? '${match.teamA} (Batting First by County Rules)'
+                  : '${match.tossWinnerId == match.teamAId ? match.teamA : match.teamB} (Elected to ${match.tossDecision?.label.toLowerCase()})',
+            ),
+          if (match.resultText != null && match.resultText!.isNotEmpty)
+            _buildInfoItem(
+              icon: Icons.emoji_events_rounded,
+              iconColor: const Color(0xFFEAB308),
+              label: 'Match Result',
+              value: match.resultText!,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 14, color: iconColor),
+          ),
+          const SizedBox(width: 10),
           SizedBox(
-            width: 90,
+            width: 110,
             child: Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5, color: Color(0xFF64748B)),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFF64748B)),
             ),
           ),
           const Text(' :  ', style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w700)),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFF1E293B)),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1E293B)),
             ),
           ),
         ],
@@ -987,7 +1178,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
             'LIVE MATCH IN PROGRESS',
             style: TextStyle(
               color: Color(0xFFDC2626),
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
               fontSize: 13.5,
               letterSpacing: 0.5,
             ),
@@ -1026,4 +1217,3 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     );
   }
 }
-

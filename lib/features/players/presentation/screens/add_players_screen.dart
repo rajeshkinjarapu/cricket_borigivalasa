@@ -2,11 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+import '../../../members/presentation/providers/member_providers.dart';
 
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../auth/data/models/app_user.dart';
 import '../../../teams/data/models/team.dart';
@@ -107,58 +104,13 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
     final cleanPhone = phone.trim().replaceAll(' ', '').replaceAll('-', '');
     if (cleanPhone.length < 5) return;
 
-    final authEmail = '$cleanPhone@member.cricket.com';
-    final password = cleanPhone;
-
     try {
-      final tempApp = await Firebase.initializeApp(
-        name: 'temp_squad_create_${DateTime.now().millisecondsSinceEpoch}',
-        options: Firebase.app().options,
+      await ref.read(memberRepositoryProvider).createMember(
+        name: name.trim(),
+        phoneNumber: cleanPhone,
+        role: UserRole.member,
+        photoUrl: photoUrl,
       );
-
-      String? createdUid;
-      try {
-        final cred = await FirebaseAuth.instanceFor(app: tempApp)
-            .createUserWithEmailAndPassword(email: authEmail, password: password);
-        final u = cred.user!;
-        await u.updateDisplayName(name.trim());
-        createdUid = u.uid;
-      } catch (_) {
-      } finally {
-        await tempApp.delete();
-      }
-
-      final firestore = FirebaseFirestore.instance;
-      if (createdUid != null) {
-        final appUser = AppUser(
-          uid: createdUid,
-          email: authEmail,
-          displayName: name.trim(),
-          role: UserRole.member,
-          photoUrl: photoUrl,
-          createdAt: DateTime.now(),
-        );
-        await firestore
-            .collection(AppConstants.usersCollection)
-            .doc(createdUid)
-            .set(appUser.toJson()..remove('uid'), SetOptions(merge: true));
-      } else {
-        final existing = await firestore
-            .collection(AppConstants.usersCollection)
-            .where('email', isEqualTo: authEmail)
-            .limit(1)
-            .get();
-
-        if (existing.docs.isEmpty) {
-          await firestore.collection(AppConstants.usersCollection).add({
-            'email': authEmail,
-            'displayName': name.trim(),
-            'role': 'member',
-            'createdAt': FieldValue.serverTimestamp(),
-            'photoUrl': photoUrl,
-          });
-        }
-      }
     } catch (_) {}
   }
 
@@ -643,39 +595,7 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Photo Picker
-              Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 44,
-                      backgroundColor: const Color(0xFF1E3A8A).withOpacity(0.1),
-                      backgroundImage: _manualPicBase64 != null
-                          ? MemoryImage(base64Decode(_manualPicBase64!.split(',').last))
-                          : null,
-                      child: _manualPicBase64 == null
-                          ? const Icon(Icons.person_rounded, size: 48, color: Color(0xFF1E3A8A))
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: InkWell(
-                        onTap: _pickPhoto,
-                        child: Container(
-                          padding: const EdgeInsets.all(7),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF1E3A8A),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.camera_alt_rounded, size: 16, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
+
 
               // Player Name
               TextFormField(
@@ -715,86 +635,7 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
               ),
               const SizedBox(height: 14),
 
-              // Jersey Number
-              TextFormField(
-                controller: _jerseyCtrl,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Jersey Number',
-                  hintText: 'e.g. 45',
-                  prefixIcon: const Icon(Icons.tag_rounded, color: Color(0xFF1E3A8A)),
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
 
-              // Role Selector
-              DropdownButtonFormField<PlayerRole>(
-                value: _manualRole,
-                decoration: InputDecoration(
-                  labelText: 'Player Role *',
-                  prefixIcon: const Icon(Icons.sports_cricket_rounded, color: Color(0xFF1E3A8A)),
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                ),
-                items: PlayerRole.values.map((r) => DropdownMenuItem(value: r, child: Text(r.label))).toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => _manualRole = v);
-                },
-              ),
-              const SizedBox(height: 14),
-
-              // Batting Style
-              DropdownButtonFormField<BattingStyle>(
-                value: _manualBatting,
-                decoration: InputDecoration(
-                  labelText: 'Batting Style',
-                  prefixIcon: const Icon(Icons.sports_baseball_rounded, color: Color(0xFF1E3A8A)),
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                ),
-                items: BattingStyle.values.map((b) => DropdownMenuItem(value: b, child: Text(b.label))).toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => _manualBatting = v);
-                },
-              ),
-              const SizedBox(height: 14),
-
-              // Bowling Style
-              DropdownButtonFormField<BowlingStyle>(
-                value: _manualBowling,
-                decoration: InputDecoration(
-                  labelText: 'Bowling Style',
-                  prefixIcon: const Icon(Icons.sports_rounded, color: Color(0xFF1E3A8A)),
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                ),
-                items: BowlingStyle.values.map((b) => DropdownMenuItem(value: b, child: Text(b.label))).toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => _manualBowling = v);
-                },
-              ),
               const SizedBox(height: 24),
 
               // Submit Button

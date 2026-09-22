@@ -46,6 +46,7 @@ class TeamRepository {
     final data = team.toJson();
     data['id'] = id;
     data['created_at'] = DateTime.now().toIso8601String();
+    data.remove('captain_name'); // Not a column in Supabase teams table
     
     await _supabase.from('teams').insert(data);
     return id;
@@ -54,7 +55,7 @@ class TeamRepository {
   Future<void> update(Team team) async {
     final data = team.toJson();
     data.remove('id');
-    // Using created_at or updated_at appropriately
+    data.remove('captain_name'); // Not a column in Supabase teams table
     await _supabase.from('teams').update(data).eq('id', team.id);
   }
 

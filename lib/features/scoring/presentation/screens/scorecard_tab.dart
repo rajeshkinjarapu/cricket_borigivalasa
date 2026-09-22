@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/innings.dart';
+import '../../data/models/batting_scorecard.dart';
+import '../../data/models/bowling_scorecard.dart';
 import '../providers/scoring_providers.dart';
 
 class ScorecardTab extends ConsumerWidget {

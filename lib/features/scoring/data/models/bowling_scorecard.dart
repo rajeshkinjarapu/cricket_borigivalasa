@@ -1,3 +1,5 @@
+typedef BowlingScorecardRow = BowlingScorecard;
+
 class BowlingScorecard {
   final String playerId;
   final String playerName;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/avatar_helper.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
 class AppDrawer extends ConsumerWidget {
@@ -41,15 +42,20 @@ class AppDrawer extends ConsumerWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.sports_cricket_rounded,
                       color: Colors.white,
-                      size: 24,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.cover,
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -235,7 +241,7 @@ class AppDrawer extends ConsumerWidget {
               ),
             ),
 
-            // ── Clean Footer with Sign Out ──
+            // ── Clean Footer with User Info & Sign Out ──
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               decoration: BoxDecoration(
@@ -243,29 +249,100 @@ class AppDrawer extends ConsumerWidget {
                   top: BorderSide(color: Colors.white.withOpacity(0.15), width: 1),
                 ),
               ),
-              child: SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: ElevatedButton.icon(
-                  onPressed: () => _confirmSignOut(context, ref),
-                  icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
-                  label: const Text(
-                    'Sign Out',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
+              child: Column(
+                children: [
+                  if (user != null) ...[
+                    InkWell(
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/profile');
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.white, width: 1.5),
+                                color: Colors.white.withOpacity(0.2),
+                                image: getAppAvatarProvider(user.photoUrl) != null
+                                    ? DecorationImage(
+                                        image: getAppAvatarProvider(user.photoUrl)!,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                              ),
+                              child: getAppAvatarProvider(user.photoUrl) == null
+                                  ? Center(
+                                      child: Text(
+                                        user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    user.displayName,
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    user.role.name.toUpperCase(),
+                                    style: TextStyle(
+                                      color: isAdmin ? const Color(0xFFFBBF24) : Colors.white70,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _confirmSignOut(context, ref),
+                      icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
+                      label: const Text(
+                        'Sign Out',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFDC2626),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
+                ],
               ),
             ),
           ],
