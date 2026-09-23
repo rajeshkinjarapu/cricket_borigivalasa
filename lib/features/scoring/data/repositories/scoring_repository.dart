@@ -129,7 +129,7 @@ class ScoringRepository {
   Future<void> initInnings({required String tournamentId,
       required String matchId, required int inningsNumber,
       required Team battingTeam, required Team bowlingTeam,
-      required Player openingStriker, required Player openingNonStriker,
+      required Player openingStriker, Player? openingNonStriker,
       required Player openingBowler, int? targetRuns}) async {
     
     final innData = {
@@ -142,7 +142,7 @@ class ScoringRepository {
       'runs': 0, 'wickets': 0, 'legal_balls': 0,
       'target_runs': targetRuns, 'is_complete': false,
       'current_striker_id': openingStriker.id,
-      'current_non_striker_id': openingNonStriker.id,
+      'current_non_striker_id': openingNonStriker?.id,
       'current_bowler_id': openingBowler.id,
       'created_at': DateTime.now().toIso8601String()
     };

@@ -36,12 +36,12 @@ class ScoringEngine {
   static InningsSnapshot reduce({
     required String openingStrikerId,
     required String openingStrikerName,
-    required String openingNonStrikerId,
-    required String openingNonStrikerName,
+    required String? openingNonStrikerId,
+    required String? openingNonStrikerName,
     required List<BallEvent> balls,
   }) {
-    var strikerId = openingStrikerId;
-    var strikerName = openingStrikerName;
+    String? strikerId = openingStrikerId;
+    String? strikerName = openingStrikerName;
     var nonStrikerId = openingNonStrikerId;
     var nonStrikerName = openingNonStrikerName;
     String? currentBowlerId, currentBowlerName;
@@ -54,9 +54,11 @@ class ScoringEngine {
     batting[openingStrikerId] = BattingScorecard(
       playerId: openingStrikerId, playerName: openingStrikerName,
       battingOrder: 1);
-    batting[openingNonStrikerId] = BattingScorecard(
-      playerId: openingNonStrikerId, playerName: openingNonStrikerName,
-      battingOrder: 2);
+    if (openingNonStrikerId != null && openingNonStrikerName != null) {
+      batting[openingNonStrikerId] = BattingScorecard(
+        playerId: openingNonStrikerId, playerName: openingNonStrikerName,
+        battingOrder: 2);
+    }
 
     for (final ball in balls) {
       currentBowlerId = ball.bowlerId;

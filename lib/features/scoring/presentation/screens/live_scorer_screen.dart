@@ -137,10 +137,11 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
         : ref.read(matchMaxOversProvider((tournamentId: widget.tournamentId, matchId: widget.matchId)));
 
     final live = ref.read(inningsProvider(_k)).value ?? widget.innings;
+    final activePPS = _activePlayersPerSide(match);
     final isCompleteNow = live.isComplete ||
         (live.targetRuns != null && live.runs >= live.targetRuns!) ||
         (live.legalBalls >= maxOvers * 6) ||
-        (live.wickets >= (playersPerSide - 1)) ||
+        (live.wickets >= (activePPS - 1)) ||
         (match?.status == MatchStatus.completed);
 
     if (isCompleteNow) {
@@ -164,7 +165,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
         innings: live,
         ball: ball,
         maxOvers: maxOvers,
-        playersPerSide: playersPerSide,
+        playersPerSide: activePPS,
       );
     } catch (e) {
       if (mounted) {
@@ -192,13 +193,15 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
           ? match.totalOvers
           : ref.read(matchMaxOversProvider((tournamentId: widget.tournamentId, matchId: widget.matchId)));
 
+      final activePPS = _activePlayersPerSide(match);
+
       await ref.read(scoringRepositoryProvider).undoLastBall(
         tournamentId: widget.tournamentId,
         matchId: widget.matchId,
         inningsNumber: widget.innings.inningsNumber,
         innings: widget.innings,
         maxOvers: maxOvers,
-        playersPerSide: playersPerSide,
+        playersPerSide: activePPS,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -535,6 +538,16 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     );
   }
 
+  int _activePlayersPerSide(MatchModel? m) {
+    if (m?.liveScore?['matchType'] == 'county' || m?.liveScore?['isCounty'] == true) {
+      final w = m?.liveScore?['wickets'];
+      if (w != null && w is int) return w + 1;
+      if (w != null && w is String) return (int.tryParse(w) ?? 1) + 1;
+      return 2;
+    }
+    return playersPerSide;
+  }
+
   @override
   Widget build(BuildContext context) {
     final a = ref.watch(inningsProvider(_k));
@@ -545,14 +558,16 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     ))).value;
     final maxOvers = (match != null && match.totalOvers > 0)
         ? match.totalOvers
-        : ref.watch(matchMaxOversProvider((tournamentId: widget.tournamentId, matchId: widget.matchId)));
+        : ref.read(matchMaxOversProvider((tournamentId: widget.tournamentId, matchId: widget.matchId)));
+
+    final activePPS = _activePlayersPerSide(match);
 
     final isMatchOver = match?.status == MatchStatus.completed ||
         (live.inningsNumber == 2 &&
             (live.isComplete ||
                 (live.targetRuns != null && live.runs >= live.targetRuns!) ||
                 live.legalBalls >= maxOvers * 6 ||
-                live.wickets >= (playersPerSide - 1)));
+                live.wickets >= (activePPS - 1)));
 
     if (isMatchOver && match != null && match.status != MatchStatus.completed) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -561,14 +576,14 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
             tournamentId: widget.tournamentId,
             matchId: widget.matchId,
             maxOvers: maxOvers,
-            playersPerSide: playersPerSide,
+            playersPerSide: activePPS,
           );
         }
       });
     }
 
     final isInnings1Complete = live.inningsNumber == 1 &&
-        (live.isComplete || live.legalBalls >= maxOvers * 6 || live.wickets >= (playersPerSide - 1));
+        (live.isComplete || live.legalBalls >= maxOvers * 6 || live.wickets >= (activePPS - 1));
 
     final overEnd = live.legalBalls > 0 && live.legalBalls % 6 == 0 && live.legalBalls < maxOvers * 6 && !live.isComplete && !isMatchOver;
     if (overEnd && _promptedOverNumber != (live.legalBalls ~/ 6)) {
@@ -586,6 +601,8 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
 
     final totalExtras = live.wides + live.noballs + live.byes + live.legbyes;
     final projectedScore = live.legalBalls > 0 ? ((live.runs / live.legalBalls) * (maxOvers * 6)).round() : 0;
+
+    final isCountyMatch = match?.liveScore?['matchType'] == 'county' || match?.liveScore?['isCounty'] == true;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -617,13 +634,13 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
           ],
         ),
         actions: [
-
           if (!isMatchOver) ...[
-            IconButton(
-              icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
-              tooltip: 'Rotate Strike',
-              onPressed: () => _swapStrike(live),
-            ),
+            if (!isCountyMatch)
+              IconButton(
+                icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
+                tooltip: 'Rotate Strike',
+                onPressed: () => _swapStrike(live),
+              ),
             IconButton(
               icon: const Icon(Icons.sports_baseball_rounded, color: Colors.white),
               tooltip: 'Change Bowler',
@@ -669,7 +686,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                   const SizedBox(height: 12),
 
                   // 2. ── BATSMEN ON CREASE (STRIKER & NON-STRIKER) ──
-                  _buildBatsmenSection(striker, nonStriker, live),
+                  _buildBatsmenSection(striker, nonStriker, live, isCounty: isCountyMatch),
                   const SizedBox(height: 12),
 
                   // 3. ── CURRENT BOWLER CARD ──
@@ -898,46 +915,47 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   // ─────────────────────────────────────────────────────────────────────────────
   // 2. BATSMEN SECTION (STRIKER & NON-STRIKER)
   // ─────────────────────────────────────────────────────────────────────────────
-  Widget _buildBatsmenSection(BattingScorecardRow? striker, BattingScorecardRow? nonStriker, Innings live) {
+  Widget _buildBatsmenSection(BattingScorecardRow? striker, BattingScorecardRow? nonStriker, Innings live, {bool isCounty = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.sports_cricket_rounded, size: 16, color: Color(0xFF1E3A8A)),
-                SizedBox(width: 6),
+                const Icon(Icons.sports_cricket_rounded, size: 16, color: Color(0xFF1E3A8A)),
+                const SizedBox(width: 6),
                 Text(
-                  'BATSMEN ON CREASE',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF475569), letterSpacing: 0.5),
+                  isCounty ? 'BATSMAN ON CREASE' : 'BATSMEN ON CREASE',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF475569), letterSpacing: 0.5),
                 ),
               ],
             ),
-            InkWell(
-              onTap: () => _swapStrike(live),
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFBFDBFE)),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.swap_horiz_rounded, size: 14, color: Color(0xFF1E3A8A)),
-                    SizedBox(width: 4),
-                    Text(
-                      'Swap Strike',
-                      style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 11, fontWeight: FontWeight.w800),
-                    ),
-                  ],
+            if (!isCounty)
+              InkWell(
+                onTap: () => _swapStrike(live),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.swap_horiz_rounded, size: 14, color: Color(0xFF1E3A8A)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Swap Strike',
+                        style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 11, fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -946,8 +964,10 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
         Row(
           children: [
             Expanded(child: _buildBatsmanCard(striker, isStriker: true)),
-            const SizedBox(width: 10),
-            Expanded(child: _buildBatsmanCard(nonStriker, isStriker: false)),
+            if (!isCounty) ...[
+              const SizedBox(width: 10),
+              Expanded(child: _buildBatsmanCard(nonStriker, isStriker: false)),
+            ],
           ],
         ),
       ],

@@ -11,6 +11,7 @@ import '../../../teams/presentation/providers/team_providers.dart';
 import '../../../players/presentation/providers/player_providers.dart';
 import '../../data/models/match.dart';
 import '../providers/match_providers.dart';
+import '../../../scoring/presentation/providers/scoring_providers.dart';
 
 class MatchDetailScreen extends ConsumerStatefulWidget {
   const MatchDetailScreen({
@@ -351,8 +352,30 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                               onPressed: () async {
                                 if (isCounty) {
                                   if (match.status != MatchStatus.live) {
-                                    final controller = ref.read(matchControllerProvider.notifier);
-                                    await controller.update(match.copyWith(status: MatchStatus.live));
+                                    final scoringRepo = ref.read(scoringRepositoryProvider);
+                                    
+                                    // Extract the correct teams and players
+                                    final batTeam = teamA;
+                                    final bowlTeam = teamB;
+                                    final striker = teamAPlayers.isNotEmpty ? teamAPlayers.first : null;
+                                    final bowler = teamBPlayers.isNotEmpty ? teamBPlayers.first : null;
+
+                                    if (batTeam != null && bowlTeam != null && striker != null && bowler != null) {
+                                      await scoringRepo.initInnings(
+                                        tournamentId: widget.tournamentId,
+                                        matchId: widget.matchId,
+                                        inningsNumber: 1,
+                                        battingTeam: batTeam,
+                                        bowlingTeam: bowlTeam,
+                                        openingStriker: striker,
+                                        openingNonStriker: null, // No non-striker for county
+                                        openingBowler: bowler,
+                                      );
+                                    } else {
+                                      // Fallback to just updating status if missing players/teams
+                                      final controller = ref.read(matchControllerProvider.notifier);
+                                      await controller.update(match.copyWith(status: MatchStatus.live));
+                                    }
                                   }
                                   if (mounted) {
                                     context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring');

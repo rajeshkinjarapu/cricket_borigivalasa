@@ -12,6 +12,7 @@ import '../../../players/data/models/player.dart';
 import '../../../players/presentation/providers/player_providers.dart';
 import '../../data/models/match.dart';
 import '../providers/match_providers.dart';
+import '../../../scoring/presentation/providers/scoring_providers.dart';
 
 enum MatchTypeOption {
   normal,
@@ -59,6 +60,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
 
   final _countyTargetController = TextEditingController(text: '30');
   final _countyBallsController = TextEditingController(text: '12');
+  final _countyWicketsController = TextEditingController(text: '1');
   final _countyVenueController = TextEditingController(text: 'Chintathota Cricket Ground');
 
   // ── COMMON STATE ──
@@ -85,6 +87,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
     _countyBowler2Controller.dispose();
     _countyTargetController.dispose();
     _countyBallsController.dispose();
+    _countyWicketsController.dispose();
     _countyVenueController.dispose();
     super.dispose();
   }
@@ -99,6 +102,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
       _countyPlayerCount = m.liveScore?['countyMode'] == '2v2' ? 4 : 2;
       _countyTargetController.text = (m.liveScore?['targetRuns'] ?? 30).toString();
       _countyBallsController.text = (m.liveScore?['totalBalls'] ?? 12).toString();
+      _countyWicketsController.text = (m.liveScore?['wickets'] ?? 1).toString();
       _countyBatsman1Controller.text = m.liveScore?['batsman1'] ?? m.teamA;
       _countyBowler1Controller.text = m.liveScore?['bowler1'] ?? m.teamB;
       if (m.liveScore?['batsman2'] != null) {
@@ -405,6 +409,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
 
       final targetRuns = int.tryParse(_countyTargetController.text.trim()) ?? 30;
       final totalBalls = int.tryParse(_countyBallsController.text.trim()) ?? 12;
+      final wickets = int.tryParse(_countyWicketsController.text.trim()) ?? 1;
       final overs = (totalBalls / 6.0).ceil();
       final venue = _countyVenueController.text.trim().isNotEmpty
           ? _countyVenueController.text.trim()
@@ -498,6 +503,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
           'countyMode': _countyPlayerCount == 2 ? '1v1' : '2v2',
           'targetRuns': targetRuns,
           'totalBalls': totalBalls,
+          'wickets': wickets,
           'batsman1': bat1,
           'bowler1': bowl1,
           'batsman2': bat2,
@@ -562,13 +568,27 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
         if (mounted) {
           setState(() => _isSaving = false);
           if (startImmediately && targetMatchId != null && targetMatchId.isNotEmpty) {
+            final scoringRepo = ref.read(scoringRepositoryProvider);
+            if (_countyBatsman1Player != null && _countyBowler1Player != null) {
+              await scoringRepo.initInnings(
+                tournamentId: effectiveTournamentId,
+                matchId: targetMatchId,
+                inningsNumber: 1,
+                battingTeam: Team(id: teamAResolved.id, name: teamAResolved.name, shortName: teamAResolved.name.substring(0, 1), logoUrl: ''),
+                bowlingTeam: Team(id: teamBResolved.id, name: teamBResolved.name, shortName: teamBResolved.name.substring(0, 1), logoUrl: ''),
+                openingStriker: _countyBatsman1Player!,
+                openingNonStriker: null,
+                openingBowler: _countyBowler1Player!,
+                targetRuns: targetRuns,
+              );
+            }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('⚡ County Duel: $nameA vs $nameB started! Target: $targetRuns in $totalBalls balls'),
                 backgroundColor: const Color(0xFFD97706),
               ),
             );
-            context.pushReplacement('/tournaments/$effectiveTournamentId/matches/$targetMatchId/squads');
+            context.pushReplacement('/tournaments/$effectiveTournamentId/matches/$targetMatchId/scoring');
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -832,10 +852,6 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                         // NORMAL MATCH: ACTION BUTTONS
                         _buildNormalActionButtons(effectiveTournamentId, teams),
                       ] else ...[
-                        // COUNTY MATCH: FORMAT (1v1 vs 2v2)
-                        _buildCountyFormatSelector(),
-                        const SizedBox(height: 16),
-
                         // COUNTY MATCH: PERSON vs PERSON DUEL CARD
                         _buildCountyDuelCard(),
                         const SizedBox(height: 16),
@@ -910,13 +926,9 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
               Expanded(
                 child: _buildTypeOptionTile(
                   title: 'Normal Match',
-                  badgeLabel: 'Standard XI',
-                  details: 'Full XI',
                   icon: Icons.sports_cricket_rounded,
                   isSelected: _matchType == MatchTypeOption.normal,
                   activeColor: const Color(0xFF16A34A),
-                  badgeColor: const Color(0xFFDCFCE7),
-                  badgeTextColor: const Color(0xFF15803D),
                   onTap: () {
                     setState(() => _matchType = MatchTypeOption.normal);
                   },
@@ -928,13 +940,9 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
               Expanded(
                 child: _buildTypeOptionTile(
                   title: 'County Match',
-                  badgeLabel: 'Single Wicket',
-                  details: '1v1 Target',
                   icon: Icons.bolt_rounded,
                   isSelected: _matchType == MatchTypeOption.county,
                   activeColor: const Color(0xFFD97706),
-                  badgeColor: const Color(0xFFFEF3C7),
-                  badgeTextColor: const Color(0xFFB45309),
                   onTap: () {
                     setState(() => _matchType = MatchTypeOption.county);
                   },
@@ -949,13 +957,9 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
 
   Widget _buildTypeOptionTile({
     required String title,
-    required String badgeLabel,
-    required String details,
     required IconData icon,
     required bool isSelected,
     required Color activeColor,
-    required Color badgeColor,
-    required Color badgeTextColor,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -1046,39 +1050,6 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                           ),
                           child: const Icon(Icons.check, color: Colors.white, size: 9),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: badgeColor,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          badgeLabel,
-                          style: TextStyle(
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.w800,
-                            color: badgeTextColor,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 3),
-                      Expanded(
-                        child: Text(
-                          details,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 9,
-                            color: Color(0xFF64748B),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ],
@@ -1352,7 +1323,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
             controller: _oversController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'Total Overs (e.g. 10, 20)',
+              labelText: 'Total Overs',
               prefixIcon: const Icon(Icons.timelapse_rounded, color: Color(0xFF1E3A8A)),
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
@@ -1363,29 +1334,6 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
               ),
             ),
             validator: (v) => (v == null || int.tryParse(v) == null) ? 'Enter valid overs' : null,
-          ),
-          const SizedBox(height: 8),
-
-          // Quick Overs Chips
-          Wrap(
-            spacing: 8,
-            children: [5, 10, 15, 20].map((ov) {
-              final isCurrent = _oversController.text.trim() == ov.toString();
-              return ChoiceChip(
-                label: Text('$ov Overs'),
-                selected: isCurrent,
-                selectedColor: const Color(0xFF1E3A8A),
-                labelStyle: TextStyle(
-                  color: isCurrent ? Colors.white : const Color(0xFF334155),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-                backgroundColor: const Color(0xFFF1F5F9),
-                onSelected: (_) {
-                  setState(() => _oversController.text = ov.toString());
-                },
-              );
-            }).toList(),
           ),
           const SizedBox(height: 14),
 
@@ -1523,127 +1471,6 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // COMPONENT: COUNTY MATCH - FORMAT SELECTOR (1v1 vs 2v2)
-  // ─────────────────────────────────────────────────────────────────────────
-  Widget _buildCountyFormatSelector() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFDE68A)),
-        boxShadow: [
-          BoxShadow(color: const Color(0xFFD97706).withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 3)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.people_outline_rounded, size: 18, color: Color(0xFFD97706)),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'COUNTY FORMAT • NUMBER OF PLAYERS',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF78350F), letterSpacing: 0.5),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          Row(
-            children: [
-              // 1 VS 1 (2 PLAYERS)
-              Expanded(
-                child: _buildFormatPill(
-                  title: '1 vs 1 Single Wicket',
-                  formatLabel: '2 Players (1 vs 1)',
-                  badge: '1 Batsman • 1 Bowler',
-                  isSelected: _countyPlayerCount == 2,
-                  onTap: () => setState(() => _countyPlayerCount = 2),
-                ),
-              ),
-              const SizedBox(width: 10),
-
-              // 2 VS 2 (4 PLAYERS)
-              Expanded(
-                child: _buildFormatPill(
-                  title: '2 vs 2 Pairs Duel',
-                  formatLabel: '4 Players (2 vs 2)',
-                  badge: '2 Batsmen • 2 Bowlers',
-                  isSelected: _countyPlayerCount == 4,
-                  onTap: () => setState(() => _countyPlayerCount = 4),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFormatPill({
-    required String title,
-    required String formatLabel,
-    required String badge,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFEF3C7) : const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected ? const Color(0xFFD97706) : const Color(0xFFE2E8F0),
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  formatLabel,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                    color: isSelected ? const Color(0xFFB45309) : const Color(0xFF334155),
-                  ),
-                ),
-                if (isSelected)
-                  const Icon(Icons.check_circle_rounded, color: Color(0xFFD97706), size: 16),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11.5, color: Color(0xFF475569)),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              badge,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ─────────────────────────────────────────────────────────────────────────
   // COMPONENT: COUNTY MATCH - PERSON vs PERSON DUEL CARD
   // ─────────────────────────────────────────────────────────────────────────
@@ -2020,7 +1847,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
             keyboardType: TextInputType.number,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              labelText: 'Target Score (e.g. 30)',
+              labelText: 'Target Score',
               helperText: 'Runs required by batsman to win',
               helperStyle: const TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.w600, fontSize: 11),
               prefixIcon: const Icon(Icons.flag_rounded, color: Color(0xFFD97706)),
@@ -2042,7 +1869,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
             keyboardType: TextInputType.number,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              labelText: 'Total Balls (e.g. 12)',
+              labelText: 'Total Balls',
               helperText: 'Balls quota for the bowler',
               helperStyle: const TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.w600, fontSize: 11),
               prefixIcon: const Icon(Icons.timelapse_rounded, color: Color(0xFF2563EB)),
@@ -2055,6 +1882,28 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
               ),
             ),
             validator: (v) => (v == null || int.tryParse(v) == null) ? 'Enter valid balls count' : null,
+          ),
+          const SizedBox(height: 16),
+
+          // 3. TOTAL WICKETS INPUT
+          TextFormField(
+            controller: _countyWicketsController,
+            keyboardType: TextInputType.number,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: 'Total Wickets',
+              helperText: 'How many wickets to play?',
+              helperStyle: const TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w600, fontSize: 11),
+              prefixIcon: const Icon(Icons.close_rounded, color: Color(0xFFDC2626)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+            ),
+            validator: (v) => (v == null || int.tryParse(v) == null) ? 'Enter valid wickets count' : null,
           ),
           const SizedBox(height: 16),
 

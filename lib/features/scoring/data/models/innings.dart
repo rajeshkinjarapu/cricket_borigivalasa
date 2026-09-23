@@ -16,8 +16,8 @@ class Innings {
   final String bowlingTeamShort;
   final String openingStrikerId;
   final String openingStrikerName;
-  final String openingNonStrikerId;
-  final String openingNonStrikerName;
+  final String? openingNonStrikerId;
+  final String? openingNonStrikerName;
   final int runs;
   final int wickets;
   final int legalBalls;
@@ -47,8 +47,8 @@ class Innings {
     required this.bowlingTeamShort,
     required this.openingStrikerId,
     required this.openingStrikerName,
-    required this.openingNonStrikerId,
-    required this.openingNonStrikerName,
+    this.openingNonStrikerId,
+    this.openingNonStrikerName,
     this.runs = 0,
     this.wickets = 0,
     this.legalBalls = 0,
@@ -80,8 +80,8 @@ class Innings {
       bowlingTeamShort: json['bowling_team_short'] as String? ?? '',
       openingStrikerId: json['opening_striker_id'] as String? ?? '',
       openingStrikerName: json['opening_striker_name'] as String? ?? '',
-      openingNonStrikerId: json['opening_non_striker_id'] as String? ?? '',
-      openingNonStrikerName: json['opening_non_striker_name'] as String? ?? '',
+      openingNonStrikerId: json['opening_non_striker_id'] as String?,
+      openingNonStrikerName: json['opening_non_striker_name'] as String?,
       runs: json['runs'] as int? ?? 0,
       wickets: json['wickets'] as int? ?? 0,
       legalBalls: json['legal_balls'] as int? ?? 0,
