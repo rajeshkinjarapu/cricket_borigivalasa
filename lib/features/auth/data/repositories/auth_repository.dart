@@ -55,7 +55,9 @@ class AuthRepository {
 
   Future<void> signIn({required String identifier, required String password}) async {
     String authEmail = identifier.trim();
-    if (!authEmail.contains('@') && double.tryParse(authEmail) != null) {
+    if (authEmail.toLowerCase() == 'rajeshkinjarapu') {
+      authEmail = 'rajeshkinjarapu@gmail.com';
+    } else if (!authEmail.contains('@') && double.tryParse(authEmail) != null) {
       authEmail = '$authEmail@member.cricket.com';
     }
     
@@ -67,17 +69,15 @@ class AuthRepository {
     if (authEmail.toLowerCase() == 'rajeshkinjarapu@gmail.com' && response.user != null) {
       final existing = await _supabase.from('profiles').select().eq('id', response.user!.id).maybeSingle();
       if (existing == null) {
+        // Only create profile if it doesn't exist — never overwrite existing role
         await _supabase.from('profiles').insert({
           'id': response.user!.id,
           'email': authEmail,
           'display_name': response.user!.userMetadata?['display_name'] as String? ?? 'Rajesh Kinjarapu',
-          'role': UserRole.admin.name,
+          'role': 'super_admin',
         });
-      } else {
-        await _supabase.from('profiles').update({
-          'role': UserRole.admin.name,
-        }).eq('id', response.user!.id);
       }
+      // If profile already exists, leave role as-is (don't overwrite)
     }
     await refreshProfile();
   }

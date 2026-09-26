@@ -14,7 +14,8 @@ class AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final currentLocation = GoRouterState.of(context).matchedLocation;
-    final bool isAdmin = user?.role == UserRole.admin;
+    final bool isSuperAdmin = user?.role == UserRole.superAdmin;
+    final bool isAdmin = user?.role == UserRole.admin || isSuperAdmin;
 
     return Drawer(
       backgroundColor: drawerBlue,
@@ -101,11 +102,11 @@ class AppDrawer extends ConsumerWidget {
                     context: context,
                     icon: Icons.home_rounded,
                     label: 'Home',
-                    route: isAdmin ? '/admin' : '/member',
+                    route: isSuperAdmin ? '/admin' : '/member',
                     currentLocation: currentLocation,
                     onTap: () {
                       Navigator.pop(context);
-                      context.go(isAdmin ? '/admin' : '/member');
+                      context.go(isSuperAdmin ? '/admin' : '/member');
                     },
                   ),
                   _buildNavItem(
@@ -173,7 +174,7 @@ class AppDrawer extends ConsumerWidget {
                       context.push('/players');
                     },
                   ),
-                  if (isAdmin) ...[
+                  if (isSuperAdmin) ...[
                     _buildNavItem(
                       context: context,
                       icon: Icons.manage_accounts_rounded,

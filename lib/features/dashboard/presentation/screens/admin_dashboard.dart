@@ -181,7 +181,7 @@ class AdminDashboard extends ConsumerWidget {
               crossAxisCount: 2,
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
-              childAspectRatio: 2.3,
+              childAspectRatio: 2.1,
               children: [
                 _AnimatedTile(
                   child: DashboardTile(
