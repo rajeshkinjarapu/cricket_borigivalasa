@@ -1,11 +1,12 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/cricket_enums.dart';
 import '../../../../core/utils/avatar_helper.dart';
+import '../../../players/presentation/providers/player_providers.dart';
 import '../providers/auth_providers.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -36,15 +37,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (dialogCtx) {
         return StatefulBuilder(builder: (ctx, setDialogState) {
           return AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Row(
               children: [
                 Icon(Icons.lock_reset_rounded, color: Color(0xFF1E3A8A)),
                 SizedBox(width: 10),
                 Text('Change Password',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
               ],
             ),
             content: SingleChildScrollView(
@@ -62,8 +62,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         border: Border.all(color: Colors.red.shade200),
                       ),
                       child: Text(errorMsg!,
-                          style:
-                              const TextStyle(color: Colors.red, fontSize: 13)),
+                          style: const TextStyle(color: Colors.red, fontSize: 13)),
                     ),
                   _dialogField(
                     controller: currentCtrl,
@@ -93,10 +92,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             actions: [
               TextButton(
-                onPressed:
-                    isLoading ? null : () => Navigator.of(dialogCtx).pop(),
-                child: const Text('Cancel',
-                    style: TextStyle(color: Colors.grey)),
+                onPressed: isLoading ? null : () => Navigator.of(dialogCtx).pop(),
+                child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
               ),
               ElevatedButton(
                 onPressed: isLoading
@@ -105,18 +102,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         if (currentCtrl.text.isEmpty ||
                             newCtrl.text.isEmpty ||
                             confirmCtrl.text.isEmpty) {
-                          setDialogState(
-                              () => errorMsg = 'All fields are required');
+                          setDialogState(() => errorMsg = 'All fields are required');
                           return;
                         }
                         if (newCtrl.text.length < 6) {
-                          setDialogState(() => errorMsg =
-                              'New password must be at least 6 characters');
+                          setDialogState(() =>
+                              errorMsg = 'New password must be at least 6 characters');
                           return;
                         }
                         if (newCtrl.text != confirmCtrl.text) {
-                          setDialogState(
-                              () => errorMsg = 'New passwords do not match');
+                          setDialogState(() => errorMsg = 'New passwords do not match');
                           return;
                         }
                         setDialogState(() {
@@ -124,9 +119,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           errorMsg = null;
                         });
                         try {
-                          await ref
-                              .read(authRepositoryProvider)
-                              .changePassword(
+                          await ref.read(authRepositoryProvider).changePassword(
                                 currentPassword: currentCtrl.text,
                                 newPassword: newCtrl.text,
                               );
@@ -145,8 +138,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           } else if (err.contains('weak-password')) {
                             msg = 'Password is too weak';
                           } else if (err.contains('requires-recent-login')) {
-                            msg =
-                                'Please sign out and sign in again to change password';
+                            msg = 'Please sign out and sign in again to change password';
                           }
                           setDialogState(() {
                             errorMsg = msg;
@@ -157,15 +149,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E3A8A),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 child: isLoading
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Text('Change Password'),
               ),
             ],
@@ -175,7 +165,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  // ─── Edit Name Dialog ───
+  // ─── Edit Name Dialog (Admin only) ───
   Future<void> _showEditNameDialog(String currentName) async {
     final ctrl = TextEditingController(text: currentName);
     bool isUpdating = false;
@@ -185,14 +175,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (ctx) {
         return StatefulBuilder(builder: (c, setDialogState) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Row(
               children: [
                 Icon(Icons.person_outline_rounded, color: Color(0xFF1E3A8A)),
                 SizedBox(width: 10),
-                Text('Edit Name',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('Edit Name', style: TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
             content: TextField(
@@ -201,23 +190,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
                 labelText: 'Full Name',
-                hintText: 'Enter your full name',
-                prefixIcon: const Icon(Icons.badge_outlined,
-                    color: Color(0xFF1E3A8A)),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                hintText: 'Enter name',
+                prefixIcon: const Icon(Icons.badge_outlined, color: Color(0xFF1E3A8A)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xFF1E3A8A), width: 2),
+                  borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
                 ),
               ),
             ),
             actions: [
               TextButton(
                 onPressed: isUpdating ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancel',
-                    style: TextStyle(color: Colors.grey)),
+                child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
               ),
               ElevatedButton(
                 onPressed: isUpdating
@@ -227,11 +212,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         if (newName.isEmpty) return;
                         setDialogState(() => isUpdating = true);
                         try {
-                          await ref
-                              .read(authRepositoryProvider)
-                              .updateProfile(displayName: newName);
-                          // Invalidate so UI refreshes immediately
+                          await ref.read(authRepositoryProvider).updateProfile(displayName: newName);
                           ref.invalidate(authStateProvider);
+                          ref.invalidate(currentUserProvider);
                           if (ctx.mounted) Navigator.pop(ctx);
                           if (mounted) {
                             _showSuccessSnack('Name updated successfully!');
@@ -246,182 +229,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E3A8A),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 child: isUpdating
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Text('Save'),
-              ),
-            ],
-          );
-        });
-      },
-    );
-  }
-
-  // ─── Edit Email Dialog ───
-  Future<void> _showEditEmailDialog(String currentEmail) async {
-    final emailCtrl = TextEditingController(text: currentEmail);
-    final passCtrl = TextEditingController();
-    bool isUpdating = false;
-    bool obscurePass = true;
-    String? errorMsg;
-
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return StatefulBuilder(builder: (c, setDialogState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20)),
-            title: const Row(
-              children: [
-                Icon(Icons.email_outlined, color: Color(0xFF1E3A8A)),
-                SizedBox(width: 10),
-                Text('Change Email',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (errorMsg != null)
-                  Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.shade200),
-                    ),
-                    child: Text(errorMsg!,
-                        style:
-                            const TextStyle(color: Colors.red, fontSize: 13)),
-                  ),
-                TextField(
-                  controller: emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'New Email Address',
-                    prefixIcon: const Icon(Icons.alternate_email_rounded,
-                        color: Color(0xFF1E3A8A)),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF1E3A8A), width: 2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: passCtrl,
-                  obscureText: obscurePass,
-                  decoration: InputDecoration(
-                    labelText: 'Current Password (to confirm)',
-                    prefixIcon: const Icon(Icons.lock_outline_rounded,
-                        color: Color(0xFF1E3A8A)),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                          obscurePass
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.grey,
-                          size: 20),
-                      onPressed: () =>
-                          setDialogState(() => obscurePass = !obscurePass),
-                    ),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF1E3A8A), width: 2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  '⚠️ A verification link will be sent to your new email.',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: isUpdating ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancel',
-                    style: TextStyle(color: Colors.grey)),
-              ),
-              ElevatedButton(
-                onPressed: isUpdating
-                    ? null
-                    : () async {
-                        final newEmail = emailCtrl.text.trim();
-                        final pass = passCtrl.text;
-                        if (newEmail.isEmpty || pass.isEmpty) {
-                          setDialogState(
-                              () => errorMsg = 'All fields are required');
-                          return;
-                        }
-                        if (!newEmail.contains('@')) {
-                          setDialogState(
-                              () => errorMsg = 'Enter a valid email address');
-                          return;
-                        }
-                        setDialogState(() {
-                          isUpdating = true;
-                          errorMsg = null;
-                        });
-                        try {
-                          await ref
-                              .read(authRepositoryProvider)
-                              .updateEmail(
-                                newEmail: newEmail,
-                                currentPassword: pass,
-                              );
-                          ref.invalidate(authStateProvider);
-                          if (ctx.mounted) Navigator.pop(ctx);
-                          if (mounted) {
-                            _showSuccessSnack(
-                                'Verification email sent! Please check your inbox.');
-                          }
-                        } catch (e) {
-                          String msg = 'Failed to update email. Try again.';
-                          final err = e.toString();
-                          if (err.contains('wrong-password') ||
-                              err.contains('invalid-credential')) {
-                            msg = 'Incorrect password';
-                          } else if (err.contains('email-already-in-use')) {
-                            msg = 'This email is already in use';
-                          }
-                          setDialogState(() {
-                            errorMsg = msg;
-                            isUpdating = false;
-                          });
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E3A8A),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                child: isUpdating
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Text('Send Verification'),
               ),
             ],
           );
@@ -484,15 +299,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               color: Colors.grey, size: 20),
           onPressed: onToggle,
         ),
-        border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-              const BorderSide(color: Color(0xFF1E3A8A), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       ),
     );
   }
@@ -544,7 +356,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (user == null) {
       return Scaffold(
         appBar: AppBar(
-          backgroundColor: const Color(0xFF1E3A8A),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
           foregroundColor: Colors.white,
           title: const Text('My Profile'),
         ),
@@ -553,16 +373,64 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     final bool isAdmin = user.role == UserRole.admin;
+    final bool isScorer = user.role == UserRole.scorer;
+
+    // Check if member has played at least 1 match
+    final loggedInPlayer = ref.watch(loggedInPlayerProvider).value;
+    final bool hasPlayed = loggedInPlayer != null &&
+        (loggedInPlayer.stats.matchesPlayed > 0 ||
+            loggedInPlayer.stats.runsScored > 0 ||
+            loggedInPlayer.stats.wicketsTaken > 0);
+
+    // Determine Role Badge attributes
+    final String roleTitle;
+    final IconData roleIcon;
+    final List<Color> roleGradient;
+    final Color roleTextColor;
+    final Color avatarBorderColor;
+
+    if (isAdmin) {
+      roleTitle = 'ADMINISTRATOR';
+      roleIcon = Icons.workspace_premium_rounded;
+      roleGradient = const [Color(0xFFFEF3C7), Color(0xFFFDE68A)];
+      roleTextColor = const Color(0xFF92400E);
+      avatarBorderColor = const Color(0xFFF59E0B);
+    } else if (isScorer) {
+      roleTitle = 'SCORER';
+      roleIcon = Icons.sports_score_rounded;
+      roleGradient = const [Color(0xFFD1FAE5), Color(0xFFA7F3D0)];
+      roleTextColor = const Color(0xFF065F46);
+      avatarBorderColor = const Color(0xFF10B981);
+    } else if (hasPlayed) {
+      roleTitle = 'PLAYER';
+      roleIcon = Icons.sports_cricket_rounded;
+      roleGradient = const [Color(0xFFDBEAFE), Color(0xFFBFDBFE)];
+      roleTextColor = const Color(0xFF1E40AF);
+      avatarBorderColor = const Color(0xFF2563EB);
+    } else {
+      roleTitle = 'MEMBER';
+      roleIcon = Icons.badge_rounded;
+      roleGradient = const [Color(0xFFF1F5F9), Color(0xFFE2E8F0)];
+      roleTextColor = const Color(0xFF475569);
+      avatarBorderColor = const Color(0xFF94A3B8);
+    }
+
     final imageProvider = _localPhotoBytes != null
         ? MemoryImage(_localPhotoBytes!)
         : getAppAvatarProvider(user.photoUrl);
-    final Color brandColor =
-        isAdmin ? const Color(0xFFD97706) : const Color(0xFF1E3A8A);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E3A8A),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         foregroundColor: Colors.white,
         elevation: 0,
         leading: context.canPop()
@@ -574,9 +442,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         title: const Text(
           'My Profile',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            fontSize: 19,
             color: Colors.white,
+            letterSpacing: 0.3,
           ),
         ),
         actions: [
@@ -590,13 +459,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          // ── Main Profile Header Card (with Squircle Photo, Name & Role) ──
+          // ── Main Profile Header Card ──
           _ProfileCard(
             child: Column(
               children: [
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
-                // ── Rounded Rectangle Profile Photo (Squircle, NOT round) ──
+                // ── Squircle Profile Photo ──
                 Center(
                   child: Stack(
                     clipBehavior: Clip.none,
@@ -607,18 +476,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(22),
                           border: Border.all(
-                            color: isAdmin
-                                ? const Color(0xFFF59E0B)
-                                : const Color(0xFF2563EB),
+                            color: avatarBorderColor,
                             width: 2.5,
                           ),
                           color: const Color(0xFF0F172A),
                           boxShadow: [
                             BoxShadow(
-                              color: (isAdmin
-                                      ? const Color(0xFFF59E0B)
-                                      : const Color(0xFF2563EB))
-                                  .withOpacity(0.25),
+                              color: avatarBorderColor.withOpacity(0.25),
                               blurRadius: 14,
                               offset: const Offset(0, 4),
                             ),
@@ -656,18 +520,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: isAdmin
-                                    ? [
-                                        const Color(0xFFF59E0B),
-                                        const Color(0xFFD97706)
-                                      ]
-                                    : [
-                                        const Color(0xFF3B82F6),
-                                        const Color(0xFF1E3A8A)
-                                      ],
+                                    ? const [Color(0xFFF59E0B), Color(0xFFD97706)]
+                                    : const [Color(0xFF3B82F6), Color(0xFF1E3A8A)],
                               ),
                               borderRadius: BorderRadius.circular(10),
-                              border:
-                                  Border.all(color: Colors.white, width: 2),
+                              border: Border.all(color: Colors.white, width: 2),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.25),
@@ -688,229 +545,178 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                // Name with edit pencil
+                // Name (No edit icon for members; only admin can edit if needed)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Flexible(
                       child: Text(
-                        user.displayName.isNotEmpty
-                            ? user.displayName
-                            : 'Member',
+                        user.displayName.isNotEmpty ? user.displayName : 'Member',
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 21,
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF0F172A),
-                          letterSpacing: -0.5,
+                          letterSpacing: -0.3,
                         ),
                         textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    GestureDetector(
-                      onTap: () => _showEditNameDialog(user.displayName),
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: brandColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(Icons.edit_rounded,
-                            size: 16, color: brandColor),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // Email with Change Button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '@ ',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade500,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Flexible(
-                      child: Text(
-                        user.email,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
-                        ),
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: () => _showEditEmailDialog(user.email),
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2563EB).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: const Color(0xFF2563EB).withOpacity(0.3),
-                            width: 1,
+                    if (isAdmin) ...[
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () => _showEditNameDialog(user.displayName),
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E3A8A).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ),
-                        child: const Text(
-                          'Change',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF2563EB),
-                            fontWeight: FontWeight.w700,
-                          ),
+                          child: const Icon(Icons.edit_rounded,
+                              size: 15, color: Color(0xFF1E3A8A)),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
 
-                // Role Badge
+                // Dynamic Role Badge (ADMIN / SCORER / PLAYER / MEMBER)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
-                    gradient: isAdmin
-                        ? const LinearGradient(
-                            colors: [
-                              Color(0xFFFFE082),
-                              Color(0xFFFFB300),
-                              Color(0xFFFFA000)
-                            ],
-                          )
-                        : const LinearGradient(
-                            colors: [
-                              Color(0xFFDBEAFE),
-                              Color(0xFFBFD9FE)
-                            ],
-                          ),
+                    gradient: LinearGradient(colors: roleGradient),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: brandColor.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+                        color: roleTextColor.withOpacity(0.12),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        isAdmin
-                            ? Icons.workspace_premium_rounded
-                            : Icons.sports_cricket_rounded,
-                        size: 15,
-                        color: isAdmin
-                            ? const Color(0xFF78350F)
-                            : const Color(0xFF1E3A8A),
-                      ),
+                      Icon(roleIcon, size: 14, color: roleTextColor),
                       const SizedBox(width: 6),
                       Text(
-                        isAdmin ? 'ADMINISTRATOR' : 'MEMBER',
+                        roleTitle,
                         style: TextStyle(
-                          color: isAdmin
-                              ? const Color(0xFF78350F)
-                              : const Color(0xFF1E3A8A),
+                          color: roleTextColor,
                           fontWeight: FontWeight.w900,
-                          fontSize: 12,
-                          letterSpacing: 1,
+                          fontSize: 11.5,
+                          letterSpacing: 0.8,
                         ),
                       ),
                     ],
                   ),
                 ),
+
+                // ── Mini Player Stats Ribbon (if player has played) ──
+                if (hasPlayed && loggedInPlayer != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _miniStatItem('Matches', '${loggedInPlayer.stats.matchesPlayed}'),
+                        Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
+                        _miniStatItem('Runs', '${loggedInPlayer.stats.runsScored}'),
+                        Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
+                        _miniStatItem('Wickets', '${loggedInPlayer.stats.wicketsTaken}'),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 4),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
           // ── Admin Privileges ──
           if (isAdmin) ...[
-            _SectionHeader(title: 'Administrator Access'),
+            const _SectionHeader(title: 'Administrator Access'),
             _ProfileCard(
               child: Column(
                 children: [
-                  _ActionTile(
+                  const _ActionTile(
                     icon: Icons.admin_panel_settings_rounded,
                     title: 'Access Level',
                     subtitle: 'Full Administrative Access',
-                    iconColor: const Color(0xFFD97706),
+                    iconColor: Color(0xFFD97706),
                   ),
                   const _Divider(),
-                  _ActionTile(
+                  const _ActionTile(
                     icon: Icons.emoji_events_rounded,
                     title: 'Tournament Manager',
                     subtitle: 'Create, edit & manage tournaments',
-                    iconColor: const Color(0xFF2563EB),
+                    iconColor: Color(0xFF2563EB),
                   ),
                   const _Divider(),
-                  _ActionTile(
+                  const _ActionTile(
                     icon: Icons.sports_cricket_rounded,
                     title: 'Live Match Scorer',
                     subtitle: 'Full live match scoring controls',
-                    iconColor: const Color(0xFF16A34A),
+                    iconColor: Color(0xFF16A34A),
                   ),
                   const _Divider(),
-                  _ActionTile(
+                  const _ActionTile(
                     icon: Icons.manage_accounts_rounded,
                     title: 'Member Management',
                     subtitle: 'Promote, demote & manage members',
-                    iconColor: const Color(0xFF7C3AED),
+                    iconColor: Color(0xFF7C3AED),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
           ],
 
-          // ── Player Information (Members only) ──
+          // ── Player Information (Without Current Team) ──
           if (!isAdmin) ...[
-            _SectionHeader(title: 'Player Information'),
+            const _SectionHeader(title: 'Player Information'),
             _ProfileCard(
               child: Column(
                 children: [
                   _ActionTile(
                     icon: Icons.sports_cricket,
                     title: 'Batting Style',
-                    subtitle: 'Right-hand bat',
+                    subtitle: loggedInPlayer?.battingStyle.label ?? 'Right hand',
                     iconColor: const Color(0xFF1E3A8A),
                   ),
                   const _Divider(),
                   _ActionTile(
                     icon: Icons.sports_baseball,
                     title: 'Bowling Style',
-                    subtitle: 'Right-arm medium',
+                    subtitle: loggedInPlayer?.bowlingStyle.label ?? 'Right-arm medium',
                     iconColor: const Color(0xFF059669),
                   ),
                   const _Divider(),
                   _ActionTile(
-                    icon: Icons.group_rounded,
-                    title: 'Current Team',
-                    subtitle: 'Borigivalasa Blasters',
-                    iconColor: const Color(0xFFD97706),
+                    icon: Icons.shield_rounded,
+                    title: 'Playing Role',
+                    subtitle: loggedInPlayer?.role.label ?? 'All-rounder',
+                    iconColor: const Color(0xFF2563EB),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
           ],
 
           // ── Settings & Security ──
-          _SectionHeader(title: 'Settings & Security'),
+          const _SectionHeader(title: 'Settings & Security'),
           _ProfileCard(
             child: Column(
               children: [
@@ -936,40 +742,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
 
           // ── Sign Out Button ──
           SizedBox(
             width: double.infinity,
-            height: 52,
+            height: 50,
             child: ElevatedButton.icon(
-              icon: const Icon(Icons.logout_rounded,
-                  color: Colors.white, size: 18),
+              icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
               label: const Text(
                 'Sign Out',
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
+                    color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFDC2626),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 elevation: 2,
-                shadowColor: const Color(0xFFDC2626).withOpacity(0.4),
+                shadowColor: const Color(0xFFDC2626).withOpacity(0.35),
               ),
               onPressed: () {
                 showDialog(
                   context: context,
                   builder: (dialogCtx) => AlertDialog(
                     backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     title: const Row(
                       children: [
-                        Icon(Icons.logout_rounded,
-                            color: Color(0xFFDC2626), size: 24),
+                        Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 24),
                         SizedBox(width: 10),
                         Text(
                           'Sign Out',
@@ -983,25 +783,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     content: const Text(
                       'Are you sure you want to sign out of your account?',
-                      style:
-                          TextStyle(fontSize: 14, color: Color(0xFF475569)),
+                      style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
                     ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(dialogCtx),
                         child: const Text(
                           'Cancel',
-                          style: TextStyle(
-                              color: Color(0xFF64748B),
-                              fontWeight: FontWeight.bold),
+                          style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
                         ),
                       ),
                       ElevatedButton(
                         onPressed: () async {
                           Navigator.pop(dialogCtx);
-                          await ref
-                              .read(authControllerProvider.notifier)
-                              .signOut();
+                          await ref.read(authControllerProvider.notifier).signOut();
                           ref.invalidate(authStateProvider);
                           ref.invalidate(currentUserProvider);
                           if (context.mounted) {
@@ -1011,11 +806,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFDC2626),
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text('Sign Out',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -1025,6 +818,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _miniStatItem(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF1E3A8A),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF64748B),
+          ),
+        ),
+      ],
     );
   }
 
