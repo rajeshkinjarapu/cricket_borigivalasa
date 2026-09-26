@@ -4,6 +4,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/widgets/global_notification_listener.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,11 @@ class CricketApp extends ConsumerWidget {
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
       routerConfig: ref.watch(routerProvider),
+      builder: (context, child) {
+        return GlobalNotificationListener(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }
