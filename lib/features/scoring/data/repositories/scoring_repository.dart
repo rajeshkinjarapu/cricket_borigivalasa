@@ -151,9 +151,9 @@ class ScoringRepository {
       'bowling_team_id': bowlingTeam.id,
       'runs': 0, 'wickets': 0, 'legal_balls': 0,
       'target_runs': targetRuns, 'is_complete': false,
-      'opening_striker_name': openingStriker.name, 'current_striker_id': openingStriker.id,
-      'opening_non_striker_name': openingNonStriker?.name, 'current_non_striker_id': openingNonStriker?.id,
-      'current_bowler_name': openingBowler.name, 'current_bowler_id': openingBowler.id,
+      'current_striker_id': openingStriker.id,
+      'current_non_striker_id': openingNonStriker?.id,
+      'current_bowler_id': openingBowler.id,
       'created_at': DateTime.now().toIso8601String()
     };
     
