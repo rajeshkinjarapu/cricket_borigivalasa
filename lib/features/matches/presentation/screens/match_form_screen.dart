@@ -782,18 +782,9 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
             }
           },
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.isEdit ? 'Edit Match' : 'Create Match',
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white),
-            ),
-            const Text(
-              'Select match type & configure contest',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF93C5FD)),
-            ),
-          ],
+        title: Text(
+          widget.isEdit ? 'Edit Match' : 'Create Match',
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white),
         ),
       ),
       body: SafeArea(
