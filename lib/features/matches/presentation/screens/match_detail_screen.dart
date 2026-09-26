@@ -66,13 +66,19 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
             tossWinnerTeamId: _selectedTossWinner!,
             tossDecision: _selectedDecision!,
           );
+          
+      // Auto-start match and open scoring!
+      if (match.status != MatchStatus.live) {
+        final controller = ref.read(matchControllerProvider.notifier);
+        await controller.update(match.copyWith(
+          status: MatchStatus.live, 
+          tossWinnerId: _selectedTossWinner, 
+          tossDecision: _selectedDecision
+        ));
+      }
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Toss recorded successfully!'),
-            backgroundColor: Color(0xFF16A34A),
-          ),
-        );
+        context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring');
       }
     } catch (e) {
       if (mounted) {
@@ -1054,12 +1060,26 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
               context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring');
             }
           } else {
-            context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads');
+            if (match.hasToss) {
+              if (match.status != MatchStatus.live) {
+                final controller = ref.read(matchControllerProvider.notifier);
+                await controller.update(match.copyWith(status: MatchStatus.live));
+              }
+              if (context.mounted) {
+                context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring');
+              }
+            } else {
+              context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/squads');
+            }
           }
         },
-        icon: const Icon(Icons.sports_cricket_rounded, size: 22, color: Colors.white),
+        icon: Icon(match.hasToss ? Icons.play_circle_fill_rounded : Icons.sports_cricket_rounded, size: 22, color: Colors.white),
         label: Text(
-          isCounty ? 'START COUNTY DUEL (SCOREBOARD)' : 'SELECT SQUADS & START MATCH',
+          isCounty 
+              ? 'START COUNTY DUEL (SCOREBOARD)' 
+              : match.hasToss 
+                  ? 'START MATCH & OPEN SCORING' 
+                  : 'SELECT SQUADS & START MATCH',
           style: const TextStyle(
             fontSize: 14.5,
             fontWeight: FontWeight.w900,
