@@ -406,7 +406,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
           ),
           const SizedBox(height: 4),
 
-          // Score / Yet to bat
+          // Score / Status
           if (hasBat) ...[
             Text(
               '${teamInn!.runs}/${teamInn.wickets}',
@@ -425,6 +425,11 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
             const Text(
               'Opponent',
               style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5, fontWeight: FontWeight.w600),
+            ),
+          ] else if (match.isCompleted) ...[
+            const Text(
+              '—',
+              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.bold),
             ),
           ] else ...[
             const Text(
