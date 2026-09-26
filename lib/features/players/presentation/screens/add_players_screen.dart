@@ -668,3 +668,11 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
     );
   }
 }
+
+// Dummy reference to prevent Shorebird asset diff error from font tree-shaking
+// We removed these icons from the UI but keeping them here ensures the font file
+// doesn't change, allowing the shorebird patch to succeed.
+const _shorebirdDummyIcons = [
+  Icons.format_list_bulleted_rounded,
+  Icons.person_add_alt_1_rounded,
+];
