@@ -380,164 +380,166 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
                           } catch (_) {}
                         }
 
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(
-                            color: isInCurrentSquad
-                                ? const Color(0xFFF0FDF4)
-                                : isInOppositeSquad
-                                    ? const Color(0xFFF8FAFC)
-                                    : Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: isInCurrentSquad
-                                  ? const Color(0xFF86EFAC)
-                                  : isInOppositeSquad
-                                      ? const Color(0xFFCBD5E1)
-                                      : const Color(0xFFE2E8F0),
-                              width: isInCurrentSquad ? 1.5 : 1,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.02),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            leading: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: roleColor.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: roleColor.withOpacity(0.25)),
-                                image: playerImg != null
-                                    ? DecorationImage(image: playerImg, fit: BoxFit.cover)
-                                    : null,
-                              ),
-                              child: playerImg == null
-                                  ? Center(
-                                      child: Text(
-                                        p.name.isNotEmpty ? p.name[0].toUpperCase() : 'P',
-                                        style: TextStyle(
-                                          color: roleColor,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            title: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    p.name,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 14.5,
-                                      color: isInOppositeSquad ? const Color(0xFF64748B) : const Color(0xFF0F172A),
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                if (p.jerseyNumber != null) ...[
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '#${p.jerseyNumber}',
-                                    style: const TextStyle(
-                                      color: Color(0xFF64748B),
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            subtitle: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: roleColor.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    p.role.label,
-                                    style: TextStyle(
-                                      color: roleColor,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    '${p.battingStyle.label}${p.bowlingStyle != BowlingStyle.none ? " • ${p.bowlingStyle.label}" : ""}',
-                                    style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            trailing: isInCurrentSquad
-                                ? ElevatedButton.icon(
-                                    onPressed: () async {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: InkWell(
+                            onTap: isInOppositeSquad
+                                ? null
+                                : () async {
+                                    if (isInCurrentSquad) {
                                       await ref
                                           .read(playerControllerProvider.notifier)
                                           .removePlayerFromTeam(p.id, widget.team.id);
-                                    },
-                                    icon: const Icon(Icons.check_rounded, size: 14),
-                                    label: const Text('In Squad'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF16A34A),
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                      textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                                    } else {
+                                      await ref
+                                          .read(playerControllerProvider.notifier)
+                                          .addPlayerToTeam(p.id, widget.team.id);
+                                    }
+                                  },
+                            borderRadius: BorderRadius.circular(14),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              decoration: BoxDecoration(
+                                color: isInCurrentSquad
+                                    ? const Color(0xFFF0FDF4)
+                                    : isInOppositeSquad
+                                        ? const Color(0xFFF8FAFC)
+                                        : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isInCurrentSquad
+                                      ? const Color(0xFF16A34A).withOpacity(0.5)
+                                      : isInOppositeSquad
+                                          ? const Color(0xFFCBD5E1)
+                                          : const Color(0xFFE2E8F0),
+                                  width: isInCurrentSquad ? 1.5 : 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: isInCurrentSquad 
+                                        ? const Color(0xFF16A34A).withOpacity(0.05) 
+                                        : Colors.black.withOpacity(0.02),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                leading: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: roleColor.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: roleColor.withOpacity(0.25)),
+                                    image: playerImg != null
+                                        ? DecorationImage(image: playerImg, fit: BoxFit.cover)
+                                        : null,
+                                  ),
+                                  child: playerImg == null
+                                      ? Center(
+                                          child: Text(
+                                            p.name.isNotEmpty ? p.name[0].toUpperCase() : 'P',
+                                            style: TextStyle(
+                                              color: roleColor,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        p.name,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14.5,
+                                          color: isInOppositeSquad ? const Color(0xFF64748B) : const Color(0xFF0F172A),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                  )
-                                : isInOppositeSquad
+                                    if (p.jerseyNumber != null) ...[
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '#${p.jerseyNumber}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF64748B),
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                subtitle: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: roleColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        p.role.label,
+                                        style: TextStyle(
+                                          color: roleColor,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        '${p.battingStyle.label}${p.bowlingStyle != BowlingStyle.none ? " • ${p.bowlingStyle.label}" : ""}',
+                                        style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                trailing: isInOppositeSquad
                                     ? Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFFEF3C7),
                                           borderRadius: BorderRadius.circular(8),
                                           border: Border.all(color: const Color(0xFFFDE68A)),
                                         ),
                                         child: Text(
-                                          'In ${widget.oppositeTeamName ?? "Other Team"}',
+                                          'In ${widget.oppositeTeamName ?? "Other"}',
                                           style: const TextStyle(
                                             color: Color(0xFFB45309),
-                                            fontSize: 11,
+                                            fontSize: 10.5,
                                             fontWeight: FontWeight.w800,
                                           ),
                                         ),
                                       )
-                                    : ElevatedButton.icon(
-                                        onPressed: () async {
-                                          await ref
-                                              .read(playerControllerProvider.notifier)
-                                              .addPlayerToTeam(p.id, widget.team.id);
-                                        },
-                                        icon: const Icon(Icons.add_rounded, size: 14),
-                                        label: const Text('Add to Squad'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF1E3A8A),
-                                          foregroundColor: Colors.white,
-                                          elevation: 0,
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                                    : AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
+                                        width: 26,
+                                        height: 26,
+                                        decoration: BoxDecoration(
+                                          color: isInCurrentSquad ? const Color(0xFF16A34A) : Colors.transparent,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: isInCurrentSquad ? const Color(0xFF16A34A) : const Color(0xFFCBD5E1),
+                                            width: 1.5,
+                                          ),
                                         ),
+                                        child: isInCurrentSquad
+                                            ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                                            : null,
                                       ),
+                              ),
+                            ),
                           ),
                         );
                       },
