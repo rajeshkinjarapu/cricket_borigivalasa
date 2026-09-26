@@ -477,17 +477,15 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
                                     ),
                                   ),
                                 ),
-                                if (p.phoneNumber != null && p.phoneNumber!.isNotEmpty) ...[
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      '📞 ${p.phoneNumber}',
-                                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    '${p.battingStyle.label}${p.bowlingStyle != BowlingStyle.none ? " • ${p.bowlingStyle.label}" : ""}',
+                                    style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ],
+                                ),
                               ],
                             ),
                             trailing: isInCurrentSquad

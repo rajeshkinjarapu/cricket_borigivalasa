@@ -446,9 +446,9 @@ class _PlayerCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
 
-                    // Batting & Bowling Info & Phone
+                    // Batting & Bowling Info
                     Text(
-                      '${player.battingStyle.label}${player.bowlingStyle != BowlingStyle.none ? ' • ${player.bowlingStyle.label}' : ''}${player.phoneNumber != null && player.phoneNumber!.isNotEmpty ? ' • 📞 ${player.phoneNumber}' : ''}',
+                      '${player.battingStyle.label}${player.bowlingStyle != BowlingStyle.none ? ' • ${player.bowlingStyle.label}' : ''}',
                       style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                     ),
                   ],
