@@ -647,33 +647,12 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
             }
           },
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isMatchOver ? 'Match Completed' : 'Live Scoring Console',
-              style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800, color: Colors.white),
-            ),
-            Text(
-              '${live.battingTeamName} vs ${live.bowlingTeamName} • Innings ${live.inningsNumber}',
-              style: const TextStyle(fontSize: 11, color: Color(0xFF93C5FD), fontWeight: FontWeight.w500),
-            ),
-          ],
+        title: Text(
+          isMatchOver ? 'Match Completed' : 'Live Scoring Console',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
         ),
         actions: [
-          if (!isMatchOver) ...[
-            if (!isCountyMatch)
-              IconButton(
-                icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
-                tooltip: 'Rotate Strike',
-                onPressed: () => _swapStrike(live),
-              ),
-            IconButton(
-              icon: const Icon(Icons.sports_baseball_rounded, color: Colors.white),
-              tooltip: 'Change Bowler',
-              onPressed: () => _manualChangeBowler(live),
-            ),
-          ],
+
           IconButton(
             icon: const Icon(Icons.settings_suggest_rounded, color: Colors.white),
             tooltip: 'Match Settings / Overs',
@@ -743,177 +722,161 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   // 1. HERO SCOREBOARD CARD (ROYAL SAPPHIRE STADIUM GRADIENT)
   // ─────────────────────────────────────────────────────────────────────────────
   Widget _buildHeroScoreboardCard(Innings live, int maxOvers, int totalExtras, int projectedScore) {
-    final crr = live.runRate;
-    final totalBalls = maxOvers * 6;
-    final ballsRemaining = (totalBalls - live.legalBalls).clamp(0, 9999);
+    final ballsRemaining = (maxOvers * 6) - live.legalBalls;
     final target = live.targetRuns;
     final runsNeeded = target != null ? (target - live.runs).clamp(0, 9999) : null;
-    final rrr = (runsNeeded != null && ballsRemaining > 0 && runsNeeded > 0)
-        ? (runsNeeded / ballsRemaining) * 6
+    final crr = live.legalBalls > 0 ? (live.runs / (live.legalBalls / 6)).toStringAsFixed(2) : '0.00';
+    final reqInfo = (runsNeeded != null && ballsRemaining > 0 && runsNeeded > 0)
+        ? 'Need $runsNeeded from $ballsRemaining balls'
         : null;
 
-    final progress = totalBalls > 0 ? (live.legalBalls / totalBalls).clamp(0.0, 1.0) : 0.0;
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2563EB), Color(0xFF06B6D4)], // Vibrant Blue to Cyan
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1E3A8A).withOpacity(0.38),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            '${live.battingTeamName} vs ${live.bowlingTeamName}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5),
           ),
-        ],
-        border: Border.all(color: Colors.white.withOpacity(0.18), width: 1),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      child: Column(
-        children: [
-          // Team Name & Innings Badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 18,
+                offset: const Offset(0, 4),
+              ),
+            ],
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+          ),
+          child: Column(
             children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFBFDBFE)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.sports_cricket_rounded, color: Color(0xFF2563EB), size: 14),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${live.inningsNumber}${live.inningsNumber == 1 ? "st" : "nd"} Innings',
+                            style: const TextStyle(color: Color(0xFF1E3A8A), fontSize: 11, fontWeight: FontWeight.w800),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (reqInfo != null)
+                      Text(
+                        reqInfo,
+                        style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12, fontWeight: FontWeight.w800),
+                      ),
+                  ],
+                ),
+              ),
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.sports_cricket_rounded, color: Color(0xFFFDE047), size: 16),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    live.battingTeamName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: Text(
-                  '${live.inningsNumber}${live.inningsNumber == 1 ? "st" : "nd"} Innings',
-                  style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 11, fontWeight: FontWeight.w800),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Big Glowing Runs / Wickets & Overs
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                '${live.runs}',
-                style: const TextStyle(
-                  fontSize: 52,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  height: 1.0,
-                  letterSpacing: -1,
-                  shadows: [
-                    Shadow(color: Colors.black38, blurRadius: 10, offset: Offset(0, 3)),
-                  ],
-                ),
-              ),
-              Text(
-                '/${live.wickets}',
-                style: const TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFFFCA5A5), // Soft Scarlet Red
-                  height: 1.0,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white24, width: 1),
-                ),
-                child: Text(
-                  '${live.oversText} / $maxOvers ov',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Color(0xFFF8FAFC),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Overs Progress Bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: Colors.white.withOpacity(0.15),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF38BDF8)),
-              minHeight: 4.5,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Match Situation Glass Row (Target / CRR / RRR / Extras)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.22),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withOpacity(0.15)),
-            ),
-            child: Row(
-              children: [
-                Expanded(child: _buildScoreStatItem('CRR', crr.toStringAsFixed(2), color: const Color(0xFF38BDF8))),
-                if (target != null) ...[
-                  Container(width: 1, height: 20, color: Colors.white12),
                   Expanded(
-                    child: _buildScoreStatItem(
-                      'NEED',
-                      live.runs >= target
-                          ? 'TARGET WON 🎉'
-                          : (ballsRemaining == 0 ? '$runsNeeded off 0 b' : '$runsNeeded off $ballsRemaining b'),
-                      color: const Color(0xFFFDE047),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              '${live.runs}',
+                              style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), height: 1, letterSpacing: -1.5),
+                            ),
+                            Text(
+                              '/${live.wickets}',
+                              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Color(0xFF64748B), height: 1),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        const Text('SCORE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8), letterSpacing: 0.5)),
+                      ],
                     ),
                   ),
-                  if (rrr != null && live.runs < target) ...[
-                    Container(width: 1, height: 20, color: Colors.white12),
-                    Expanded(child: _buildScoreStatItem('RRR', rrr.toStringAsFixed(2), color: const Color(0xFFF87171))),
-                  ],
-                ] else ...[
-                  Container(width: 1, height: 20, color: Colors.white12),
-                  Expanded(child: _buildScoreStatItem('PROJ', '$projectedScore', color: const Color(0xFF4ADE80))),
+                  Container(width: 1, height: 64, color: const Color(0xFFE2E8F0)),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text(
+                          '${live.oversText}',
+                          style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), height: 1, letterSpacing: -0.5),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'OVERS (MAX $maxOvers)',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8), letterSpacing: 0.5),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-                Container(width: 1, height: 20, color: Colors.white12),
-                Expanded(child: _buildScoreStatItem('EXTRAS', '$totalExtras (w${live.wides} nb${live.noballs})', color: const Color(0xFFE2E8F0))),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.only(bottomLeft: Radius.circular(22), bottomRight: Radius.circular(22)),
+                  border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text('CRR', style: TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 2),
+                          Text(crr, style: const TextStyle(color: Color(0xFF0F172A), fontSize: 13, fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text('PROJ', style: TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 2),
+                          Text('$projectedScore', style: const TextStyle(color: Color(0xFF0F172A), fontSize: 13, fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text('EXTRAS', style: TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 2),
+                          Text('$totalExtras (w${live.wides} nb${live.noballs})', style: const TextStyle(color: Color(0xFF0F172A), fontSize: 13, fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
