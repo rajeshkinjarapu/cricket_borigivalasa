@@ -417,468 +417,402 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     final isWinnerA = match.status == MatchStatus.completed && winnerId != null && winnerId == match.teamAId;
     final isWinnerB = match.status == MatchStatus.completed && winnerId != null && winnerId == match.teamBId;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isCounty
-              ? [const Color(0xFF0F172A), const Color(0xFF1E293B), const Color(0xFF3B1E08)]
-              : [const Color(0xFF0F172A), const Color(0xFF1E3A8A), const Color(0xFF0F172A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isCounty ? const Color(0xFFF59E0B).withOpacity(0.4) : const Color(0xFF38BDF8).withOpacity(0.3),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: (isCounty ? const Color(0xFFD97706) : const Color(0xFF1E3A8A)).withOpacity(0.22),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // ── TOP STATUS & FORMAT BADGES ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Status Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: match.status == MatchStatus.live
-                        ? const Color(0xFFEF4444).withOpacity(0.2)
-                        : match.status == MatchStatus.completed
-                            ? const Color(0xFF10B981).withOpacity(0.2)
-                            : const Color(0xFF3B82F6).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: match.status == MatchStatus.live
-                          ? const Color(0xFFEF4444).withOpacity(0.6)
-                          : match.status == MatchStatus.completed
-                              ? const Color(0xFF10B981).withOpacity(0.6)
-                              : const Color(0xFF3B82F6).withOpacity(0.6),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (match.status == MatchStatus.live) ...[
-                        Container(
-                          width: 7,
-                          height: 7,
-                          margin: const EdgeInsets.only(right: 6),
-                          decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
-                        ),
-                      ] else if (match.status == MatchStatus.completed) ...[
-                        const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF34D399)),
-                        const SizedBox(width: 4),
-                      ],
-                      Text(
-                        match.status.label.toUpperCase(),
-                        style: TextStyle(
-                          color: match.status == MatchStatus.live
-                              ? const Color(0xFFFCA5A5)
-                              : match.status == MatchStatus.completed
-                                  ? const Color(0xFF6EE7B7)
-                                  : const Color(0xFF93C5FD),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 10.5,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Match Format Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isCounty
-                          ? [const Color(0xFFD97706), const Color(0xFFDC2626)]
-                          : [const Color(0xFF2563EB), const Color(0xFF0D9488)],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(isCounty ? Icons.bolt_rounded : Icons.sports_cricket_rounded, color: Colors.white, size: 13),
-                      const SizedBox(width: 4),
-                      Text(
-                        isCounty ? 'COUNTY DUEL' : 'TOURNAMENT MATCH',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10.5, letterSpacing: 0.6),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── COUNTY TARGET GLOWING BANNER ──
-          if (isCounty && targetRuns != null && totalBalls != null) ...[
+    return Column(
+      children: [
+        // ── TOP STATUS & FORMAT BADGES ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
             Container(
-              margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFF59E0B).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.4)),
+                color: match.status == MatchStatus.live
+                    ? const Color(0xFFEF4444).withOpacity(0.1)
+                    : match.status == MatchStatus.completed
+                        ? const Color(0xFF10B981).withOpacity(0.1)
+                        : const Color(0xFF3B82F6).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.track_changes_rounded, color: Color(0xFFFDE68A), size: 16),
-                  const SizedBox(width: 6),
+                  if (match.status == MatchStatus.live) ...[
+                    Container(
+                      width: 6,
+                      height: 6,
+                      margin: const EdgeInsets.only(right: 6),
+                      decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
+                    ),
+                  ] else if (match.status == MatchStatus.completed) ...[
+                    const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF10B981)),
+                    const SizedBox(width: 4),
+                  ],
                   Text(
-                    'TARGET: $targetRuns RUNS IN $totalBalls BALLS',
-                    style: const TextStyle(
-                      color: Color(0xFFFDE68A),
+                    match.status.label.toUpperCase(),
+                    style: TextStyle(
+                      color: match.status == MatchStatus.live
+                          ? const Color(0xFFDC2626)
+                          : match.status == MatchStatus.completed
+                              ? const Color(0xFF059669)
+                              : const Color(0xFF2563EB),
                       fontWeight: FontWeight.w900,
-                      fontSize: 12.5,
-                      letterSpacing: 0.6,
+                      fontSize: 10,
+                      letterSpacing: 0.8,
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(isCounty ? Icons.bolt_rounded : Icons.sports_cricket_rounded, color: const Color(0xFF64748B), size: 12),
+                  const SizedBox(width: 4),
+                  Text(
+                    isCounty ? 'COUNTY DUEL' : 'TOURNAMENT MATCH',
+                    style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w800, fontSize: 10, letterSpacing: 0.5),
+                  ),
+                ],
+              ),
+            ),
           ],
+        ),
 
-          const SizedBox(height: 16),
-
-          // ── PLAYERS / TEAMS FACE-OFF SECTION ──
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // ── PLAYER / TEAM A ──
-                Expanded(
-                  child: Column(
-                    children: [
-                      Stack(
-                        alignment: Alignment.topCenter,
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            width: 66,
-                            height: 66,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                              border: Border.all(
-                                color: isWinnerA ? const Color(0xFFF59E0B) : (isCounty ? const Color(0xFF60A5FA) : Colors.white),
-                                width: isWinnerA ? 3.5 : 2.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: isWinnerA ? const Color(0xFFF59E0B).withOpacity(0.5) : Colors.black.withOpacity(0.25),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                              image: imageProviderA != null ? DecorationImage(image: imageProviderA, fit: BoxFit.cover) : null,
-                            ),
-                            alignment: Alignment.center,
-                            child: imageProviderA == null
-                                ? Text(
-                                    teamA?.shortName ?? match.teamA.substring(0, (match.teamA.length >= 2 ? 2 : 1)).toUpperCase(),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: isCounty ? const Color(0xFF1D4ED8) : const Color(0xFF1E3A8A),
-                                      fontSize: 20,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          if (isWinnerA)
-                            Positioned(
-                              top: -10,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF59E0B),
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4),
-                                  ],
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text('👑', style: TextStyle(fontSize: 10)),
-                                    SizedBox(width: 2),
-                                    Text('WIN', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w900)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        match.teamA,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800,
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isCounty ? const Color(0xFF2563EB).withOpacity(0.3) : Colors.white.withOpacity(0.16),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          isCounty ? '🏏 BATSMAN' : '$countA Players',
-                          style: const TextStyle(
-                            color: Color(0xFF93C5FD),
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      if (scoreA.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.25),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFF34D399).withOpacity(0.4)),
-                          ),
-                          child: Text(
-                            scoreA,
-                            style: const TextStyle(
-                              color: Color(0xFF6EE7B7),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                // ── CENTER VS EMBLEM ──
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      gradient: isCounty
-                          ? const LinearGradient(colors: [Color(0xFFD97706), Color(0xFFEF4444)])
-                          : const LinearGradient(colors: [Color(0xFF2563EB), Color(0xFF0284C7)]),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (isCounty ? const Color(0xFFD97706) : const Color(0xFF0284C7)).withOpacity(0.5),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Text(
-                      'VS',
-                      style: TextStyle(
-                        color: Color(0xFFFACC15),
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // ── PLAYER / TEAM B ──
-                Expanded(
-                  child: Column(
-                    children: [
-                      Stack(
-                        alignment: Alignment.topCenter,
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            width: 66,
-                            height: 66,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                              border: Border.all(
-                                color: isWinnerB ? const Color(0xFFF59E0B) : (isCounty ? const Color(0xFFFBBF24) : Colors.white),
-                                width: isWinnerB ? 3.5 : 2.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: isWinnerB ? const Color(0xFFF59E0B).withOpacity(0.5) : Colors.black.withOpacity(0.25),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                              image: imageProviderB != null ? DecorationImage(image: imageProviderB, fit: BoxFit.cover) : null,
-                            ),
-                            alignment: Alignment.center,
-                            child: imageProviderB == null
-                                ? Text(
-                                    teamB?.shortName ?? match.teamB.substring(0, (match.teamB.length >= 2 ? 2 : 1)).toUpperCase(),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: isCounty ? const Color(0xFFB45309) : const Color(0xFF1E3A8A),
-                                      fontSize: 20,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          if (isWinnerB)
-                            Positioned(
-                              top: -10,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF59E0B),
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4),
-                                  ],
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text('👑', style: TextStyle(fontSize: 10)),
-                                    SizedBox(width: 2),
-                                    Text('WIN', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w900)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        match.teamB,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800,
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isCounty ? const Color(0xFFD97706).withOpacity(0.3) : Colors.white.withOpacity(0.16),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          isCounty ? '🎯 BOWLER' : '$countB Players',
-                          style: const TextStyle(
-                            color: Color(0xFFFDE68A),
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      if (scoreB.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.25),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFF34D399).withOpacity(0.4)),
-                          ),
-                          child: Text(
-                            scoreB,
-                            style: const TextStyle(
-                              color: Color(0xFF6EE7B7),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 18),
-
-          // ── BOTTOM VENUE & TIME STRIP (OVERFLOW-PROOF) ──
+        // ── COUNTY TARGET GLOWING BANNER ──
+        if (isCounty && targetRuns != null && totalBalls != null) ...[
+          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.25),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(22)),
+              color: const Color(0xFFFFFBEB),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFDE68A)),
             ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      const Icon(Icons.place_rounded, color: Color(0xFF93C5FD), size: 14),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          match.venue.isNotEmpty ? match.venue : 'Cricket Ground',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 11.5, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ],
+                const Icon(Icons.track_changes_rounded, color: Color(0xFFD97706), size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  'TARGET: $targetRuns RUNS IN $totalBalls BALLS',
+                  style: const TextStyle(
+                    color: Color(0xFFB45309),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                    letterSpacing: 0.5,
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    '${match.totalOvers} Ov',
-                    style: const TextStyle(color: Color(0xFFFDE68A), fontSize: 11, fontWeight: FontWeight.w800),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.calendar_today_rounded, color: Color(0xFF93C5FD), size: 12),
-                    const SizedBox(width: 4),
-                    Text(
-                      DateFormat('dd MMM • hh:mm a').format(match.matchDate),
-                      style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 11, fontWeight: FontWeight.w600),
-                    ),
-                  ],
                 ),
               ],
             ),
           ),
         ],
-      ),
+
+        const SizedBox(height: 20),
+
+        // ── PLAYERS / TEAMS FACE-OFF SECTION ──
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // ── PLAYER / TEAM A ──
+            Expanded(
+              child: Column(
+                children: [
+                  Stack(
+                    alignment: Alignment.topCenter,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          border: Border.all(
+                            color: isWinnerA ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
+                            width: isWinnerA ? 3 : 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isWinnerA ? const Color(0xFFF59E0B).withOpacity(0.3) : Colors.black.withOpacity(0.04),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                          image: imageProviderA != null ? DecorationImage(image: imageProviderA, fit: BoxFit.cover) : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: imageProviderA == null
+                            ? Text(
+                                teamA?.shortName ?? match.teamA.substring(0, (match.teamA.length >= 2 ? 2 : 1)).toUpperCase(),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF0F172A),
+                                  fontSize: 22,
+                                ),
+                              )
+                            : null,
+                      ),
+                      if (isWinnerA)
+                        Positioned(
+                          top: -12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF59E0B),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [BoxShadow(color: const Color(0xFFF59E0B).withOpacity(0.4), blurRadius: 6)],
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('👑', style: TextStyle(fontSize: 12)),
+                                SizedBox(width: 4),
+                                Text('WIN', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    match.teamA,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      height: 1.2,
+                    ),
+                  ),
+                  if (scoreA.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: Text(
+                        scoreA,
+                        style: const TextStyle(
+                          color: Color(0xFF16A34A),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // ── CENTER VS EMBLEM ──
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: const Text(
+                'VS',
+                style: TextStyle(
+                  color: Color(0xFF94A3B8),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+
+            // ── PLAYER / TEAM B ──
+            Expanded(
+              child: Column(
+                children: [
+                  Stack(
+                    alignment: Alignment.topCenter,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          border: Border.all(
+                            color: isWinnerB ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
+                            width: isWinnerB ? 3 : 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isWinnerB ? const Color(0xFFF59E0B).withOpacity(0.3) : Colors.black.withOpacity(0.04),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                          image: imageProviderB != null ? DecorationImage(image: imageProviderB, fit: BoxFit.cover) : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: imageProviderB == null
+                            ? Text(
+                                teamB?.shortName ?? match.teamB.substring(0, (match.teamB.length >= 2 ? 2 : 1)).toUpperCase(),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF0F172A),
+                                  fontSize: 22,
+                                ),
+                              )
+                            : null,
+                      ),
+                      if (isWinnerB)
+                        Positioned(
+                          top: -12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF59E0B),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [BoxShadow(color: const Color(0xFFF59E0B).withOpacity(0.4), blurRadius: 6)],
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('👑', style: TextStyle(fontSize: 12)),
+                                SizedBox(width: 4),
+                                Text('WIN', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    match.teamB,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      height: 1.2,
+                    ),
+                  ),
+                  if (scoreB.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: Text(
+                        scoreB,
+                        style: const TextStyle(
+                          color: Color(0xFF16A34A),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 24),
+
+        // ── VENUE & TIME (BEAUTIFUL SMALL BOXES) ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.place_rounded, color: Color(0xFF64748B), size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    match.venue.isNotEmpty ? match.venue : 'Cricket Ground',
+                    style: const TextStyle(color: Color(0xFF334155), fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.timelapse_rounded, color: Color(0xFF64748B), size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${match.totalOvers} Ov',
+                    style: const TextStyle(color: Color(0xFF334155), fontSize: 11, fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today_rounded, color: Color(0xFF64748B), size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    DateFormat('dd MMM').format(match.matchDate),
+                    style: const TextStyle(color: Color(0xFF334155), fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1133,99 +1067,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
   // 4. OVERVIEW GRID (CRICHEROES MODERN TILES)
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildOverviewGrid(Match match, bool isCounty) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.dashboard_customize_rounded, size: 20, color: Color(0xFF1E3A8A)),
-              SizedBox(width: 8),
-              Text(
-                'Match Information',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-          const SizedBox(height: 14),
-
-          // 2-Column Clean Grid
-          GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 2.2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              _buildTile(
-                icon: Icons.place_rounded,
-                iconColor: const Color(0xFFEF4444),
-                title: 'VENUE',
-                value: match.venue.isNotEmpty ? match.venue : 'Cricket Ground',
-              ),
-              _buildTile(
-                icon: Icons.sports_cricket_rounded,
-                iconColor: const Color(0xFF16A34A),
-                title: 'FORMAT',
-                value: isCounty ? 'County Duel (${match.liveScore?['countyMode'] ?? '1v1'})' : '${match.totalOvers} Overs/Side',
-              ),
-              if (isCounty && match.liveScore?['targetRuns'] != null)
-                _buildTile(
-                  icon: Icons.track_changes_rounded,
-                  iconColor: const Color(0xFFD97706),
-                  title: 'TARGET QUOTA',
-                  value: '${match.liveScore!['targetRuns']}R in ${match.liveScore!['totalBalls']}B',
-                )
-              else
-                _buildTile(
-                  icon: Icons.timelapse_rounded,
-                  iconColor: const Color(0xFFD97706),
-                  title: 'OVERS',
-                  value: '${match.totalOvers} Overs',
-                ),
-              _buildTile(
-                icon: Icons.calendar_month_rounded,
-                iconColor: const Color(0xFF2563EB),
-                title: 'DATE',
-                value: DateFormat('dd MMM, hh:mm a').format(match.matchDate),
-              ),
-              _buildTile(
-                icon: Icons.how_to_vote_rounded,
-                iconColor: const Color(0xFF0D9488),
-                title: 'TOSS / BATTING',
-                value: isCounty
-                    ? '${match.teamA} (Bats 1st)'
-                    : (match.hasToss
-                        ? '${match.tossWinnerId == match.teamAId ? match.teamA : match.teamB} (${match.tossDecision?.label})'
-                        : 'Pending'),
-              ),
-              _buildTile(
-                icon: Icons.flag_rounded,
-                iconColor: const Color(0xFF8B5CF6),
-                title: 'STATUS',
-                value: match.status.label,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildTile({
@@ -1234,55 +1076,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     required String title,
     required String value,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 16, color: iconColor),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF64748B),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
