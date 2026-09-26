@@ -94,7 +94,7 @@ class PerformanceDetailsScreen extends StatelessWidget {
                   metricSubtitleText = '${item.balls} balls • ${item.fours} 4s • ${item.sixes} 6s';
                 } else {
                   metricValueText = '${item.runs}r • ${item.wickets}w';
-                  metricSubtitleText = m.status.label;
+                  metricSubtitleText = m.status.name.toUpperCase();
                 }
 
                 return Card(

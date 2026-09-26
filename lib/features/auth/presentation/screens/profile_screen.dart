@@ -686,34 +686,47 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           // ── Player Information (Without Current Team) ──
           if (!isAdmin) ...[
             const _SectionHeader(title: 'Player Information'),
-            _ProfileCard(
-              child: Column(
-                children: [
-                  _ActionTile(
-                    icon: Icons.sports_cricket,
-                    title: 'Batting Style',
-                    subtitle: loggedInPlayer?.battingStyle.label ?? 'Right hand',
-                    iconColor: const Color(0xFF1E3A8A),
-                  ),
-                  const _Divider(),
-                  _ActionTile(
-                    icon: Icons.sports_baseball,
-                    title: 'Bowling Style',
-                    subtitle: loggedInPlayer?.bowlingStyle.label ?? 'Right-arm medium',
-                    iconColor: const Color(0xFF059669),
-                  ),
-                  const _Divider(),
-                  _ActionTile(
-                    icon: Icons.shield_rounded,
-                    title: 'Playing Role',
-                    subtitle: loggedInPlayer?.role.label ?? 'All-rounder',
-                    iconColor: const Color(0xFF2563EB),
-                  ),
-                ],
-              ),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 2.4,
+              children: [
+                _PlayerInfoCard(
+                  icon: Icons.sports_cricket_rounded,
+                  label: 'Batting Style',
+                  value: loggedInPlayer?.battingStyle.label ?? 'Right hand',
+                  iconColor: const Color(0xFF1E3A8A),
+                  bgColor: const Color(0xFFEFF6FF),
+                ),
+                _PlayerInfoCard(
+                  icon: Icons.sports_baseball_rounded,
+                  label: 'Bowling Style',
+                  value: loggedInPlayer?.bowlingStyle.label ?? 'Right-arm medium',
+                  iconColor: const Color(0xFF059669),
+                  bgColor: const Color(0xFFECFDF5),
+                ),
+                _PlayerInfoCard(
+                  icon: Icons.shield_rounded,
+                  label: 'Playing Role',
+                  value: loggedInPlayer?.role.label ?? 'All-rounder',
+                  iconColor: const Color(0xFF7C3AED),
+                  bgColor: const Color(0xFFF5F3FF),
+                ),
+                _PlayerInfoCard(
+                  icon: Icons.groups_rounded,
+                  label: 'Current Team',
+                  value: loggedInPlayer?.teamId?.isNotEmpty == true ? (loggedInPlayer!.teamId) : 'No Team',
+                  iconColor: const Color(0xFFD97706),
+                  bgColor: const Color(0xFFFEF3C7),
+                ),
+              ],
             ),
             const SizedBox(height: 18),
           ],
+
 
           // ── Settings & Security ──
           const _SectionHeader(title: 'Settings & Security'),
@@ -1013,6 +1026,95 @@ class _Divider extends StatelessWidget {
       height: 1,
       color: Color(0xFFF1F5F9),
       indent: 44,
+    );
+  }
+}
+
+// ─── Player Info Grid Card ────────────────────────────────────────────────────
+class _PlayerInfoCard extends StatelessWidget {
+  const _PlayerInfoCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.iconColor,
+    required this.bgColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color iconColor;
+  final Color bgColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: iconColor.withOpacity(0.2), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withOpacity(0.06),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: iconColor.withOpacity(0.25)),
+                ),
+                child: Icon(icon, color: iconColor, size: 18),
+                alignment: Alignment.center,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: iconColor.withOpacity(0.7),
+                        letterSpacing: 0.3,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                        height: 1.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

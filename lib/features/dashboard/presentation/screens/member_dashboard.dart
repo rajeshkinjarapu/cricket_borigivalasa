@@ -163,6 +163,33 @@ class MemberDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final u = ref.watch(currentUserProvider);
     final isScorer = u?.role == UserRole.scorer;
+    final isAdmin = u?.role == UserRole.admin || u?.role == UserRole.superAdmin;
+    final isPlayer = u?.role == UserRole.member;
+
+    // Role badge config
+    final String roleLabel = isAdmin
+        ? 'ADMIN'
+        : isScorer
+            ? 'SCORER'
+            : isPlayer
+                ? 'PLAYER'
+                : 'MEMBER';
+    final IconData roleIcon = isAdmin
+        ? Icons.admin_panel_settings_rounded
+        : isScorer
+            ? Icons.verified_rounded
+            : Icons.sports_cricket_rounded;
+    final Color roleBorderColor = isAdmin
+        ? const Color(0xFFFFB300)
+        : isScorer
+            ? const Color(0xFF10B981)
+            : const Color(0xFF38BDF8);
+    final Color roleTextColor = isAdmin
+        ? const Color(0xFFFFE082)
+        : isScorer
+            ? const Color(0xFFA7F3D0)
+            : const Color(0xFFBAE6FD);
+
 
     final allMatchesAsync = ref.watch(allMatchesProvider);
     final loggedInPlayer = ref.watch(loggedInPlayerProvider).value;
@@ -219,14 +246,6 @@ class MemberDashboard extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-            tooltip: 'Refresh Dashboard',
-            onPressed: () {
-              ref.refresh(playerDetailedPerformanceProvider);
-              ref.refresh(allMatchesProvider);
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
             onPressed: () => context.push('/notifications'),
           ),
@@ -234,7 +253,14 @@ class MemberDashboard extends ConsumerWidget {
         ],
       ),
       body: SafeArea(
-        child: ListView(
+        child: RefreshIndicator(
+          color: const Color(0xFF1E3A8A),
+          onRefresh: () async {
+            ref.invalidate(playerDetailedPerformanceProvider);
+            ref.invalidate(allMatchesProvider);
+            await Future.delayed(const Duration(milliseconds: 600));
+          },
+          child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           children: [
             // ── Profile Info Card ──
@@ -326,14 +352,10 @@ class MemberDashboard extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 3.5),
                           decoration: BoxDecoration(
-                            color: isScorer
-                                ? const Color(0xFF10B981).withOpacity(0.2)
-                                : const Color(0xFF38BDF8).withOpacity(0.2),
+                            color: roleBorderColor.withOpacity(0.18),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: isScorer
-                                  ? const Color(0xFF10B981)
-                                  : const Color(0xFF38BDF8),
+                              color: roleBorderColor,
                               width: 0.8,
                             ),
                           ),
@@ -341,22 +363,16 @@ class MemberDashboard extends ConsumerWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                isScorer
-                                    ? Icons.verified_rounded
-                                    : Icons.sports_cricket_rounded,
-                                color: isScorer
-                                    ? const Color(0xFFA7F3D0)
-                                    : const Color(0xFFBAE6FD),
+                                roleIcon,
+                                color: roleTextColor,
                                 size: 13,
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                isScorer ? 'SCORER' : 'MEMBER',
+                                roleLabel,
                                 style: TextStyle(
                                   fontSize: 10.5,
-                                  color: isScorer
-                                      ? const Color(0xFFA7F3D0)
-                                      : const Color(0xFFBAE6FD),
+                                  color: roleTextColor,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 0.5,
                                 ),
@@ -693,8 +709,9 @@ class MemberDashboard extends ConsumerWidget {
             ),
             const SizedBox(height: 28),
           ],
-        ),
-      ),
+        ),       // ListView
+        ),       // RefreshIndicator
+      ),         // SafeArea
     );
   }
 }
