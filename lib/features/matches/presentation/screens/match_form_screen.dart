@@ -1083,8 +1083,11 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
       ),
       child: DropdownButtonFormField<String>(
         value: _selectedTournamentId,
+        dropdownColor: Colors.white,
+        style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
           labelText: 'Select Tournament',
+          labelStyle: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w600),
           prefixIcon: const Icon(Icons.emoji_events_rounded, color: Color(0xFF1E3A8A)),
           filled: true,
           fillColor: const Color(0xFFF8FAFC),
@@ -1096,7 +1099,11 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
         ),
         items: tournaments.map((t) => DropdownMenuItem(
           value: t.id,
-          child: Text(t.name, overflow: TextOverflow.ellipsis),
+          child: Text(
+            t.name,
+            style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600, fontSize: 14),
+            overflow: TextOverflow.ellipsis,
+          ),
         )).toList(),
         onChanged: (val) => setState(() => _selectedTournamentId = val),
       ),
@@ -1265,8 +1272,10 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
           if (isManual || teams.isEmpty)
             TextFormField(
               controller: nameController,
+              style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14, fontWeight: FontWeight.w600),
               decoration: InputDecoration(
                 hintText: 'Enter team name (e.g. Tigers)',
+                hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
                 prefixIcon: Icon(Icons.shield_outlined, color: iconColor),
                 filled: true,
                 fillColor: Colors.white,
@@ -1281,8 +1290,11 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
           else
             DropdownButtonFormField<Team>(
               value: selectedTeam,
+              dropdownColor: Colors.white,
+              style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14, fontWeight: FontWeight.w600),
               decoration: InputDecoration(
                 hintText: 'Choose team',
+                hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
                 prefixIcon: Icon(Icons.shield_rounded, color: iconColor),
                 filled: true,
                 fillColor: Colors.white,
@@ -1292,7 +1304,13 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
               ),
-              items: teams.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
+              items: teams.map((t) => DropdownMenuItem(
+                value: t,
+                child: Text(
+                  t.name,
+                  style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+              )).toList(),
               onChanged: onSelectTeam,
               validator: (v) => v == null ? 'Select a team' : null,
             ),

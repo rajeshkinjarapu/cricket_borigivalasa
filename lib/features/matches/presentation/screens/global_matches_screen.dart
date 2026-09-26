@@ -427,6 +427,20 @@ class _MatchCardItem extends ConsumerWidget {
       }
     }
 
+    final bool isActuallyCompleted = isCompleted ||
+        (i1 != null && i2 != null && (i2.isComplete || (i2.targetRuns != null && i2.runs >= i2.targetRuns!) || (m.totalOvers > 0 && i2.legalBalls >= m.totalOvers * 6))) ||
+        (m.resultText != null && m.resultText!.isNotEmpty && !isLive && m.resultText!.contains('won'));
+
+    if (isActuallyCompleted && !isCompleted && m.tournamentId.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(scoringRepositoryProvider).finalizeMatch(
+          tournamentId: m.tournamentId,
+          matchId: m.id,
+          maxOvers: m.totalOvers,
+        );
+      });
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: isLive ? 3 : 1,
@@ -443,7 +457,7 @@ class _MatchCardItem extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: () {
           if (m.tournamentId.isNotEmpty) {
-            if (m.status == MatchStatus.completed) {
+            if (isActuallyCompleted) {
               context.push('/tournaments/${m.tournamentId}/matches/${m.id}/summary');
             } else {
               context.push('/tournaments/${m.tournamentId}/matches/${m.id}');
@@ -464,14 +478,14 @@ class _MatchCardItem extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: isLive
                           ? const Color(0xFFFEF2F2)
-                          : isCompleted
+                          : isActuallyCompleted
                               ? const Color(0xFFECFDF5)
                               : const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: isLive
                             ? const Color(0xFFFECACA)
-                            : isCompleted
+                            : isActuallyCompleted
                                 ? const Color(0xFFA7F3D0)
                                 : const Color(0xFFDBEAFE),
                       ),
@@ -489,16 +503,18 @@ class _MatchCardItem extends ConsumerWidget {
                               shape: BoxShape.circle,
                             ),
                           ),
-                        ] else if (isCompleted) ...[
+                        ] else if (isActuallyCompleted) ...[
                           const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF059669)),
                           const SizedBox(width: 4),
                         ],
                         Text(
-                          isLive ? 'LIVE' : (isCompleted ? 'COMPLETED' : m.status.label.toUpperCase()),
+                          isLive
+                              ? 'LIVE'
+                              : (isActuallyCompleted ? 'COMPLETED' : m.status.label.toUpperCase()),
                           style: TextStyle(
                             color: isLive
                                 ? const Color(0xFFDC2626)
-                                : isCompleted
+                                : isActuallyCompleted
                                     ? const Color(0xFF059669)
                                     : const Color(0xFF1D4ED8),
                             fontWeight: FontWeight.w800,

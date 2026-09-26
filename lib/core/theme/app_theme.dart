@@ -20,7 +20,10 @@ class AppTheme {
       surface: _surface,
       background: _background,
     ),
-    textTheme: GoogleFonts.interTextTheme(),
+    textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).apply(
+      bodyColor: const Color(0xFF0F172A),
+      displayColor: const Color(0xFF0F172A),
+    ),
     appBarTheme: const AppBarTheme(
       centerTitle: false,
       backgroundColor: _primary,
@@ -62,7 +65,10 @@ class AppTheme {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      labelStyle: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w600, fontSize: 14),
+      hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+      floatingLabelStyle: const TextStyle(color: _primary, fontWeight: FontWeight.bold),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: Colors.grey.shade300),

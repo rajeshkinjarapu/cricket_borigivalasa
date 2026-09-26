@@ -362,23 +362,43 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     );
   }
 
-  Future<void> _wicket() async {
-    final inn = widget.innings;
-    if (inn.strikerId == null || inn.currentBowlerId == null) return;
+  Innings get _live => ref.read(inningsProvider(_k)).value ?? widget.innings;
 
-    final bp = ref.read(teamPlayersProvider(inn.bowlingTeamId)).value ?? [];
-    final batP = ref.read(teamPlayersProvider(inn.battingTeamId)).value ?? [];
+  (String strikerId, String strikerName, String bowlerId, String bowlerName) _getActivePlayers() {
+    final live = _live;
+    final batRows = ref.read(battingScorecardProvider(_k)).value ?? [];
+    final bowlRows = ref.read(bowlingScorecardProvider(_k)).value ?? [];
+
+    final striker = batRows.where((r) => r.playerId == live.strikerId || r.isStriker).firstOrNull ??
+        batRows.where((r) => !r.isOut).firstOrNull;
+    final bowler = bowlRows.where((r) => r.playerId == live.currentBowlerId).firstOrNull;
+
+    final sId = live.strikerId ?? striker?.playerId ?? live.openingStrikerId;
+    final sName = live.strikerName ?? striker?.playerName ?? live.openingStrikerName;
+    final bId = live.currentBowlerId ?? bowler?.playerId ?? '';
+    final bName = live.currentBowlerName ?? bowler?.playerName ?? '';
+
+    return (sId, sName, bId, bName);
+  }
+
+  Future<void> _wicket() async {
+    final live = _live;
+    final (sId, sName, bId, bName) = _getActivePlayers();
+    if (sId.isEmpty || bId.isEmpty) return;
+
+    final bp = ref.read(teamPlayersProvider(live.bowlingTeamId)).value ?? [];
+    final batP = ref.read(teamPlayersProvider(live.battingTeamId)).value ?? [];
     final rows = ref.read(battingScorecardProvider(_k)).value ?? [];
 
     final dismissed = rows.where((r) => r.isOut).map((r) => r.playerId).toSet();
-    final avail = batP.where((p) => !dismissed.contains(p.id) && p.id != inn.strikerId && p.id != inn.nonStrikerId).toList();
+    final avail = batP.where((p) => !dismissed.contains(p.id) && p.id != sId && p.id != live.nonStrikerId).toList();
 
     final r = await showWicketSheet(
       context,
-      strikerId: inn.strikerId!,
-      strikerName: inn.strikerName ?? '',
-      nonStrikerId: inn.nonStrikerId ?? '',
-      nonStrikerName: inn.nonStrikerName ?? '',
+      strikerId: sId,
+      strikerName: sName,
+      nonStrikerId: live.nonStrikerId ?? '',
+      nonStrikerName: live.nonStrikerName ?? '',
       bowlingTeamPlayers: bp,
       availableBatsmen: avail,
     );
@@ -392,10 +412,10 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
       dismissedPlayerName: r.dismissedPlayerName,
       fielderId: r.fielderId,
       fielderName: r.fielderName,
-      batsmanId: inn.strikerId!,
-      batsmanName: inn.strikerName ?? '',
-      bowlerId: inn.currentBowlerId!,
-      bowlerName: inn.currentBowlerName ?? '',
+      batsmanId: sId,
+      batsmanName: sName,
+      bowlerId: bId,
+      bowlerName: bName,
       newBatsmanId: r.newBatsmanId,
       newBatsmanName: r.newBatsmanName,
       timestamp: DateTime.now(),
@@ -444,14 +464,14 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   }
 
   Future<void> _runs(int r) async {
-    final i = widget.innings;
-    if (i.currentBowlerId == null || i.strikerId == null) return;
+    final (sId, sName, bId, bName) = _getActivePlayers();
+    if (bId.isEmpty || sId.isEmpty) return;
     await _recordBall(BallEvent(
       batRuns: r,
-      batsmanId: i.strikerId!,
-      batsmanName: i.strikerName ?? '',
-      bowlerId: i.currentBowlerId!,
-      bowlerName: i.currentBowlerName ?? '',
+      batsmanId: sId,
+      batsmanName: sName,
+      bowlerId: bId,
+      bowlerName: bName,
       timestamp: DateTime.now(),
     ));
   }
@@ -459,15 +479,15 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   Future<void> _wide() async {
     final r = await _showRunsDialog('Wide Ball (Extra Runs)', includeZero: true);
     if (r == null) return;
-    final i = widget.innings;
-    if (i.currentBowlerId == null || i.strikerId == null) return;
+    final (sId, sName, bId, bName) = _getActivePlayers();
+    if (bId.isEmpty || sId.isEmpty) return;
     await _recordBall(BallEvent(
       extraRuns: r,
       extraType: ExtraType.wide,
-      batsmanId: i.strikerId!,
-      batsmanName: i.strikerName ?? '',
-      bowlerId: i.currentBowlerId!,
-      bowlerName: i.currentBowlerName ?? '',
+      batsmanId: sId,
+      batsmanName: sName,
+      bowlerId: bId,
+      bowlerName: bName,
       timestamp: DateTime.now(),
     ));
   }
@@ -475,15 +495,15 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   Future<void> _noball() async {
     final r = await _showRunsDialog('No Ball (Bat Runs)', includeZero: true);
     if (r == null) return;
-    final i = widget.innings;
-    if (i.currentBowlerId == null || i.strikerId == null) return;
+    final (sId, sName, bId, bName) = _getActivePlayers();
+    if (bId.isEmpty || sId.isEmpty) return;
     await _recordBall(BallEvent(
       batRuns: r,
       extraType: ExtraType.noball,
-      batsmanId: i.strikerId!,
-      batsmanName: i.strikerName ?? '',
-      bowlerId: i.currentBowlerId!,
-      bowlerName: i.currentBowlerName ?? '',
+      batsmanId: sId,
+      batsmanName: sName,
+      bowlerId: bId,
+      bowlerName: bName,
       timestamp: DateTime.now(),
     ));
   }
@@ -491,15 +511,15 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   Future<void> _byes({required bool isLegBye}) async {
     final r = await _showRunsDialog(isLegBye ? 'Leg Byes (Runs)' : 'Byes (Runs)', includeZero: false);
     if (r == null) return;
-    final i = widget.innings;
-    if (i.currentBowlerId == null || i.strikerId == null) return;
+    final (sId, sName, bId, bName) = _getActivePlayers();
+    if (bId.isEmpty || sId.isEmpty) return;
     await _recordBall(BallEvent(
       extraRuns: r,
       extraType: isLegBye ? ExtraType.legbye : ExtraType.bye,
-      batsmanId: i.strikerId!,
-      batsmanName: i.strikerName ?? '',
-      bowlerId: i.currentBowlerId!,
-      bowlerName: i.currentBowlerName ?? '',
+      batsmanId: sId,
+      batsmanName: sName,
+      bowlerId: bId,
+      bowlerName: bName,
       timestamp: DateTime.now(),
     ));
   }
@@ -920,174 +940,221 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 2. BATSMEN SECTION (STRIKER & NON-STRIKER)
+  // 2. BATSMEN SECTION (ONE BY ONE UNIFIED TABLE LIST)
   // ─────────────────────────────────────────────────────────────────────────────
   Widget _buildBatsmenSection(BattingScorecardRow? striker, BattingScorecardRow? nonStriker, Innings live, {bool isCounty = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.sports_cricket_rounded, size: 16, color: Color(0xFF1E3A8A)),
-                const SizedBox(width: 6),
-                Text(
-                  isCounty ? 'BATSMAN ON CREASE' : 'BATSMEN ON CREASE',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF475569), letterSpacing: 0.5),
-                ),
-              ],
-            ),
-            if (!isCounty)
-              InkWell(
-                onTap: () => _swapStrike(live),
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.swap_horiz_rounded, size: 14, color: Color(0xFF1E3A8A)),
-                      SizedBox(width: 4),
-                      Text(
-                        'Swap Strike',
-                        style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 11, fontWeight: FontWeight.w800),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-
-        // Batsmen Cards Row
-        Row(
-          children: [
-            Expanded(child: _buildBatsmanCard(striker, isStriker: true)),
-            if (!isCounty) ...[
-              const SizedBox(width: 10),
-              Expanded(child: _buildBatsmanCard(nonStriker, isStriker: false)),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBatsmanCard(BattingScorecardRow? batter, {required bool isStriker}) {
-    final runs = batter?.runs ?? 0;
-    final balls = batter?.balls ?? 0;
-    final sr = balls > 0 ? (runs * 100 / balls).toStringAsFixed(1) : '0.0';
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isStriker ? const Color(0xFF16A34A) : const Color(0xFFE2E8F0),
-          width: isStriker ? 2 : 1,
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: isStriker ? const Color(0xFF16A34A).withOpacity(0.12) : Colors.black.withOpacity(0.02),
+            color: const Color(0xFF0F172A).withOpacity(0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(12),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Pill Badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isStriker ? const Color(0xFF16A34A) : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+          // Header Row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 10, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    if (isStriker) ...[
-                      const Icon(Icons.bolt_rounded, size: 12, color: Colors.white),
-                      const SizedBox(width: 2),
-                    ],
+                    const Icon(Icons.sports_cricket_rounded, size: 16, color: Color(0xFF1E3A8A)),
+                    const SizedBox(width: 6),
                     Text(
-                      isStriker ? 'ON STRIKE' : 'NON-STRIKER',
-                      style: TextStyle(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w900,
-                        color: isStriker ? Colors.white : const Color(0xFF64748B),
-                      ),
+                      isCounty ? 'BATSMAN ON CREASE' : 'BATSMEN ON CREASE',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF475569), letterSpacing: 0.5),
                     ),
                   ],
                 ),
-              ),
-              if (isStriker) const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 16),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Batsman Name
-          Text(
-            batter?.playerName ?? 'Selecting...',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 14,
-              color: isStriker ? const Color(0xFF065F46) : const Color(0xFF0F172A),
+                if (!isCounty)
+                  InkWell(
+                    onTap: () => _swapStrike(live),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFBFDBFE)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.swap_horiz_rounded, size: 14, color: Color(0xFF1E3A8A)),
+                          SizedBox(width: 4),
+                          Text(
+                            'Swap Strike',
+                            style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 11, fontWeight: FontWeight.w800),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
 
-          // Big Score & Balls
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                '$runs',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: isStriker ? const Color(0xFF15803D) : const Color(0xFF1E293B),
-                  height: 1.0,
+          // Table Header
+          Container(
+            color: const Color(0xFFF8FAFC),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            child: const Row(
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: Text('BATTER', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B), letterSpacing: 0.3)),
                 ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '($balls)',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF64748B),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+                SizedBox(width: 38, child: Text('R', textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B)))),
+                SizedBox(width: 32, child: Text('B', textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B)))),
+                SizedBox(width: 28, child: Text('4s', textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B)))),
+                SizedBox(width: 28, child: Text('6s', textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B)))),
+                SizedBox(width: 44, child: Text('SR', textAlign: TextAlign.right, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF64748B)))),
+              ],
+            ),
           ),
-          const SizedBox(height: 6),
-          const Divider(height: 1, color: Color(0xFFE2E8F0)),
-          const SizedBox(height: 6),
 
-          // Boundary Breakdown & SR
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('4s: ${batter?.fours ?? 0}  6s: ${batter?.sixes ?? 0}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w700)),
-              Text('SR: $sr', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-            ],
+          // Striker Row
+          _buildBatsmanRow(striker, isStriker: true),
+
+          // Non-Striker Row
+          if (!isCounty) ...[
+            const Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9)),
+            _buildBatsmanRow(nonStriker, isStriker: false),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBatsmanRow(BattingScorecardRow? batter, {required bool isStriker}) {
+    final runs = batter?.runs ?? 0;
+    final balls = batter?.balls ?? 0;
+    final fours = batter?.fours ?? 0;
+    final sixes = batter?.sixes ?? 0;
+    final sr = balls > 0 ? (runs * 100 / balls).toStringAsFixed(1) : '0.0';
+
+    return Container(
+      color: isStriker ? const Color(0xFFF0FDF4) : Colors.transparent,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          // Batter name & indicator
+          Expanded(
+            flex: 5,
+            child: Row(
+              children: [
+                if (isStriker) ...[
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
+                    child: const Icon(Icons.bolt_rounded, size: 10, color: Colors.white),
+                  ),
+                  const SizedBox(width: 6),
+                ] else ...[
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(color: Color(0xFF94A3B8), shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              batter?.playerName ?? 'Selecting...',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: isStriker ? FontWeight.w900 : FontWeight.w700,
+                                fontSize: 13.5,
+                                color: isStriker ? const Color(0xFF065F46) : const Color(0xFF0F172A),
+                              ),
+                            ),
+                          ),
+                          if (isStriker) ...[
+                            const SizedBox(width: 4),
+                            const Text('*', style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w900, fontSize: 15)),
+                          ],
+                        ],
+                      ),
+                      if (isStriker)
+                        const Text(
+                          'ON STRIKE',
+                          style: TextStyle(color: Color(0xFF16A34A), fontSize: 9.5, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Runs
+          SizedBox(
+            width: 38,
+            child: Text(
+              '$runs',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                color: isStriker ? const Color(0xFF15803D) : const Color(0xFF0F172A),
+              ),
+            ),
+          ),
+
+          // Balls
+          SizedBox(
+            width: 32,
+            child: Text(
+              '($balls)',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+            ),
+          ),
+
+          // 4s
+          SizedBox(
+            width: 28,
+            child: Text(
+              '$fours',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+            ),
+          ),
+
+          // 6s
+          SizedBox(
+            width: 28,
+            child: Text(
+              '$sixes',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+            ),
+          ),
+
+          // SR
+          SizedBox(
+            width: 44,
+            child: Text(
+              sr,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+            ),
           ),
         ],
       ),
@@ -1509,10 +1576,13 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
   Widget _buildMatchCompletedPanel(BuildContext context, Match? match, Innings live) {
     if (match == null) return const SizedBox();
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    final String result = match.resultText ??
-        (live.runs >= (live.targetRuns ?? 0)
-            ? '${live.battingTeamName} won the match 🎉'
-            : '${live.bowlingTeamName} won the match 🎉');
+    final battingTeamName = match.teamNameById(live.battingTeamId);
+    final bowlingTeamName = match.teamNameById(live.bowlingTeamId);
+    final String result = (match.resultText != null && match.resultText!.trim().isNotEmpty)
+        ? match.resultText!
+        : (live.runs >= (live.targetRuns ?? 0)
+            ? '$battingTeamName won the match 🎉'
+            : '$bowlingTeamName won the match 🎉');
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
@@ -1585,28 +1655,59 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
           ),
           const SizedBox(height: 8),
           
-          if (match.manOfTheMatchName != null)
+          if (match.manOfTheMatchName != null && match.manOfTheMatchName!.trim().isNotEmpty)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFF7ED),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFFDBA74)),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.star_rounded, color: Color(0xFFD97706), size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Man of the Match: ${match.manOfTheMatchName}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF59E0B),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.star_rounded, color: Colors.white, size: 16),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'PLAYER OF THE MATCH',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFD97706),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        Text(
+                          match.manOfTheMatchName!,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF92400E),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _showMoMDialog(context, match),
+                    icon: const Icon(Icons.edit_rounded, size: 14, color: Color(0xFFD97706)),
+                    label: const Text('Change', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFD97706))),
+                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
                   ),
                 ],
               ),
-            ),
-          
-          if (match.manOfTheMatchName == null)
+            )
+          else
             SizedBox(
               width: double.infinity,
               height: 44,

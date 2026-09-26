@@ -5,6 +5,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../players/data/models/player.dart';
 import '../../../teams/data/models/team.dart';
+import '../../../matches/data/models/match.dart';
 import '../../domain/scoring_engine.dart';
 import '../models/ball_event.dart';
 import '../models/batting_scorecard.dart';
@@ -60,7 +61,15 @@ class ScoringRepository {
         openingNonStrikerName: inn.openingNonStrikerName, 
         balls: balls,
       );
-      yield snap.batting.values.toList()..sort((a, b) => a.battingOrder.compareTo(b.battingOrder));
+      final activeStrikerId = inn.strikerId ?? snap.strikerId;
+      final activeNonStrikerId = inn.nonStrikerId ?? snap.nonStrikerId;
+      final list = snap.batting.values.map((row) {
+        return row.copyWith(
+          isStriker: row.playerId == activeStrikerId,
+          isNonStriker: row.playerId == activeNonStrikerId,
+        );
+      }).toList()..sort((a, b) => a.battingOrder.compareTo(b.battingOrder));
+      yield list;
     }
   }
 
@@ -206,19 +215,23 @@ class ScoringRepository {
       'ball_time': ball.timestamp.toIso8601String(),
     };
 
-    // Update innings: only store aggregate stats and current bowler.
-    // current_striker_id / current_non_striker_id are derived live by the
-    // ScoringEngine from ball_events — do NOT write them here to avoid
-    // FK violations when the player row is missing from the 'players' table.
+    final updateData = <String, dynamic>{
+      'runs': snap.runs,
+      'wickets': snap.wickets,
+      'legal_balls': snap.legalBalls,
+      'current_bowler_id': ball.bowlerId,
+      'is_complete': complete != null,
+    };
+    if (snap.strikerId != null) {
+      updateData['current_striker_id'] = snap.strikerId;
+    }
+    if (snap.nonStrikerId != null) {
+      updateData['current_non_striker_id'] = snap.nonStrikerId;
+    }
+
     await Future.wait([
       _supabase.from('ball_events').insert(dbBallData),
-      _supabase.from('innings').update({
-        'runs': snap.runs,
-        'wickets': snap.wickets,
-        'legal_balls': snap.legalBalls,
-        'current_bowler_id': ball.bowlerId,
-        'is_complete': complete != null,
-      }).eq('id', _innId(matchId, inningsNumber))
+      _supabase.from('innings').update(updateData).eq('id', _innId(matchId, inningsNumber))
     ]);
 
     if (complete != null && inningsNumber == 2) {
@@ -232,11 +245,134 @@ class ScoringRepository {
     int? maxOvers,
     int playersPerSide = 11,
   }) async {
-    // simplified finalize
-    await _supabase.from('matches').update({
-      'status': 'completed',
-      'completed_at': DateTime.now().toIso8601String()
-    }).eq('id', matchId);
+    try {
+      // 1. Fetch match record
+      final matchRes = await _supabase.from('matches').select().eq('id', matchId).maybeSingle();
+      if (matchRes == null) return;
+      final match = Match.fromJson(matchRes);
+
+      // 2. Fetch both innings
+      final inn1Res = await _supabase.from('innings').select().eq('id', _innId(matchId, 1)).maybeSingle();
+      final inn2Res = await _supabase.from('innings').select().eq('id', _innId(matchId, 2)).maybeSingle();
+
+      final inn1 = inn1Res != null ? Innings.fromJson(inn1Res) : null;
+      final inn2 = inn2Res != null ? Innings.fromJson(inn2Res) : null;
+
+      // 3. Fetch all balls for MoM calculation & score validation
+      final balls1 = await loadAllBalls(tournamentId, matchId, 1);
+      final balls2 = await loadAllBalls(tournamentId, matchId, 2);
+      final allBalls = [...balls1, ...balls2];
+
+      // 4. Calculate Winner & Result Text
+      String? winnerTeamId;
+      String resultText = 'Match Completed';
+      bool isTie = false;
+
+      final isCounty = match.liveScore?['isCounty'] == true || match.liveScore?['matchType'] == 'county';
+
+      if (isCounty && inn1 != null) {
+        final target = inn1.targetRuns ?? 0;
+        final runs = inn1.runs;
+        if (target > 0) {
+          if (runs >= target) {
+            winnerTeamId = inn1.battingTeamId;
+            final winnerName = match.teamNameById(winnerTeamId);
+            resultText = '$winnerName won the duel';
+          } else {
+            winnerTeamId = inn1.bowlingTeamId;
+            final winnerName = match.teamNameById(winnerTeamId);
+            resultText = '$winnerName won the duel';
+          }
+        } else {
+          resultText = '${match.teamA} vs ${match.teamB} completed';
+        }
+      } else if (inn1 != null && inn2 != null) {
+        final r1 = inn1.runs;
+        final r2 = inn2.runs;
+        final w2 = inn2.wickets;
+
+        if (r2 > r1) {
+          winnerTeamId = inn2.battingTeamId;
+          final winnerName = match.teamNameById(winnerTeamId);
+          final remWickets = (playersPerSide - 1 - w2).clamp(1, playersPerSide - 1);
+          resultText = '$winnerName won by $remWickets ${remWickets == 1 ? 'wicket' : 'wickets'}';
+        } else if (r1 > r2) {
+          winnerTeamId = inn1.battingTeamId;
+          final winnerName = match.teamNameById(winnerTeamId);
+          final runMargin = r1 - r2;
+          resultText = '$winnerName won by $runMargin ${runMargin == 1 ? 'run' : 'runs'}';
+        } else {
+          isTie = true;
+          resultText = 'Match Tied';
+        }
+      } else if (inn1 != null && inn2 == null) {
+        winnerTeamId = inn1.battingTeamId;
+        resultText = '${match.teamNameById(winnerTeamId)} scored ${inn1.runs}/${inn1.wickets}';
+      }
+
+      // 5. Automatic Man of the Match Calculation
+      final Map<String, _PlayerImpact> impactMap = {};
+
+      for (final b in allBalls) {
+        // Batter impact
+        if (b.batsmanId.isNotEmpty) {
+          final impact = impactMap.putIfAbsent(b.batsmanId, () => _PlayerImpact(id: b.batsmanId, name: b.batsmanName));
+          if (b.creditsBatsmanRuns) {
+            impact.runs += b.batRuns;
+            if (b.batRuns == 4) impact.fours++;
+            if (b.batRuns == 6) impact.sixes++;
+          }
+          if (b.countsAsBallFaced) impact.balls++;
+        }
+
+        // Bowler impact
+        if (b.bowlerId.isNotEmpty) {
+          final impact = impactMap.putIfAbsent(b.bowlerId, () => _PlayerImpact(id: b.bowlerId, name: b.bowlerName));
+          impact.runsConceded += b.bowlerRunsConceded;
+          if (b.isLegalDelivery) impact.bowlingBalls++;
+          if (b.isWicket && (b.wicketType == null || b.wicketType!.creditedToBowler)) {
+            impact.wickets++;
+          }
+        }
+
+        // Fielder impact
+        if (b.fielderId != null && b.fielderId!.isNotEmpty) {
+          final impact = impactMap.putIfAbsent(b.fielderId!, () => _PlayerImpact(id: b.fielderId!, name: b.fielderName ?? 'Fielder'));
+          impact.catches++;
+        }
+      }
+
+      String? bestPlayerId;
+      String? bestPlayerName;
+      double highestPoints = -1.0;
+
+      for (final impact in impactMap.values) {
+        final pts = impact.totalPoints;
+        if (pts > highestPoints) {
+          highestPoints = pts;
+          bestPlayerId = impact.id;
+          bestPlayerName = impact.name;
+        }
+      }
+
+      // 6. Update matches in Supabase
+      final updateData = <String, dynamic>{
+        'status': MatchStatus.completed.name,
+        'winner_team_id': winnerTeamId,
+        'result_text': resultText,
+        'is_tie': isTie,
+        'completed_at': DateTime.now().toIso8601String(),
+      };
+
+      if (bestPlayerId != null && bestPlayerName != null && (match.manOfTheMatchId == null || match.manOfTheMatchId!.isEmpty)) {
+        updateData['man_of_the_match_id'] = bestPlayerId;
+        updateData['man_of_the_match_name'] = bestPlayerName;
+      }
+
+      await _supabase.from('matches').update(updateData).eq('id', matchId);
+    } catch (e) {
+      // ignore
+    }
   }
 
   Future<void> undoLastBall({required String tournamentId,
@@ -309,5 +445,58 @@ class ScoringRepository {
       maidens[bowlerEntry.key] = count;
     }
     return maidens;
+  }
+}
+
+class _PlayerImpact {
+  final String id;
+  final String name;
+  int runs = 0;
+  int balls = 0;
+  int fours = 0;
+  int sixes = 0;
+  int wickets = 0;
+  int runsConceded = 0;
+  int bowlingBalls = 0;
+  int catches = 0;
+
+  _PlayerImpact({required this.id, required this.name});
+
+  double get totalPoints {
+    double pts = 0.0;
+    // Batting points: 1 pt per run, +1 per 4, +2 per 6, milestone bonuses
+    pts += runs * 1.0;
+    pts += fours * 1.0;
+    pts += sixes * 2.0;
+    if (runs >= 100) {
+      pts += 16.0;
+    } else if (runs >= 50) {
+      pts += 8.0;
+    } else if (runs >= 30) {
+      pts += 4.0;
+    }
+
+    // Bowling points: 25 pts per wicket, milestone bonuses
+    pts += wickets * 25.0;
+    if (wickets >= 5) {
+      pts += 16.0;
+    } else if (wickets >= 3) {
+      pts += 8.0;
+    }
+
+    // Economy bonus for bowlers who bowled at least 1 over (6 legal balls)
+    if (bowlingBalls >= 6) {
+      final econ = (runsConceded / bowlingBalls) * 6.0;
+      if (econ < 5.0) {
+        pts += 6.0;
+      } else if (econ < 7.0) {
+        pts += 3.0;
+      }
+    }
+
+    // Fielding points: 8 pts per catch/stumping/run-out
+    pts += catches * 8.0;
+
+    return pts;
   }
 }

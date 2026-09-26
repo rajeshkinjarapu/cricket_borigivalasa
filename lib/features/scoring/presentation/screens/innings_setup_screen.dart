@@ -253,7 +253,10 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
                       children: [
                         const Icon(Icons.sports_cricket, color: Color(0xFF16A34A)),
                         const SizedBox(width: 8),
-                        Text('Batting: $batTeamName', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Batting: $batTeamName',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -292,7 +295,10 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
                       children: [
                         const Icon(Icons.sports_baseball, color: Color(0xFFEA580C)),
                         const SizedBox(width: 8),
-                        Text('Bowling: $bowlTeamName', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Bowling: $bowlTeamName',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -319,7 +325,7 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
                     ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Text('START INNINGS', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: hasEnoughPlayers ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
+                  backgroundColor: hasEnoughPlayers ? const Color(0xFF16A34A) : const Color(0xFF94A34A),
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: const Color(0xFFCBD5E1),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -361,13 +367,42 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
         }
         return DropdownButtonFormField<String>(
           value: items.any((p) => p.id == selectedId) ? selectedId : null,
+          dropdownColor: Colors.white,
+          style: const TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
           decoration: InputDecoration(
             labelText: label,
+            labelStyle: const TextStyle(
+              color: Color(0xFF475569),
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
             filled: true,
             fillColor: const Color(0xFFF8FAFC),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 1.8),
+            ),
           ),
-          items: items.map((p) => DropdownMenuItem<String>(value: p.id, child: Text(p.name))).toList(),
+          items: items.map((p) => DropdownMenuItem<String>(
+            value: p.id,
+            child: Text(
+              p.name,
+              style: const TextStyle(
+                color: Color(0xFF0F172A),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          )).toList(),
           onChanged: onChanged,
         );
       },

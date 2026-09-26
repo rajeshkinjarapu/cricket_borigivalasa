@@ -166,7 +166,10 @@ class MatchRepository {
         .stream(primaryKey: ['id'])
         .eq('status', MatchStatus.scheduled.name)
         .map((data) {
-      final list = data.map((json) => Match.fromJson(json)).toList();
+      final list = data
+          .map((json) => Match.fromJson(json))
+          .where((m) => m.status == MatchStatus.scheduled && m.completedAt == null && (m.resultText == null || m.resultText!.isEmpty))
+          .toList();
       list.sort((a, b) => a.matchDate.compareTo(b.matchDate));
       return list.take(15).toList();
     });
