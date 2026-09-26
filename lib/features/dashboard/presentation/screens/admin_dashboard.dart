@@ -225,12 +225,12 @@ class AdminDashboard extends ConsumerWidget {
                 ),
                 _AnimatedTile(
                   child: DashboardTile(
-                    icon: Icons.edit_note_rounded,
-                    label: 'Scorer',
-                    subtitle: 'Appoint & manage',
-                    color: const Color(0xFFFCE7F3),
-                    iconColor: const Color(0xFFBE185D),
-                    onTap: () => context.push('/members?filter=scorer'),
+                    icon: Icons.leaderboard_rounded,
+                    label: 'Leaderboard',
+                    subtitle: 'Rankings & stats',
+                    color: Colors.amber.shade100,
+                    iconColor: Colors.amber.shade900,
+                    onTap: () => context.push('/stats'),
                   ),
                 ),
                 _AnimatedTile(
