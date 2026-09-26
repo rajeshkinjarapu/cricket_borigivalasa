@@ -46,7 +46,7 @@ class _GlobalMatchesScreenState extends ConsumerState<GlobalMatchesScreen>
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
+              colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -84,41 +84,35 @@ class _GlobalMatchesScreenState extends ConsumerState<GlobalMatchesScreen>
       ),
       body: Column(
         children: [
-          // ── Premium Deep Gradient Header with Perfectly Fitted Tabs ──
+          // ── Clean Pinned Tab Bar ──
           Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(14, 2, 14, 12),
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
             child: Container(
               height: 42,
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.25),
+                color: const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.12)),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: TabBar(
                 controller: _tabController,
                 dividerColor: Colors.transparent,
                 indicatorSize: TabBarIndicatorSize.tab,
                 indicator: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xFF1E3A8A),
                   borderRadius: BorderRadius.circular(9),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: const Color(0xFF1E3A8A).withOpacity(0.25),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                labelColor: const Color(0xFF1E3A8A),
-                unselectedLabelColor: Colors.white.withOpacity(0.85),
+                labelColor: Colors.white,
+                unselectedLabelColor: const Color(0xFF64748B),
                 labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
                 unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                 tabs: [

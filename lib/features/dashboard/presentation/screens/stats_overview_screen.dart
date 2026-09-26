@@ -232,7 +232,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
+              colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),

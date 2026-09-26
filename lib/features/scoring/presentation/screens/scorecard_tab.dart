@@ -37,20 +37,17 @@ class ScorecardTab extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: Color(0xFFF1F5F9),
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
                 ),
                 child: const Row(
                   children: [
-                    Expanded(flex: 4, child: Text('BATTER', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5))),
-                    Expanded(child: Text('R', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11))),
-                    Expanded(child: Text('B', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w800, fontSize: 11))),
-                    Expanded(child: Text('4s', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w800, fontSize: 11))),
-                    Expanded(child: Text('6s', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w800, fontSize: 11))),
-                    Expanded(flex: 2, child: Text('SR', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w800, fontSize: 11))),
+                    Expanded(flex: 4, child: Text('BATTER', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5))),
+                    Expanded(child: Text('R', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w900, fontSize: 11))),
+                    Expanded(child: Text('B', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w800, fontSize: 11))),
+                    Expanded(child: Text('4s', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w800, fontSize: 11))),
+                    Expanded(child: Text('6s', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w800, fontSize: 11))),
+                    Expanded(flex: 2, child: Text('SR', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w800, fontSize: 11))),
                   ],
                 ),
               ),
@@ -226,20 +223,17 @@ class ScorecardTab extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF334155), Color(0xFF475569)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: Color(0xFFF1F5F9),
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
                 ),
                 child: const Row(
                   children: [
-                    Expanded(flex: 4, child: Text('BOWLER', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5))),
-                    Expanded(child: Text('O', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11))),
-                    Expanded(child: Text('M', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFCBD5E1), fontWeight: FontWeight.w800, fontSize: 11))),
-                    Expanded(child: Text('R', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFCBD5E1), fontWeight: FontWeight.w800, fontSize: 11))),
-                    Expanded(child: Text('W', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11))),
-                    Expanded(flex: 2, child: Text('ECON', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFCBD5E1), fontWeight: FontWeight.w800, fontSize: 11))),
+                    Expanded(flex: 4, child: Text('BOWLER', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5))),
+                    Expanded(child: Text('O', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w900, fontSize: 11))),
+                    Expanded(child: Text('M', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w800, fontSize: 11))),
+                    Expanded(child: Text('R', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w800, fontSize: 11))),
+                    Expanded(child: Text('W', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w900, fontSize: 11))),
+                    Expanded(flex: 2, child: Text('ECON', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w800, fontSize: 11))),
                   ],
                 ),
               ),
