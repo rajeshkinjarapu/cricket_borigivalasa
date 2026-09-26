@@ -259,8 +259,6 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
         final countyTeamIds = teams.where((t) => t.isCounty).map((t) => t.id).toSet();
         
         final filteredPlayers = allPlayers.where((p) {
-          if (countyTeamIds.contains(p.teamId)) return false;
-          
           if (_selectedRoleFilter != null && p.role != _selectedRoleFilter) {
             return false;
           }
