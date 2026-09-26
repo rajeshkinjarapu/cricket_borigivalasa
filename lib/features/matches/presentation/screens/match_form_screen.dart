@@ -441,7 +441,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
           if (_countyBatsman1Player != null) {
             await playerRepo.addPlayerToTeam(_countyBatsman1Player!.id, teamAResolved.id);
           } else {
-            await playerRepo.create(Player(
+            final pid = await playerRepo.create(Player(
               id: '',
               name: bat1,
               teamId: teamAResolved.id,
@@ -450,12 +450,13 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
               bowlingStyle: BowlingStyle.rightArmMedium,
               stats: PlayerStats(),
             ));
+            _countyBatsman1Player = Player(id: pid, name: bat1, teamId: teamAResolved.id, role: PlayerRole.batter, stats: PlayerStats());
           }
 
           if (_countyBowler1Player != null) {
             await playerRepo.addPlayerToTeam(_countyBowler1Player!.id, teamBResolved.id);
           } else {
-            await playerRepo.create(Player(
+            final pid = await playerRepo.create(Player(
               id: '',
               name: bowl1,
               teamId: teamBResolved.id,
@@ -464,13 +465,14 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
               bowlingStyle: BowlingStyle.rightArmMedium,
               stats: PlayerStats(),
             ));
+            _countyBowler1Player = Player(id: pid, name: bowl1, teamId: teamBResolved.id, role: PlayerRole.bowler, stats: PlayerStats());
           }
 
           if (_countyPlayerCount == 4 && bat2 != null && bowl2 != null) {
             if (_countyBatsman2Player != null) {
               await playerRepo.addPlayerToTeam(_countyBatsman2Player!.id, teamAResolved.id);
             } else {
-              await playerRepo.create(Player(
+              final pid = await playerRepo.create(Player(
                 id: '',
                 name: bat2,
                 teamId: teamAResolved.id,
@@ -479,12 +481,13 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                 bowlingStyle: BowlingStyle.rightArmMedium,
                 stats: PlayerStats(),
               ));
+              _countyBatsman2Player = Player(id: pid, name: bat2, teamId: teamAResolved.id, role: PlayerRole.batter, stats: PlayerStats());
             }
 
             if (_countyBowler2Player != null) {
               await playerRepo.addPlayerToTeam(_countyBowler2Player!.id, teamBResolved.id);
             } else {
-              await playerRepo.create(Player(
+              final pid = await playerRepo.create(Player(
                 id: '',
                 name: bowl2,
                 teamId: teamBResolved.id,
@@ -493,6 +496,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                 bowlingStyle: BowlingStyle.rightArmMedium,
                 stats: PlayerStats(),
               ));
+              _countyBowler2Player = Player(id: pid, name: bowl2, teamId: teamBResolved.id, role: PlayerRole.bowler, stats: PlayerStats());
             }
           }
         } catch (_) {}
@@ -806,7 +810,9 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
             return allTeamsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF1E3A8A))),
               error: (e, _) => Center(child: Text('Error loading teams: $e')),
-              data: (teams) {
+              data: (allTeams) {
+                final teams = allTeams.where((t) => !t.isCounty).toList();
+                
                 if (widget.isEdit && widget.tournamentId != null) {
                   final m = ref.watch(matchDetailProvider((
                     tournamentId: widget.tournamentId!,

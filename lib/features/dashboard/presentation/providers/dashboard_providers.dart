@@ -33,7 +33,7 @@ final allMatchesProvider = StreamProvider<List<Match>>((ref) {
 });
 
 final totalTeamsCountProvider = StreamProvider<int>((ref) {
-  return ref.watch(teamRepositoryProvider).watchAll().map((teams) => teams.length);
+  return ref.watch(teamRepositoryProvider).watchAll().map((teams) => teams.where((t) => !t.isCounty).length);
 });
 
 final totalUnifiedMembersCountProvider = Provider<AsyncValue<int>>((ref) {

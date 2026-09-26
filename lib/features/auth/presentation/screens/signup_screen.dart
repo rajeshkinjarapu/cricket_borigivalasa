@@ -148,7 +148,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
                             // App Title
                             const Text(
-                              'BORIGIVALASA',
+                              'CRICKET BV',
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.w900,
@@ -164,9 +164,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
-                      'CRICKET',
+                      'BORIGIVALASA',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: darkBlue,
                         letterSpacing: 3,

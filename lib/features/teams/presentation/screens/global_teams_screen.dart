@@ -321,24 +321,6 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: primaryColor.withOpacity(0.2)),
-                            ),
-                            child: Text(
-                              team.shortName.isNotEmpty ? team.shortName : 'TEAM',
-                              style: TextStyle(
-                                color: primaryColor,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                       const SizedBox(height: 6),

@@ -64,19 +64,19 @@ class AppDrawer extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Borigivalasa Cricket',
+                          'Cricket BV',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 16.5,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.2,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.3,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Tournament & Scoring App',
+                          'Borigivalasa Cricket App',
                           style: TextStyle(
                             color: Colors.white70,
                             fontSize: 12,

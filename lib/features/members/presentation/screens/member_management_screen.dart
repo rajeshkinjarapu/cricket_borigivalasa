@@ -10,6 +10,7 @@ import '../../../../core/utils/avatar_helper.dart';
 import '../../../auth/data/models/app_user.dart';
 import '../../../players/data/models/player.dart';
 import '../../../players/presentation/providers/player_providers.dart';
+import '../../../teams/presentation/providers/team_providers.dart';
 import '../providers/member_providers.dart';
 
 class UnifiedMember {
@@ -77,6 +78,7 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
   Widget build(BuildContext context) {
     final membersAsync = ref.watch(memberListProvider);
     final playersAsync = ref.watch(allPlayersProvider);
+    final teamsAsync = ref.watch(allTeamsProvider);
     final repo = ref.read(memberRepositoryProvider);
     final currentUid = repo.currentUid;
     final isScorerView = _selectedFilter == 'scorer';
@@ -209,6 +211,9 @@ class _MemberManagementScreenState extends ConsumerState<MemberManagementScreen>
                 final Set<String> processedPlayerIds = {};
                 final Set<String> processedPhones = {};
                 final Set<String> processedNames = {};
+                
+                final teams = teamsAsync.value ?? [];
+                final countyTeamIds = teams.where((t) => t.isCounty).map((t) => t.id).toSet();
 
                 // 1. Process users
                 for (final u in users) {

@@ -8,10 +8,12 @@ class ScorecardScreen extends ConsumerWidget {
     required this.tournamentId,
     required this.matchId,
     this.innings = 1,
+    this.isEmbedded = false,
   });
 
   final String tournamentId, matchId;
   final int innings;
+  final bool isEmbedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,7 +23,7 @@ class ScorecardScreen extends ConsumerWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
+        appBar: isEmbedded ? null : AppBar(
           title: Text('Innings $innings Scorecard'),
           bottom: const TabBar(
             tabs: [Tab(text: 'Batting'), Tab(text: 'Bowling')],

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/cricket_enums.dart';
 import '../../../players/data/models/player.dart';
 import '../../../teams/data/models/team.dart';
 import '../../domain/scoring_engine.dart';
@@ -186,12 +187,35 @@ class ScoringRepository {
       maxOvers: maxOvers, playersPerSide: playersPerSide,
       targetRuns: innings.targetRuns);
       
+    final dbBallData = {
+      'id': ballId,
+      'match_id': matchId,
+      'innings_id': ballData['innings_id'],
+      'over_number': ballData['over_number'],
+      'ball_number': ballData['ball_number'],
+      'bowler_id': ball.bowlerId,
+      'batter_id': ball.batsmanId,
+      'runs_scored': ball.batRuns,
+      'extras_type': ball.extraType.name,
+      'extras_runs': ball.extraRuns,
+      'wicket_type': ball.wicketType?.name,
+      'player_out_id': ball.dismissedPlayerId,
+      'fielder_id': ball.fielderId,
+      'is_legal_ball': ball.extraType != ExtraType.wide && ball.extraType != ExtraType.noball,
+      'is_boundary': ball.batRuns >= 4,
+      'ball_time': ball.timestamp.toIso8601String(),
+    };
+
+    // Update innings: only store aggregate stats and current bowler.
+    // current_striker_id / current_non_striker_id are derived live by the
+    // ScoringEngine from ball_events — do NOT write them here to avoid
+    // FK violations when the player row is missing from the 'players' table.
     await Future.wait([
-      _supabase.from('ball_events').insert(ballData),
+      _supabase.from('ball_events').insert(dbBallData),
       _supabase.from('innings').update({
-        'runs': snap.runs, 'wickets': snap.wickets, 'legal_balls': snap.legalBalls,
-        'current_striker_id': snap.strikerId,
-        'current_non_striker_id': snap.nonStrikerId,
+        'runs': snap.runs,
+        'wickets': snap.wickets,
+        'legal_balls': snap.legalBalls,
         'current_bowler_id': ball.bowlerId,
         'is_complete': complete != null,
       }).eq('id', _innId(matchId, inningsNumber))

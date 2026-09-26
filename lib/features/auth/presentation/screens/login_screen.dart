@@ -113,12 +113,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
                               // ─── App Title ───
                               const Text(
-                                'BORIGIVALASA',
+                                'CRICKET BV',
                                 style: TextStyle(
                                   fontSize: 34,
                                   fontWeight: FontWeight.w900,
                                   color: Colors.white,
-                                  letterSpacing: 5,
+                                  letterSpacing: 4,
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -129,12 +129,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: const Text(
-                                  'CRICKET',
+                                  'BORIGIVALASA',
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                     color: darkBlue,
-                                    letterSpacing: 4,
+                                    letterSpacing: 3,
                                   ),
                                 ),
                               ),

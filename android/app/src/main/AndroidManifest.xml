@@ -2,7 +2,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <application
-        android:label="cricket_scoring_app"
+        android:label="Cricket BV"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

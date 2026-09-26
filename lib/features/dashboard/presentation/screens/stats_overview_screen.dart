@@ -5,6 +5,7 @@ import '../../../../core/constants/cricket_enums.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../players/data/models/player.dart';
 import '../../../players/presentation/providers/player_providers.dart';
+import 'leaderboard_screen.dart';
 
 class StatsOverviewScreen extends ConsumerWidget {
   const StatsOverviewScreen({super.key});
@@ -15,12 +16,12 @@ class StatsOverviewScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         backgroundColor: const Color(0xFFF1F5F9),
         appBar: AppBar(
           title: const Text(
-            'My Stats',
+            'Stats',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
           ),
           elevation: 0,
@@ -79,11 +80,13 @@ class StatsOverviewScreen extends ConsumerWidget {
                       unselectedLabelColor: Color(0xFF64748B),
                       indicatorColor: Color(0xFF2563EB),
                       indicatorWeight: 3,
+                      isScrollable: true,
                       labelStyle: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13.5,
                       ),
                       tabs: [
+                        Tab(icon: Icon(Icons.leaderboard_rounded, size: 18), text: 'LEADERS'),
                         Tab(icon: Icon(Icons.sports_cricket, size: 18), text: 'BATTING'),
                         Tab(icon: Icon(Icons.sports_baseball, size: 18), text: 'BOWLING'),
                         Tab(icon: Icon(Icons.military_tech_rounded, size: 18), text: 'CAREER'),
@@ -94,6 +97,7 @@ class StatsOverviewScreen extends ConsumerWidget {
               ],
               body: TabBarView(
                 children: [
+                  const LeaderboardScreen(),
                   _buildBattingTab(effectivePlayer),
                   _buildBowlingTab(effectivePlayer),
                   _buildCareerTab(context, effectivePlayer),

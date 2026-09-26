@@ -7,6 +7,8 @@ import '../../../../core/constants/cricket_enums.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../../matches/data/models/match.dart';
+import '../../data/models/innings.dart';
+import '../providers/scoring_providers.dart';
 
 class LiveMatchesScreen extends ConsumerStatefulWidget {
   const LiveMatchesScreen({super.key});
@@ -108,7 +110,7 @@ class _LiveMatchesScreenState extends ConsumerState<LiveMatchesScreen>
               itemCount: matches.length,
               itemBuilder: (context, index) {
                 final match = matches[index];
-                return _buildLiveMatchCard(context, match, isAdmin);
+                return _LiveMatchCard(match: match, isAdmin: isAdmin);
               },
             );
           },
@@ -192,36 +194,52 @@ class _LiveMatchesScreenState extends ConsumerState<LiveMatchesScreen>
       ],
     );
   }
+}
 
-  Widget _buildLiveMatchCard(BuildContext context, Match match, bool isAdmin) {
-    final live = match.liveScore;
-    final inn1 = live?['inn1'] as Map<String, dynamic>?;
-    final inn2 = live?['inn2'] as Map<String, dynamic>?;
+// ─── Live Match Card — reads innings in real-time ─────────────────────────────
+class _LiveMatchCard extends ConsumerWidget {
+  const _LiveMatchCard({required this.match, required this.isAdmin});
+  final Match match;
+  final bool isAdmin;
 
-    // Helper to resolve score map for each team
-    Map<String, dynamic>? getScoreForTeam(String teamId, int fallbackInn) {
-      if (inn1 != null && (inn1['teamId'] == teamId || (inn1['teamId'] == null && fallbackInn == 1))) {
-        return inn1;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tid = match.tournamentId;
+    final mid = match.id;
+    final i1 = ref.watch(inningsProvider((tournamentId: tid, matchId: mid, innings: 1))).value;
+    final i2 = ref.watch(inningsProvider((tournamentId: tid, matchId: mid, innings: 2))).value;
+
+    final bool isCounty = match.liveScore?['matchType'] == 'county' || match.liveScore?['isCounty'] == true;
+
+    // Determine which innings belongs to which team
+    Innings? teamAInn, teamBInn;
+    if (i1 != null) {
+      if (i1.battingTeamId == match.teamAId) {
+        teamAInn = i1;
+      } else if (i1.battingTeamId == match.teamBId) {
+        teamBInn = i1;
       }
-      if (inn2 != null && (inn2['teamId'] == teamId || (inn2['teamId'] == null && fallbackInn == 2))) {
-        return inn2;
+    }
+    if (i2 != null) {
+      if (i2.battingTeamId == match.teamAId) {
+        teamAInn = i2;
+      } else if (i2.battingTeamId == match.teamBId) {
+        teamBInn = i2;
       }
-      return null;
     }
 
-    final scoreA = getScoreForTeam(match.teamAId, 1);
-    final scoreB = getScoreForTeam(match.teamBId, 2);
+    // Active innings (not complete wins)
+    final Innings? activeInn = (i2 != null && !i2.isComplete) ? i2 : (i1 != null && !i1.isComplete ? i1 : (i2 ?? i1));
+    final bool isTeamABatting = activeInn?.battingTeamId == match.teamAId;
+    final bool isTeamBBatting = activeInn?.battingTeamId == match.teamBId;
 
-    final bool isTeamABatting = (inn2 == null && scoreA != null) || (inn2 != null && inn2['teamId'] == match.teamAId);
-    final bool isTeamBBatting = (inn2 == null && scoreB != null && inn1?['teamId'] == match.teamBId) || (inn2 != null && inn2['teamId'] == match.teamBId);
-
-    final String runsA = scoreA?['runs']?.toString() ?? '-';
-    final String wktsA = scoreA?['wickets']?.toString() ?? '0';
-    final String oversA = scoreA?['overs']?.toString() ?? '0.0';
-
-    final String runsB = scoreB?['runs']?.toString() ?? '-';
-    final String wktsB = scoreB?['wickets']?.toString() ?? '0';
-    final String oversB = scoreB?['overs']?.toString() ?? '0.0';
+    String scoreText(Innings? inn) {
+      if (inn == null) return '—';
+      final completedOvers = inn.legalBalls ~/ 6;
+      final ballsInOver = inn.legalBalls % 6;
+      final oversStr = ballsInOver == 0 ? '$completedOvers' : '$completedOvers.$ballsInOver';
+      return '${inn.runs}/${inn.wickets} ($oversStr ov)';
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -237,132 +255,75 @@ class _LiveMatchesScreenState extends ConsumerState<LiveMatchesScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Bar: Live Badge + Venue
+            // Top Bar
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFFECACA)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFEF4444),
-                          shape: BoxShape.circle,
-                        ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFECACA)),
                       ),
-                      const SizedBox(width: 5),
-                      const Text(
-                        'LIVE MATCH',
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.circle, size: 7, color: Color(0xFFEF4444)),
+                          SizedBox(width: 5),
+                          Text('LIVE', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.6)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isCounty ? const Color(0xFFFEF9C3) : const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: isCounty ? const Color(0xFFFDE047) : const Color(0xFFBFDBFE)),
+                      ),
+                      child: Text(
+                        isCounty ? 'COUNTY' : 'NORMAL',
                         style: TextStyle(
-                          color: Color(0xFFDC2626),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 11,
-                          letterSpacing: 0.6,
+                          color: isCounty ? const Color(0xFF92400E) : const Color(0xFF1D4ED8),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
+                          letterSpacing: 0.5,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
                 Text(
-                  '${match.totalOvers} Overs • ${match.venue}',
-                  style: const TextStyle(
-                    color: Color(0xFF64748B),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  '${match.totalOvers} Ov • ${match.venue}',
+                  style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-            // Team A Score Row
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: isTeamABatting ? const Color(0xFFF0FDF4) : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        match.teamA,
-                        style: TextStyle(
-                          fontSize: 15.5,
-                          fontWeight: isTeamABatting ? FontWeight.w900 : FontWeight.w700,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                      if (isTeamABatting) ...[
-                        const SizedBox(width: 6),
-                        const Icon(Icons.sports_cricket, size: 15, color: Color(0xFF16A34A)),
-                      ],
-                    ],
-                  ),
-                  Text(
-                    runsA != '-' ? '$runsA/$wktsA ($oversA ov)' : 'Yet to bat',
-                    style: TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w900,
-                      color: runsA != '-' ? const Color(0xFF1E3A8A) : const Color(0xFF94A3B8),
-                    ),
-                  ),
-                ],
-              ),
+            // Team A
+            _TeamScoreRow(
+              teamName: match.teamA,
+              scoreText: scoreText(teamAInn),
+              isBatting: isTeamABatting,
+              hasStarted: teamAInn != null,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
+            // Team B
+            _TeamScoreRow(
+              teamName: match.teamB,
+              scoreText: scoreText(teamBInn),
+              isBatting: isTeamBBatting,
+              hasStarted: teamBInn != null,
+            ),
 
-            // Team B Score Row
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: isTeamBBatting ? const Color(0xFFF0FDF4) : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        match.teamB,
-                        style: TextStyle(
-                          fontSize: 15.5,
-                          fontWeight: isTeamBBatting ? FontWeight.w900 : FontWeight.w700,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                      if (isTeamBBatting) ...[
-                        const SizedBox(width: 6),
-                        const Icon(Icons.sports_cricket, size: 15, color: Color(0xFF16A34A)),
-                      ],
-                    ],
-                  ),
-                  Text(
-                    runsB != '-' ? '$runsB/$wktsB ($oversB ov)' : 'Yet to bat',
-                    style: TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w900,
-                      color: runsB != '-' ? const Color(0xFF1E3A8A) : const Color(0xFF94A3B8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
             const Divider(height: 20, color: Color(0xFFF1F5F9)),
 
-            // Action Buttons
+            // Buttons
             Row(
               children: [
                 Expanded(
@@ -404,6 +365,57 @@ class _LiveMatchesScreenState extends ConsumerState<LiveMatchesScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TeamScoreRow extends StatelessWidget {
+  const _TeamScoreRow({
+    required this.teamName,
+    required this.scoreText,
+    required this.isBatting,
+    required this.hasStarted,
+  });
+  final String teamName, scoreText;
+  final bool isBatting, hasStarted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: isBatting ? const Color(0xFFF0FDF4) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Text(
+                teamName,
+                style: TextStyle(
+                  fontSize: 15.5,
+                  fontWeight: isBatting ? FontWeight.w900 : FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              if (isBatting) ...[
+                const SizedBox(width: 6),
+                const Icon(Icons.sports_cricket, size: 15, color: Color(0xFF16A34A)),
+              ],
+            ],
+          ),
+          Text(
+            scoreText,
+            style: TextStyle(
+              fontSize: hasStarted ? 15.5 : 14,
+              fontWeight: FontWeight.w900,
+              color: hasStarted ? const Color(0xFF1E3A8A) : const Color(0xFFCBD5E1),
+            ),
+          ),
+        ],
       ),
     );
   }

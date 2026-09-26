@@ -14,6 +14,7 @@ import '../../data/repositories/scoring_repository.dart';
 import '../providers/scoring_providers.dart';
 import '../widgets/over_end_sheet.dart';
 import '../widgets/wicket_sheet.dart';
+import '../../../teams/presentation/providers/team_providers.dart';
 import 'innings_setup_screen.dart';
 
 class LiveScorerScreen extends ConsumerWidget {
@@ -71,6 +72,12 @@ class LiveScorerScreen extends ConsumerWidget {
           return InningsSetupScreen(tournamentId: tournamentId, matchId: matchId, inningsNumber: 1);
         }
         if (inn1.isComplete) {
+          // County match has only 1 innings — finalize directly
+          final isCounty = match?.liveScore?['isCounty'] == true || match?.liveScore?['matchType'] == 'county';
+          if (isCounty) {
+            return _FinalizeCountyMatch(tournamentId: tournamentId, matchId: matchId, inn1: inn1);
+          }
+
           return i2.when(
             loading: () => const Scaffold(
               backgroundColor: Color(0xFFF8FAFC),
@@ -1851,6 +1858,137 @@ class _MoMSelectionSheetState extends ConsumerState<_MoMSelectionSheet> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── County Match Finalizer (no 2nd innings) ─────────────────────────────────
+class _FinalizeCountyMatch extends ConsumerStatefulWidget {
+  const _FinalizeCountyMatch({
+    required this.tournamentId,
+    required this.matchId,
+    required this.inn1,
+  });
+  final String tournamentId, matchId;
+  final Innings inn1;
+  @override
+  ConsumerState<_FinalizeCountyMatch> createState() => _FinalizeCountyMatchState();
+}
+
+class _FinalizeCountyMatchState extends ConsumerState<_FinalizeCountyMatch> {
+  bool _done = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _finalize();
+  }
+
+  Future<void> _finalize() async {
+    if (_done) return;
+    _done = true;
+    try {
+      await ref.read(scoringRepositoryProvider).finalizeMatch(
+        tournamentId: widget.tournamentId,
+        matchId: widget.matchId,
+      );
+    } catch (e) {
+      debugPrint('Error finalizing county match: $e');
+    }
+    if (mounted) {
+      // Navigate back to match detail
+      GoRouter.of(context).go('/tournaments/${widget.tournamentId}/matches/${widget.matchId}');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Color(0xFFF8FAFC),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: Color(0xFF1E3A8A)),
+            SizedBox(height: 16),
+            Text('Finalizing Match...', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── County Innings 2 Auto Init (legacy, no longer used for county) ───────────
+class _AutoInitCountyInnings2 extends ConsumerStatefulWidget {
+  const _AutoInitCountyInnings2({
+    required this.tournamentId,
+    required this.matchId,
+    required this.inn1,
+  });
+
+  final String tournamentId, matchId;
+  final Innings inn1;
+
+  @override
+  ConsumerState<_AutoInitCountyInnings2> createState() => _AutoInitCountyInnings2State();
+}
+
+class _AutoInitCountyInnings2State extends ConsumerState<_AutoInitCountyInnings2> {
+  bool _initStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startInit();
+  }
+
+  Future<void> _startInit() async {
+    if (_initStarted) return;
+    _initStarted = true;
+    try {
+      final teams = ref.read(teamsProvider).value ?? [];
+      final batTeam = teams.where((t) => t.id == widget.inn1.bowlingTeamId).firstOrNull ?? Team(id: widget.inn1.bowlingTeamId, name: widget.inn1.bowlingTeamName, shortName: '', tournamentIds: [widget.tournamentId]);
+      final bowlTeam = teams.where((t) => t.id == widget.inn1.battingTeamId).firstOrNull ?? Team(id: widget.inn1.battingTeamId, name: widget.inn1.battingTeamName, shortName: '', tournamentIds: [widget.tournamentId]);
+
+      final strikerId = widget.inn1.currentBowlerId;
+      final bowlerId = widget.inn1.openingStrikerId;
+
+      if (strikerId != null && bowlerId != null) {
+        final striker = Player(id: strikerId, name: 'Batsman', teamId: batTeam.id, role: PlayerRole.batter, stats: PlayerStats());
+        final bowler = Player(id: bowlerId, name: 'Bowler', teamId: bowlTeam.id, role: PlayerRole.bowler, stats: PlayerStats());
+        
+        await ref.read(scoringRepositoryProvider).initInnings(
+          tournamentId: widget.tournamentId,
+          matchId: widget.matchId,
+          inningsNumber: 2,
+          battingTeam: batTeam,
+          bowlingTeam: bowlTeam,
+          openingStriker: striker,
+          openingNonStriker: null,
+          openingBowler: bowler,
+          targetRuns: widget.inn1.runs + 1,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error auto-init innings 2: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Color(0xFFF8FAFC),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: Color(0xFF1E3A8A)),
+            SizedBox(height: 16),
+            Text('Starting 2nd Innings...', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+          ],
+        ),
       ),
     );
   }

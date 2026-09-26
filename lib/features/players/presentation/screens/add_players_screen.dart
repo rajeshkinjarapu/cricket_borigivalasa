@@ -7,6 +7,7 @@ import '../../../members/presentation/providers/member_providers.dart';
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../auth/data/models/app_user.dart';
 import '../../../teams/data/models/team.dart';
+import '../../../teams/presentation/providers/team_providers.dart';
 import '../../data/models/player.dart';
 import '../providers/player_providers.dart';
 
@@ -165,6 +166,7 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
   @override
   Widget build(BuildContext context) {
     final allPlayersAsync = ref.watch(allPlayersProvider);
+    final allTeamsAsync = ref.watch(allTeamsProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -240,7 +242,7 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildSelectExistingTab(allPlayersAsync),
+                _buildSelectExistingTab(allPlayersAsync, allTeamsAsync),
                 _buildManualEntryTab(),
               ],
             ),
@@ -250,14 +252,19 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
     );
   }
 
-  Widget _buildSelectExistingTab(AsyncValue<List<Player>> allPlayersAsync) {
+  Widget _buildSelectExistingTab(AsyncValue<List<Player>> allPlayersAsync, AsyncValue<List<Team>> allTeamsAsync) {
     return allPlayersAsync.when(
       loading: () => const Center(
         child: CircularProgressIndicator(color: Color(0xFF1E3A8A)),
       ),
       error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
       data: (allPlayers) {
+        final teams = allTeamsAsync.value ?? [];
+        final countyTeamIds = teams.where((t) => t.isCounty).map((t) => t.id).toSet();
+        
         final filteredPlayers = allPlayers.where((p) {
+          if (countyTeamIds.contains(p.teamId)) return false;
+          
           if (_selectedRoleFilter != null && p.role != _selectedRoleFilter) {
             return false;
           }
