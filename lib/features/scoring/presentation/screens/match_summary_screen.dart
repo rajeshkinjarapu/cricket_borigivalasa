@@ -113,31 +113,25 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
               // ── 2. STYLED PINNED TAB BAR ──
               Container(
                 color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 child: Container(
+                  height: 36,
                   decoration: BoxDecoration(
                     color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: TabBar(
                     controller: _tabController,
                     indicator: BoxDecoration(
                       color: const Color(0xFF1E3A8A),
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF1E3A8A).withOpacity(0.25),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     indicatorSize: TabBarIndicatorSize.tab,
                     labelColor: Colors.white,
                     unselectedLabelColor: const Color(0xFF64748B),
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11.5, letterSpacing: 0.5),
-                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11.5),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.4),
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
                     tabs: isCounty
                         ? const [
                             Tab(text: 'MATCH INFO'),
@@ -145,8 +139,8 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                           ]
                         : [
                             const Tab(text: 'MATCH INFO'),
-                            Tab(text: '1ST INN (${match.teamAShort})'),
-                            Tab(text: '2ND INN (${match.teamBShort})'),
+                            Tab(text: '1ST INN'),
+                            Tab(text: '2ND INN'),
                           ],
                   ),
                 ),
@@ -182,7 +176,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // BRIGHT HERO SCOREBOARD
+  // COMPACT & ULTRA-CLEAN HERO SCOREBOARD (CRICBUZZ / ESPNCRICINFO STYLE)
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildHeaderHero(
     BuildContext context,
@@ -193,6 +187,18 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
     String resultText,
     bool isCompleted,
   ) {
+    // Determine team 1 & 2 innings
+    Innings? innA;
+    Innings? innB;
+    if (i1?.battingTeamId == match.teamAId) innA = i1;
+    if (i2?.battingTeamId == match.teamAId) innA = i2;
+    if (i1?.battingTeamId == match.teamBId) innB = i1;
+    if (i2?.battingTeamId == match.teamBId) innB = i2;
+
+    if (isCounty && innA == null && i1 != null) {
+      innA = i1;
+    }
+
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -201,22 +207,23 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
           bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Match Venue & Type Chip
+          // ── Top Micro Meta Bar ──
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.location_on_rounded, size: 14, color: Color(0xFF64748B)),
-                    const SizedBox(width: 5),
+                    const Icon(Icons.location_on_rounded, size: 13, color: Color(0xFF64748B)),
+                    const SizedBox(width: 4),
                     Flexible(
                       child: Text(
-                        '${match.venue.isNotEmpty ? match.venue : 'Ground'} • ${DateFormat('MMM dd, yyyy').format(match.matchDate)}',
-                        style: const TextStyle(color: Color(0xFF475569), fontSize: 12, fontWeight: FontWeight.w700),
+                        '${match.venue.isNotEmpty ? match.venue : 'Cricket Ground'} • ${DateFormat('MMM dd, yyyy').format(match.matchDate)}',
+                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w700),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -225,87 +232,73 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                 decoration: BoxDecoration(
                   color: isCounty ? const Color(0xFFFEF3C7) : const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: isCounty ? const Color(0xFFFDE68A) : const Color(0xFFBFDBFE), width: 1),
                 ),
                 child: Text(
                   isCounty ? 'COUNTY' : '${match.totalOvers} OVERS',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 9.5,
                     fontWeight: FontWeight.w900,
                     color: isCounty ? const Color(0xFFB45309) : const Color(0xFF1D4ED8),
-                    letterSpacing: 0.6,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
 
-          // Team A vs Team B Row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Team A Card
-              Expanded(
-                child: _buildTeamScoreBox(
-                  teamName: match.teamA,
-                  teamId: match.teamAId,
-                  i1: i1,
-                  i2: i2,
+          // ── Sleek Integrated Scoreboard (No Bulky Boxes) ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                // Team A Row
+                _buildCompactTeamRow(
+                  name: match.teamA,
+                  inn: innA,
                   isCounty: isCounty,
-                  isTeamA: true,
+                  isBattingNow: i1 != null && !i1.isComplete && i1.battingTeamId == match.teamAId,
+                  isWinner: match.winnerTeamId == match.teamAId,
                   isCompleted: isCompleted,
                 ),
-              ),
-
-              // VS separator
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: const Text(
-                    'VS',
-                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w900, fontSize: 10.5),
-                  ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Divider(height: 1, color: Color(0xFFE2E8F0)),
                 ),
-              ),
-
-              // Team B Card
-              Expanded(
-                child: _buildTeamScoreBox(
-                  teamName: match.teamB,
-                  teamId: match.teamBId,
-                  i1: i1,
-                  i2: i2,
+                // Team B Row
+                _buildCompactTeamRow(
+                  name: match.teamB,
+                  inn: innB,
                   isCounty: isCounty,
-                  isTeamA: false,
+                  isBattingNow: i2 != null && !i2.isComplete && i2.battingTeamId == match.teamBId,
+                  isWinner: match.winnerTeamId == match.teamBId,
                   isCompleted: isCompleted,
+                  isOpponentInCounty: isCounty,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 6),
 
-          // ── Result / Status Banner ──
+          // ── Compact Result / Live Status Pill ──
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 14),
+            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
             decoration: BoxDecoration(
               color: isCompleted
                   ? const Color(0xFFECFDF5)
-                  : (match.isLive ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC)),
-              borderRadius: BorderRadius.circular(12),
+                  : (match.isLive ? const Color(0xFFFEF2F2) : const Color(0xFFF1F5F9)),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: isCompleted
                     ? const Color(0xFFA7F3D0)
@@ -319,13 +312,13 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                 Icon(
                   isCompleted
                       ? Icons.emoji_events_rounded
-                      : (match.isLive ? Icons.radio_button_checked_rounded : Icons.schedule_rounded),
+                      : (match.isLive ? Icons.radio_button_checked_rounded : Icons.info_outline_rounded),
                   color: isCompleted
                       ? const Color(0xFF059669)
                       : (match.isLive ? const Color(0xFFDC2626) : const Color(0xFF64748B)),
-                  size: 16,
+                  size: 13,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Flexible(
                   child: Text(
                     resultText,
@@ -333,12 +326,10 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                       color: isCompleted
                           ? const Color(0xFF065F46)
                           : (match.isLive ? const Color(0xFF991B1B) : const Color(0xFF334155)),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12.5,
-                      letterSpacing: 0.2,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11.5,
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -350,102 +341,110 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
     );
   }
 
-  Widget _buildTeamScoreBox({
-    required String teamName,
-    required String teamId,
-    required Innings? i1,
-    required Innings? i2,
+  Widget _buildCompactTeamRow({
+    required String name,
+    required Innings? inn,
     required bool isCounty,
-    required bool isTeamA,
+    required bool isBattingNow,
+    required bool isWinner,
     required bool isCompleted,
+    bool isOpponentInCounty = false,
   }) {
-    Innings? teamInn;
-    if (i1?.battingTeamId == teamId) teamInn = i1;
-    if (i2?.battingTeamId == teamId) teamInn = i2;
-
-    // For county matches, team A is the single batting team if not mapped
-    if (isCounty && teamInn == null && isTeamA && i1 != null) {
-      teamInn = i1;
-    }
-
-    final hasBat = teamInn != null && (teamInn.legalBalls > 0 || teamInn.runs > 0);
-    final crr = (teamInn != null && teamInn.legalBalls > 0)
-        ? (teamInn.runs / (teamInn.legalBalls / 6)).toStringAsFixed(2)
+    final hasBat = inn != null && (inn.legalBalls > 0 || inn.runs > 0);
+    final crr = (inn != null && inn.legalBalls > 0)
+        ? (inn.runs / (inn.legalBalls / 6)).toStringAsFixed(2)
         : null;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x06000000), blurRadius: 6, offset: Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Team Avatar
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: isTeamA ? const Color(0xFFDBEAFE) : const Color(0xFFFCE7F3),
-            child: Text(
-              teamName.isNotEmpty ? teamName.substring(0, 1).toUpperCase() : 'T',
-              style: TextStyle(
-                color: isTeamA ? const Color(0xFF1D4ED8) : const Color(0xFFBE185D),
-                fontWeight: FontWeight.w900,
-                fontSize: 16,
+    return Row(
+      children: [
+        // Name & Winner Indicator
+        Expanded(
+          child: Row(
+            children: [
+              Flexible(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    color: isWinner ? const Color(0xFF0F172A) : const Color(0xFF1E293B),
+                    fontWeight: isWinner ? FontWeight.w900 : FontWeight.w800,
+                    fontSize: 13.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 7),
-
-          // Team Name
-          Text(
-            teamName,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w900, fontSize: 13),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 5),
-
-          // Score / Status
-          if (hasBat) ...[
-            Text(
-              '${teamInn!.runs}/${teamInn.wickets}',
-              style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w900, fontSize: 18),
-            ),
-            const SizedBox(height: 1),
-            Text(
-              '(${teamInn.oversText} ov)',
-              style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w700, fontSize: 11),
-            ),
-            if (crr != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                'CRR: $crr',
-                style: const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.w800, fontSize: 10),
-              ),
+              if (isWinner) ...[
+                const SizedBox(width: 4),
+                const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF059669)),
+              ],
+              if (isBattingNow) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDBEAFE),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'BAT',
+                    style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFF1D4ED8)),
+                  ),
+                ),
+              ],
             ],
-          ] else if (isCounty && !isTeamA) ...[
-            const Text(
-              'Opponent',
-              style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w700),
+          ),
+        ),
+
+        // Score display
+        if (hasBat) ...[
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: '${inn!.runs}/${inn.wickets}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                TextSpan(
+                  text: ' (${inn.oversText})',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                if (crr != null)
+                  TextSpan(
+                    text: '  CRR $crr',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 10,
+                      color: Color(0xFF2563EB),
+                    ),
+                  ),
+              ],
             ),
-          ] else if (isCompleted) ...[
-            const Text(
-              '—',
-              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.bold),
-            ),
-          ] else ...[
-            const Text(
-              'Yet to bat',
-              style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w700),
-            ),
-          ],
+          ),
+        ] else if (isOpponentInCounty) ...[
+          const Text(
+            'Opponent',
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w700),
+          ),
+        ] else if (isCompleted) ...[
+          const Text(
+            '—',
+            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.bold),
+          ),
+        ] else ...[
+          const Text(
+            'Yet to bat',
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w600),
+          ),
         ],
-      ),
+      ],
     );
   }
 
@@ -521,7 +520,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ENHANCED INFO TAB
+// ENHANCED & COMPACT INFO TAB
 // ─────────────────────────────────────────────────────────────────────────────
 class _InfoTab extends StatelessWidget {
   const _InfoTab({
@@ -542,47 +541,48 @@ class _InfoTab extends StatelessWidget {
     final tossDecisionStr = match.tossDecision?.name.toUpperCase() ?? 'BAT';
 
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       children: [
         // ── MATCH DETAILS CARD ──
         Card(
-          elevation: 1,
+          elevation: 0.5,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             side: const BorderSide(color: Color(0xFFE2E8F0)),
           ),
           color: Colors.white,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: const [
-                    Icon(Icons.info_outline_rounded, color: Color(0xFF1E3A8A), size: 18),
-                    SizedBox(width: 8),
+                    Icon(Icons.info_outline_rounded, color: Color(0xFF1E3A8A), size: 16),
+                    SizedBox(width: 6),
                     Text(
                       'MATCH INFORMATION',
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         color: Color(0xFF0F172A),
-                        fontSize: 12.5,
-                        letterSpacing: 0.8,
+                        fontSize: 11.5,
+                        letterSpacing: 0.6,
                       ),
                     ),
                   ],
                 ),
-                const Divider(height: 20, color: Color(0xFFE2E8F0)),
+                const Divider(height: 14, color: Color(0xFFE2E8F0)),
                 _infoRow(Icons.sports_cricket_rounded, 'Match', '${match.teamA} vs ${match.teamB}'),
                 _infoRow(
                   Icons.category_rounded,
-                  'Match Format',
+                  'Format',
                   isCounty ? 'County Single-Innings Duel' : 'Limited Overs (${match.totalOvers} Overs)',
                 ),
                 _infoRow(
                   Icons.calendar_month_rounded,
                   'Date & Time',
-                  DateFormat('EEEE, MMM dd, yyyy • hh:mm a').format(match.matchDate),
+                  DateFormat('EEE, MMM dd, yyyy • hh:mm a').format(match.matchDate),
                 ),
                 if (match.hasToss)
                   _infoRow(
@@ -592,10 +592,10 @@ class _InfoTab extends StatelessWidget {
                     highlight: true,
                   ),
                 _infoRow(Icons.stadium_rounded, 'Venue', match.venue.isNotEmpty ? match.venue : 'Cricket Ground'),
-                _infoRow(Icons.timer_rounded, 'Total Overs', '${match.totalOvers} Overs per side'),
+                _infoRow(Icons.timer_rounded, 'Overs', '${match.totalOvers} Overs per side'),
                 _infoRow(
                   Icons.flag_rounded,
-                  'Match Status',
+                  'Status',
                   match.status.name.toUpperCase(),
                   statusColor: match.isCompleted
                       ? const Color(0xFF059669)
@@ -606,43 +606,43 @@ class _InfoTab extends StatelessWidget {
           ),
         ),
 
-        // ── INNINGS SUMMARY CARD ──
-        if (i1 != null) ...[
-          const SizedBox(height: 12),
+        // ── INNINGS SUMMARY CARD (For non-county or detailed breakdown) ──
+        if (!isCounty && i1 != null) ...[
+          const SizedBox(height: 8),
           Card(
-            elevation: 1,
+            elevation: 0.5,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               side: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             color: Colors.white,
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: const [
-                      Icon(Icons.analytics_outlined, color: Color(0xFF1E3A8A), size: 18),
-                      SizedBox(width: 8),
+                      Icon(Icons.analytics_outlined, color: Color(0xFF1E3A8A), size: 16),
+                      SizedBox(width: 6),
                       Text(
                         'INNINGS BREAKDOWN',
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF0F172A),
-                          fontSize: 12.5,
-                          letterSpacing: 0.8,
+                          fontSize: 11.5,
+                          letterSpacing: 0.6,
                         ),
                       ),
                     ],
                   ),
-                  const Divider(height: 20, color: Color(0xFFE2E8F0)),
+                  const Divider(height: 14, color: Color(0xFFE2E8F0)),
                   _inningsSummaryRow(
-                    label: isCounty ? 'County Innings' : '1st Innings (${match.teamA})',
+                    label: '1st Innings (${match.teamA})',
                     inn: i1!,
                   ),
                   if (i2 != null) ...[
-                    const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                    const Divider(height: 12, color: Color(0xFFF1F5F9)),
                     _inningsSummaryRow(
                       label: '2nd Innings (${match.teamB})',
                       inn: i2!,
@@ -665,21 +665,21 @@ class _InfoTab extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0F172A))),
-            const SizedBox(height: 2),
-            Text('CRR: $crr • Extras: ${inn.extras}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5, color: Color(0xFF0F172A))),
+            const SizedBox(height: 1),
+            Text('CRR: $crr • Extras: ${inn.extras}', style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
           ],
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
             color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: const Color(0xFFBFDBFE)),
           ),
           child: Text(
             '${inn.runs}/${inn.wickets} (${inn.oversText})',
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: Color(0xFF1E3A8A)),
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5, color: Color(0xFF1E3A8A)),
           ),
         ),
       ],
@@ -694,27 +694,27 @@ class _InfoTab extends StatelessWidget {
     Color? statusColor,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 7),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 28,
-            height: 28,
+            width: 24,
+            height: 24,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
-            child: Icon(icon, size: 14, color: const Color(0xFF1E3A8A)),
+            child: Icon(icon, size: 12.5, color: const Color(0xFF1E3A8A)),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           SizedBox(
-            width: 95,
+            width: 75,
             child: Text(
               label,
-              style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w700, fontSize: 12),
+              style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w700, fontSize: 11.5),
             ),
           ),
           Expanded(
@@ -722,7 +722,7 @@ class _InfoTab extends StatelessWidget {
               value,
               style: TextStyle(
                 fontWeight: FontWeight.w800,
-                fontSize: 12.5,
+                fontSize: 12,
                 color: statusColor ?? (highlight ? const Color(0xFF1D4ED8) : const Color(0xFF0F172A)),
               ),
             ),
