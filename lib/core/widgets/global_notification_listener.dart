@@ -22,12 +22,13 @@ class _GlobalNotificationListenerState extends State<GlobalNotificationListener>
 
   void _setupRealtimeListener() {
     _channel = _supabase.channel('public:matches');
-    _channel.on(
-      RealtimeListenTypes.postgresChanges,
-      ChannelFilter(event: 'INSERT', schema: 'public', table: 'matches'),
-      (payload, [ref]) {
-        final newMatch = payload['new'] as Map<String, dynamic>?;
-        if (newMatch != null) {
+    _channel.onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'matches',
+      callback: (payload) {
+        final newMatch = payload.newRecord;
+        if (newMatch.isNotEmpty) {
           final teamA = newMatch['team_a'] ?? 'Team A';
           final teamB = newMatch['team_b'] ?? 'Team B';
           _showHeroBanner(teamA, teamB);
