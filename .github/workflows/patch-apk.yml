@@ -49,6 +49,6 @@ jobs:
           cache: true
 
       - name: Patch Shorebird Release
-        run: shorebird patch android --release-version=latest --allow-native-diffs --force
+        run: shorebird patch android --release-version=latest --allow-native-diffs
         env:
           SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
