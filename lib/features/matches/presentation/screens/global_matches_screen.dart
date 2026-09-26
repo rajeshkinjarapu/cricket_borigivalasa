@@ -396,20 +396,9 @@ class _MatchCardItem extends ConsumerWidget {
       }
     }
 
-    // Calculate Result Banner
+    // Calculate Result Banner (Only show winner or live target, avoiding redundant info)
     String? resultText;
-    if (m.resultText != null && m.resultText!.trim().isNotEmpty) {
-      resultText = m.resultText!.trim();
-    } else if (m.liveScore?['result'] != null && m.liveScore!['result'].toString().trim().isNotEmpty) {
-      resultText = m.liveScore!['result'].toString().trim();
-    } else if (m.liveScore?['resultText'] != null && m.liveScore!['resultText'].toString().trim().isNotEmpty) {
-      resultText = m.liveScore!['resultText'].toString().trim();
-    } else if (isCounty && (isCompleted || (i1 != null && i1.isComplete))) {
-      final runs = teamAInn?.runs ?? i1?.runs ?? m.liveScore?['inn1']?['runs'] ?? m.liveScore?['runs'] ?? 0;
-      final wkts = teamAInn?.wickets ?? i1?.wickets ?? m.liveScore?['inn1']?['wickets'] ?? m.liveScore?['wickets'] ?? 0;
-      final ov = teamAInn?.oversText ?? i1?.oversText ?? m.liveScore?['inn1']?['overs'] ?? m.liveScore?['overs'] ?? '0.0';
-      resultText = '${m.teamA} scored $runs/$wkts ($ov ov) • Match Completed';
-    } else if (i1 != null && i2 != null && (i2.isComplete || isCompleted)) {
+    if (i1 != null && i2 != null && (i2.isComplete || isCompleted)) {
       if (i2.runs > i1.runs) {
         final remWickets = 10 - i2.wickets;
         final winnerName = teamBInn == i2 ? m.teamB : m.teamA;
@@ -418,11 +407,30 @@ class _MatchCardItem extends ConsumerWidget {
         final remRuns = i1.runs - i2.runs;
         final winnerName = teamAInn == i1 ? m.teamA : m.teamB;
         resultText = '$winnerName won by $remRuns ${remRuns == 1 ? 'run' : 'runs'}';
-      } else {
-        resultText = 'Match Tied (${i1.runs} runs each)';
+      } else if (i1.runs == i2.runs) {
+        resultText = 'Match Tied';
       }
-    } else if (isCompleted) {
-      resultText = 'Match Completed';
+    } else if (m.winnerTeamId != null && m.winnerTeamId!.isNotEmpty) {
+      final winnerName = m.teamNameById(m.winnerTeamId);
+      resultText = '$winnerName won';
+    } else if (m.resultText != null &&
+        m.resultText!.trim().isNotEmpty &&
+        !m.resultText!.toLowerCase().contains('match completed') &&
+        !m.resultText!.toLowerCase().contains('scored')) {
+      resultText = m.resultText!.trim();
+    } else if (m.liveScore?['result'] != null &&
+        m.liveScore!['result'].toString().trim().isNotEmpty &&
+        !m.liveScore!['result'].toString().toLowerCase().contains('match completed') &&
+        !m.liveScore!['result'].toString().toLowerCase().contains('scored')) {
+      resultText = m.liveScore!['result'].toString().trim();
+    } else if (isLive && !isCounty && i1 != null && i1.isComplete && i2 != null && !i2.isComplete) {
+      final target = i1.runs + 1;
+      final needed = target - i2.runs;
+      final remBalls = (m.totalOvers * 6) - i2.legalBalls;
+      final chasingTeam = teamBInn == i2 ? m.teamB : m.teamA;
+      if (needed > 0 && remBalls >= 0) {
+        resultText = '$chasingTeam need $needed runs in $remBalls balls';
+      }
     }
 
     return Card(

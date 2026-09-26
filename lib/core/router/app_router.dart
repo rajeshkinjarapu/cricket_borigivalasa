@@ -35,17 +35,47 @@ import '../../features/matches/presentation/screens/global_matches_screen.dart';
 import '../../features/dashboard/presentation/screens/stats_overview_screen.dart';
 import '../constants/app_constants.dart';
 
+final splashCompleteProvider = StateNotifierProvider<SplashNotifier, bool>((ref) {
+  return SplashNotifier();
+});
+
+class SplashNotifier extends StateNotifier<bool> {
+  SplashNotifier() : super(false) {
+    _startTimer();
+  }
+
+  void _startTimer() async {
+    await Future.delayed(const Duration(milliseconds: 2000));
+    state = true;
+  }
+}
+
+class _RouterRefreshNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final authNotifier = ValueNotifier<AsyncValue<AppUser?>>(const AsyncValue.loading());
-  ref.listen<AsyncValue<AppUser?>>(authStateProvider, (_, next) {
-    authNotifier.value = next;
+  final refreshNotifier = _RouterRefreshNotifier();
+  ref.listen<AsyncValue<AppUser?>>(authStateProvider, (_, __) {
+    refreshNotifier.notify();
   });
+  ref.listen<bool>(splashCompleteProvider, (_, __) {
+    refreshNotifier.notify();
+  });
+
   return GoRouter(
     initialLocation: '/splash',
-    refreshListenable: authNotifier,
+    refreshListenable: refreshNotifier,
     redirect: (context, state) {
-      final authAsync = ref.read(authStateProvider);
+      final splashDone = ref.read(splashCompleteProvider);
       final loc = state.matchedLocation;
+
+      // 1. Hold on splash screen for at least 2 seconds
+      if (!splashDone) {
+        return loc == '/splash' ? null : '/splash';
+      }
+
+      final authAsync = ref.read(authStateProvider);
       final onAuthRoute = loc == '/login' || loc == '/signup';
       if (authAsync.isLoading && !authAsync.hasValue) {
         return loc == '/splash' ? null : '/splash';

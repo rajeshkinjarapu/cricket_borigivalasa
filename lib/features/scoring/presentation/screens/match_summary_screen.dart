@@ -460,11 +460,12 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
 
     // 2. County Duel Match (1 Innings)
     if (isCounty) {
+      if (match.winnerTeamId != null && match.winnerTeamId!.isNotEmpty) {
+        final winnerName = match.teamNameById(match.winnerTeamId);
+        return '$winnerName won';
+      }
       if (match.isCompleted || (i1 != null && i1.isComplete)) {
-        final runs = i1?.runs ?? 0;
-        final wkts = i1?.wickets ?? 0;
-        final overs = i1?.oversText ?? '0.0';
-        return '${match.teamA} scored $runs/$wkts ($overs ov) • Match Completed';
+        return 'Match Completed';
       }
       return 'County Match in progress...';
     }
@@ -481,18 +482,15 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
         final remRuns = i1.runs - i2.runs;
         return '$i1Team won by $remRuns ${remRuns == 1 ? 'run' : 'runs'}';
       } else {
-        return 'Match Tied (${i1.runs} runs each)';
+        return 'Match Tied';
       }
     }
 
     // 4. Completed match fallback
     if (match.isCompleted) {
-      if (match.winnerTeamId != null) {
+      if (match.winnerTeamId != null && match.winnerTeamId!.isNotEmpty) {
         final winnerName = match.teamNameById(match.winnerTeamId);
-        return '$winnerName won the match';
-      }
-      if (i1 != null) {
-        return 'Match Completed • ${match.teamA} scored ${i1.runs}/${i1.wickets}';
+        return '$winnerName won';
       }
       return 'Match Completed';
     }
