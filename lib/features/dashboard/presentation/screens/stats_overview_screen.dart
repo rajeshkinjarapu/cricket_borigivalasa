@@ -227,7 +227,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
     final statsAsync = ref.watch(tournamentStatsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -242,7 +242,12 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
         elevation: 0,
         title: const Text(
           'League & Tournament Stats',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 0.3),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 19,
+            color: Colors.white,
+            letterSpacing: 0.3,
+          ),
         ),
         actions: [
           IconButton(
@@ -284,31 +289,23 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
             return s.player.name.toLowerCase().contains(q) || s.teamName.toLowerCase().contains(q);
           }).toList();
 
-          // Grand Totals
-          final totalPlayers = allStats.length;
-          final totalRuns = allStats.fold(0, (sum, s) => sum + s.runs);
-          final totalWickets = allStats.fold(0, (sum, s) => sum + s.wickets);
-          final totalSixes = allStats.fold(0, (sum, s) => sum + s.sixes);
-          final totalFours = allStats.fold(0, (sum, s) => sum + s.fours);
-
           return NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) => [
-              // ── 1. GRAND AGGREGATES HEADER ──
-              SliverToBoxAdapter(
-                child: _buildHeaderHero(totalPlayers, totalRuns, totalWickets, totalSixes, totalFours),
-              ),
-
-              // ── 2. SEARCH BAR ──
+              // ── 1. SEARCH BAR ──
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: const Color(0xFFE2E8F0)),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2)),
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
                       ],
                     ),
                     child: TextField(
@@ -316,8 +313,8 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
                       onChanged: (val) => setState(() => _searchQuery = val.trim()),
                       decoration: InputDecoration(
                         hintText: 'Search player or team...',
-                        hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: Color(0xFF64748B)),
+                        hintStyle: const TextStyle(fontSize: 13.5, color: Color(0xFF94A3B8)),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: Color(0xFF1E3A8A)),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF64748B)),
@@ -335,31 +332,50 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
                 ),
               ),
 
-              // ── 3. PINNED CATEGORY TAB BAR ──
+              // ── 2. PINNED CATEGORY TAB BAR (Starts directly from left) ──
               SliverPersistentHeader(
                 pinned: true,
                 delegate: _SliverTabBarDelegate(
                   Container(
-                    color: const Color(0xFFF8FAFC),
+                    color: const Color(0xFFF1F5F9),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     child: Container(
+                      height: 44,
+                      padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: TabBar(
                         controller: _tabController,
                         isScrollable: true,
+                        tabAlignment: TabAlignment.start,
+                        padding: EdgeInsets.zero,
+                        dividerColor: Colors.transparent,
                         indicator: BoxDecoration(
                           color: const Color(0xFF1E3A8A),
                           borderRadius: BorderRadius.circular(11),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF1E3A8A).withOpacity(0.25),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         indicatorSize: TabBarIndicatorSize.tab,
                         labelColor: Colors.white,
                         unselectedLabelColor: const Color(0xFF64748B),
-                        labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11.5, letterSpacing: 0.5),
-                        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11.5),
+                        labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.3),
+                        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
                         tabs: _tabs.map((t) => Tab(text: t)).toList(),
                       ),
                     ),
@@ -384,138 +400,6 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // HEADER HERO: 4 GRAND AGGREGATES
-  // ─────────────────────────────────────────────────────────────────────────
-  Widget _buildHeaderHero(int totalPlayers, int totalRuns, int totalWickets, int totalSixes, int totalFours) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF1E3A8A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _buildMetricCard(
-                  title: 'PLAYERS',
-                  value: '$totalPlayers',
-                  subtext: 'Active in league',
-                  icon: Icons.groups_rounded,
-                  iconColor: const Color(0xFF38BDF8),
-                  bgColor: const Color(0xFF0284C7).withOpacity(0.2),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildMetricCard(
-                  title: 'TOTAL RUNS',
-                  value: '$totalRuns',
-                  subtext: 'Scored so far',
-                  icon: Icons.sports_cricket_rounded,
-                  iconColor: const Color(0xFFFBBF24),
-                  bgColor: const Color(0xFFD97706).withOpacity(0.2),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _buildMetricCard(
-                  title: 'WICKETS',
-                  value: '$totalWickets',
-                  subtext: 'Dismissals',
-                  icon: Icons.sports_baseball_rounded,
-                  iconColor: const Color(0xFFF472B6),
-                  bgColor: const Color(0xFFDB2777).withOpacity(0.2),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildMetricCard(
-                  title: 'BOUNDARIES',
-                  value: '${totalFours + totalSixes}',
-                  subtext: '$totalFours 4s • $totalSixes 6s',
-                  icon: Icons.bolt_rounded,
-                  iconColor: const Color(0xFF34D399),
-                  bgColor: const Color(0xFF059669).withOpacity(0.2),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMetricCard({
-    required String title,
-    required String value,
-    required String subtext,
-    required IconData icon,
-    required Color iconColor,
-    required Color bgColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: iconColor.withOpacity(0.35)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 20, color: iconColor),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.6,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  subtext,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 10, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
   // TAB 1: MOST RUNS (ORANGE CAP LEADERBOARD)
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildRunsTab(List<PlayerTournamentStats> list) {
@@ -523,7 +407,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
     if (sorted.isEmpty) return _buildEmptyState('No batting stats available yet');
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: sorted.length,
       itemBuilder: (context, idx) {
         final s = sorted[idx];
@@ -552,7 +436,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
     if (sorted.isEmpty) return _buildEmptyState('No bowling stats available yet');
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: sorted.length,
       itemBuilder: (context, idx) {
         final s = sorted[idx];
@@ -581,7 +465,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
     if (sorted.isEmpty) return _buildEmptyState('No boundary data yet');
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: sorted.length,
       itemBuilder: (context, idx) {
         final s = sorted[idx];
@@ -611,7 +495,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
     if (sorted.isEmpty) return _buildEmptyState('No fielding data recorded yet');
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: sorted.length,
       itemBuilder: (context, idx) {
         final s = sorted[idx];
@@ -641,10 +525,10 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
     if (sorted.isEmpty) return _buildEmptyState('No players registered yet');
 
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.only(bottom: 12, top: 4),
           child: Text(
             'TOTAL ${sorted.length} PLAYERS REGISTERED',
             style: const TextStyle(
@@ -790,10 +674,10 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
     final isTop3 = rank <= 3;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       elevation: isTop3 ? 2 : 1,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         side: BorderSide(
           color: isTop3 ? accentColor.withOpacity(0.4) : const Color(0xFFE2E8F0),
           width: isTop3 ? 1.5 : 1,
@@ -801,19 +685,28 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
       ),
       color: Colors.white,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => context.push('/players/${p.id}/stats'),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Row(
             children: [
               // Rank Badge
               Container(
-                width: 28,
-                height: 28,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   color: isTop3 ? accentColor : const Color(0xFFF1F5F9),
                   shape: BoxShape.circle,
+                  boxShadow: isTop3
+                      ? [
+                          BoxShadow(
+                            color: accentColor.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 alignment: Alignment.center,
                 child: Text(
@@ -821,7 +714,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
                   style: TextStyle(
                     color: isTop3 ? Colors.white : const Color(0xFF64748B),
                     fontWeight: FontWeight.w900,
-                    fontSize: 12,
+                    fontSize: 12.5,
                   ),
                 ),
               ),
@@ -829,11 +722,12 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
 
               // Player Avatar (Small)
               Container(
-                width: 38,
-                height: 38,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: const Color(0xFFF1F5F9),
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                   image: p.profilePicUrl != null && p.profilePicUrl!.isNotEmpty
                       ? DecorationImage(image: NetworkImage(p.profilePicUrl!), fit: BoxFit.cover)
                       : null,
@@ -842,7 +736,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
                 child: p.profilePicUrl == null || p.profilePicUrl!.isEmpty
                     ? Text(
                         p.name.substring(0, p.name.length >= 2 ? 2 : 1).toUpperCase(),
-                        style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A), fontSize: 13),
+                        style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 14),
                       )
                     : null,
               ),
@@ -855,7 +749,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
                   children: [
                     Text(
                       p.name,
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: Color(0xFF0F172A)),
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF0F172A)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -866,7 +760,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
                               stats.teamName != 'Independent')
                           ? stats.teamName
                           : p.role.label,
-                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w600),
+                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 4),
                     Wrap(
@@ -888,7 +782,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.12),
+                  color: accentColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: accentColor.withOpacity(0.3)),
                 ),
@@ -915,13 +809,35 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
   Widget _buildEmptyState(String message) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(32),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.center,
           children: [
-            const Icon(Icons.bar_chart_rounded, size: 48, color: Color(0xFFCBD5E1)),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.bar_chart_rounded, size: 48, color: Color(0xFF94A3B8)),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
           ],
         ),
       ),
@@ -935,9 +851,9 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
 
   @override
-  double get minExtent => 54;
+  double get minExtent => 56;
   @override
-  double get maxExtent => 54;
+  double get maxExtent => 56;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
