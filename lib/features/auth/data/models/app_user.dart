@@ -48,10 +48,14 @@ class AppUser {
     uid: json['uid'] as String? ?? json['id'] as String? ?? '',
     email: json['email'] as String? ?? '',
     displayName: json['display_name'] as String? ?? json['displayName'] as String? ?? '',
-    role: UserRole.values.firstWhere(
-      (r) => r.name == json['role'],
-      orElse: () => UserRole.member,
-    ),
+    role: () {
+      final roleStr = json['role'] as String? ?? 'member';
+      if (roleStr == 'super_admin') return UserRole.superAdmin;
+      return UserRole.values.firstWhere(
+        (r) => r.name == roleStr,
+        orElse: () => UserRole.member,
+      );
+    }(),
     photoUrl: json['photo_url'] as String? ?? json['photoUrl'] as String?,
     createdAt: (json['created_at'] ?? json['createdAt']) != null
         ? DateTime.tryParse((json['created_at'] ?? json['createdAt']).toString())

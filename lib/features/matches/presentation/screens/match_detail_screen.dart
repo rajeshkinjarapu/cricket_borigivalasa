@@ -155,8 +155,9 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     )));
 
     final currentUser = ref.watch(currentUserProvider);
-    final canScore = currentUser?.role == UserRole.admin || currentUser?.role == UserRole.scorer;
     final isAdmin = currentUser?.role == UserRole.admin;
+    final isScorer = currentUser?.role == UserRole.scorer;
+    final canScore = isAdmin || isScorer;
 
     return matchAsync.when(
       loading: () => const Scaffold(
@@ -246,60 +247,74 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 0.3),
             ),
             actions: [
-              if (isAdmin) ...[
-                IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
-                  ),
-                  tooltip: 'Edit Match',
-                  onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/edit'),
-                ),
-                PopupMenuButton<String>(
-                  icon: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 18),
-                  ),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  onSelected: (val) {
-                    if (val == 'edit') {
-                      context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/edit');
-                    } else if (val == 'delete') {
-                      _deleteMatch(match);
-                    }
-                  },
-                  itemBuilder: (ctx) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_rounded, size: 20, color: Color(0xFF1E3A8A)),
-                          SizedBox(width: 10),
-                          Text('Edit Match Details', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_forever_rounded, size: 20, color: Color(0xFFDC2626)),
-                          SizedBox(width: 10),
-                          Text('Delete Match', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFFDC2626))),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 8),
+              if (isAdmin || isScorer) ...[
+                Builder(builder: (bCtx) {
+                  final canDelete = isAdmin ||
+                      (isScorer &&
+                          match.createdBy != null &&
+                          match.createdBy == currentUser?.uid);
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isAdmin)
+                        IconButton(
+                          icon: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
+                          ),
+                          tooltip: 'Edit Match',
+                          onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/edit'),
+                        ),
+                      if (canDelete)
+                        PopupMenuButton<String>(
+                          icon: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 18),
+                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          onSelected: (val) {
+                            if (val == 'edit') {
+                              context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/edit');
+                            } else if (val == 'delete') {
+                              _deleteMatch(match);
+                            }
+                          },
+                          itemBuilder: (ctx) => [
+                            if (isAdmin)
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit_rounded, size: 20, color: Color(0xFF1E3A8A)),
+                                    SizedBox(width: 10),
+                                    Text('Edit Match Details', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                                  ],
+                                ),
+                              ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_forever_rounded, size: 20, color: Color(0xFFDC2626)),
+                                  SizedBox(width: 10),
+                                  Text('Delete Match', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFFDC2626))),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(width: 8),
+                    ],
+                  );
+                }),
               ],
             ],
           ),

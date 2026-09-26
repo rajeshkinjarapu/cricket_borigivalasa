@@ -12,16 +12,20 @@ class AppConstants {
   static const String pointsTableCollection = 'points_table';
 }
 
-enum UserRole { admin, scorer, member }
+enum UserRole { superAdmin, admin, scorer, member }
 
 extension UserRoleX on UserRole {
-  String get label => this == UserRole.admin
-      ? 'Administrator'
-      : this == UserRole.scorer
-          ? 'Scorer'
-          : 'Member';
-  bool get isAdmin => this == UserRole.admin;
+  String get label => this == UserRole.superAdmin
+      ? 'Super Admin'
+      : this == UserRole.admin
+          ? 'Administrator'
+          : this == UserRole.scorer
+              ? 'Scorer'
+              : 'Member';
+  bool get isSuperAdmin => this == UserRole.superAdmin;
+  bool get isAdmin => this == UserRole.admin || this == UserRole.superAdmin;
   bool get isScorer => this == UserRole.scorer;
   bool get isMember => this == UserRole.member;
-  bool get canScore => this == UserRole.admin || this == UserRole.scorer;
+  bool get canScore => this == UserRole.superAdmin || this == UserRole.admin || this == UserRole.scorer;
+  bool get canManageMembers => this == UserRole.superAdmin; // only super admin can assign roles
 }

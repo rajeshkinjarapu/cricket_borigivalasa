@@ -21,23 +21,69 @@ class _GlobalNotificationListenerState extends State<GlobalNotificationListener>
   }
 
   void _setupRealtimeListener() {
-    _channel = _supabase.channel('public:matches');
+    _channel = _supabase.channel('public-inserts');
+    
     _channel.onPostgresChanges(
       event: PostgresChangeEvent.insert,
       schema: 'public',
-      table: 'matches',
-      callback: (payload) {
-        final newMatch = payload.newRecord;
-        if (newMatch.isNotEmpty) {
-          final teamA = newMatch['team_a'] ?? 'Team A';
-          final teamB = newMatch['team_b'] ?? 'Team B';
-          _showHeroBanner(teamA, teamB);
+      callback: (payload) async {
+        final table = payload.table;
+        final record = payload.newRecord;
+        
+        if (record.isNotEmpty) {
+          if (table == 'matches') {
+            final teamA = record['team_a'] ?? 'Team A';
+            final teamB = record['team_b'] ?? 'Team B';
+            final createdBy = record['created_by'] as String?;
+            String creatorName = '';
+            if (createdBy != null) {
+              try {
+                final profile = await _supabase
+                    .from('profiles')
+                    .select('display_name')
+                    .eq('id', createdBy)
+                    .maybeSingle();
+                creatorName = profile?['display_name'] as String? ?? '';
+              } catch (_) {}
+            }
+            final subtitle = creatorName.isNotEmpty
+                ? '$teamA vs $teamB\nScheduled by $creatorName'
+                : '$teamA vs $teamB';
+            _showHeroBanner(
+              title: 'NEW MATCH SCHEDULED!',
+              subtitle: subtitle,
+              icon: Icons.sports_cricket_rounded,
+              colors: const [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+            );
+          } else if (table == 'profiles') {
+            final name = record['display_name'] ?? 'A new member';
+            final role = record['role'] == 'scorer' ? 'Scorer' : 'Member';
+            _showHeroBanner(
+              title: 'NEW $role JOINED!',
+              subtitle: '$name is now part of the club.',
+              icon: Icons.person_add_alt_1_rounded,
+              colors: const [Color(0xFF065F46), Color(0xFF10B981)],
+            );
+          } else if (table == 'teams') {
+            final name = record['name'] ?? 'A team';
+            _showHeroBanner(
+              title: 'NEW TEAM REGISTERED!',
+              subtitle: '$name has joined the club.',
+              icon: Icons.groups_rounded,
+              colors: const [Color(0xFF7C3AED), Color(0xFF8B5CF6)],
+            );
+          }
         }
       },
     ).subscribe();
   }
 
-  void _showHeroBanner(String teamA, String teamB) {
+  void _showHeroBanner({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Color> colors,
+  }) {
     final overlay = Overlay.of(context);
     late OverlayEntry overlayEntry;
 
@@ -66,15 +112,15 @@ class _GlobalNotificationListenerState extends State<GlobalNotificationListener>
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+                      gradient: LinearGradient(
+                        colors: colors,
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF1E3A8A).withOpacity(0.3),
+                          color: colors.first.withOpacity(0.3),
                           blurRadius: 15,
                           offset: const Offset(0, 5),
                         ),
@@ -89,7 +135,7 @@ class _GlobalNotificationListenerState extends State<GlobalNotificationListener>
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.sports_cricket_rounded, color: Color(0xFF1E3A8A), size: 24),
+                          child: Icon(icon, color: colors.first, size: 24),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -97,9 +143,9 @@ class _GlobalNotificationListenerState extends State<GlobalNotificationListener>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text(
-                                'NEW MATCH CREATED!',
-                                style: TextStyle(
+                              Text(
+                                title,
+                                style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w900,
@@ -108,7 +154,7 @@ class _GlobalNotificationListenerState extends State<GlobalNotificationListener>
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '$teamA vs $teamB',
+                                subtitle,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,

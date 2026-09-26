@@ -24,6 +24,7 @@ class Match {
   final DateTime? createdAt;
   final String? manOfTheMatchId;
   final String? manOfTheMatchName;
+  final String? createdBy; // user id who created the match
 
   Match({
     required this.id,
@@ -47,6 +48,7 @@ class Match {
     this.completedAt,
     this.manOfTheMatchId,
     this.manOfTheMatchName,
+    this.createdBy,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -117,6 +119,7 @@ class Match {
       createdAt: json['created_at'] != null ? parseDate(json['created_at']) : null,
       manOfTheMatchId: json['man_of_the_match_id'] as String?,
       manOfTheMatchName: json['man_of_the_match_name'] as String?,
+      createdBy: json['created_by'] as String?,
     );
   }
 
@@ -144,6 +147,7 @@ class Match {
       'created_at': createdAt?.toIso8601String(),
       'man_of_the_match_id': manOfTheMatchId,
       'man_of_the_match_name': manOfTheMatchName,
+      'created_by': createdBy,
     };
   }
 
@@ -170,6 +174,7 @@ class Match {
     DateTime? createdAt,
     String? manOfTheMatchId,
     String? manOfTheMatchName,
+    String? createdBy,
   }) {
     return Match(
       id: id ?? this.id,
@@ -194,6 +199,7 @@ class Match {
       createdAt: createdAt ?? this.createdAt,
       manOfTheMatchId: manOfTheMatchId ?? this.manOfTheMatchId,
       manOfTheMatchName: manOfTheMatchName ?? this.manOfTheMatchName,
+      createdBy: createdBy ?? this.createdBy,
     );
   }
 }

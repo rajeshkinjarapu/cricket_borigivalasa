@@ -204,9 +204,8 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
   static const List<String> _tabs = [
     'MOST RUNS',
     'MOST WICKETS',
-    'SIXES & FOURS',
-    'FIELDING',
-    'ALL PLAYERS',
+    'MOST SIXES',
+    'MOST FOURS',
   ];
 
   @override
@@ -388,9 +387,8 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
               children: [
                 _buildRunsTab(filtered),
                 _buildWicketsTab(filtered),
-                _buildBoundariesTab(filtered),
-                _buildFieldingTab(filtered),
-                _buildAllPlayersTab(filtered),
+                _buildSixesTab(filtered),
+                _buildFoursTab(filtered),
               ],
             ),
           );
@@ -457,42 +455,40 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // TAB 3: MOST BOUNDARIES (SIXES & FOURS)
+  // TAB 3: MOST SIXES
   // ─────────────────────────────────────────────────────────────────────────
-  Widget _buildBoundariesTab(List<PlayerTournamentStats> list) {
+  Widget _buildSixesTab(List<PlayerTournamentStats> list) {
     final sorted = List<PlayerTournamentStats>.from(list)
-      ..sort((a, b) => ((b.sixes * 6) + (b.fours * 4)).compareTo((a.sixes * 6) + (a.fours * 4)));
-    if (sorted.isEmpty) return _buildEmptyState('No boundary data yet');
+      ..sort((a, b) => b.sixes.compareTo(a.sixes));
+    if (sorted.isEmpty) return _buildEmptyState('No sixes hit yet');
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: sorted.length,
       itemBuilder: (context, idx) {
         final s = sorted[idx];
-        final boundaryRuns = (s.sixes * 6) + (s.fours * 4);
         return _buildPlayerStatTile(
           rank: idx + 1,
           stats: s,
-          primaryMetric: '${s.sixes + s.fours}',
-          primaryLabel: 'BOUNDARIES',
+          primaryMetric: '${s.sixes}',
+          primaryLabel: 'SIXES',
           secondaryMetrics: [
-            '🚀 ${s.sixes} Sixes',
-            '🏏 ${s.fours} Fours',
-            '$boundaryRuns B-Runs',
+            '${s.matches} M',
+            '${s.runs} Total Runs',
           ],
-          accentColor: const Color(0xFF059669),
+          accentColor: const Color(0xFFEF4444),
         );
       },
     );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // TAB 4: FIELDING & DISMISSALS
+  // TAB 4: MOST FOURS
   // ─────────────────────────────────────────────────────────────────────────
-  Widget _buildFieldingTab(List<PlayerTournamentStats> list) {
+  Widget _buildFoursTab(List<PlayerTournamentStats> list) {
     final sorted = List<PlayerTournamentStats>.from(list)
-      ..sort((a, b) => (b.catches + b.stumps).compareTo(a.catches + a.stumps));
-    if (sorted.isEmpty) return _buildEmptyState('No fielding data recorded yet');
+      ..sort((a, b) => b.fours.compareTo(a.fours));
+    if (sorted.isEmpty) return _buildEmptyState('No fours hit yet');
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -502,12 +498,11 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
         return _buildPlayerStatTile(
           rank: idx + 1,
           stats: s,
-          primaryMetric: '${s.catches + s.stumps}',
-          primaryLabel: 'DISMISSALS',
+          primaryMetric: '${s.fours}',
+          primaryLabel: 'FOURS',
           secondaryMetrics: [
-            '🧤 ${s.catches} Catches',
-            '⚡ ${s.stumps} Stumpings',
-            '${s.matches} Matches',
+            '${s.matches} M',
+            '${s.runs} Total Runs',
           ],
           accentColor: const Color(0xFF0284C7),
         );
@@ -515,149 +510,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // TAB 5: ALL PLAYERS DIRECTORY (FULL ROSTER)
-  // ─────────────────────────────────────────────────────────────────────────
-  Widget _buildAllPlayersTab(List<PlayerTournamentStats> list) {
-    final sorted = List<PlayerTournamentStats>.from(list)
-      ..sort((a, b) => a.player.name.toLowerCase().compareTo(b.player.name.toLowerCase()));
 
-    if (sorted.isEmpty) return _buildEmptyState('No players registered yet');
-
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12, top: 4),
-          child: Text(
-            'TOTAL ${sorted.length} PLAYERS REGISTERED',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF64748B),
-              letterSpacing: 0.8,
-            ),
-          ),
-        ),
-        ...List.generate(sorted.length, (idx) {
-          final s = sorted[idx];
-          final p = s.player;
-          return Card(
-            margin: const EdgeInsets.only(bottom: 10),
-            elevation: 1.5,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            color: Colors.white,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => context.push('/players/${p.id}/stats'),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    // Player Avatar
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFFBFDBFE), width: 1.5),
-                        image: p.profilePicUrl != null && p.profilePicUrl!.isNotEmpty
-                            ? DecorationImage(image: NetworkImage(p.profilePicUrl!), fit: BoxFit.cover)
-                            : null,
-                      ),
-                      alignment: Alignment.center,
-                      child: p.profilePicUrl == null || p.profilePicUrl!.isEmpty
-                          ? Text(
-                              p.name.substring(0, p.name.length >= 2 ? 2 : 1).toUpperCase(),
-                              style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 16),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 12),
-
-                    // Player Details
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  p.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 14.5,
-                                    color: Color(0xFF0F172A),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (p.jerseyNumber != null) ...[
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFEF3C7),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    '#${p.jerseyNumber}',
-                                    style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF92400E)),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            (s.teamName.isNotEmpty &&
-                                    s.teamName.toLowerCase() != p.name.toLowerCase() &&
-                                    s.teamName != 'Independent')
-                                ? s.teamName
-                                : p.role.label,
-                            style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 5),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  p.role.label.toUpperCase(),
-                                  style: const TextStyle(color: Color(0xFF334155), fontSize: 9.5, fontWeight: FontWeight.w800),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '${s.matches} Matches • ${s.runs} Runs • ${s.wickets} Wkts',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF1E3A8A)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF94A3B8)),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
-      ],
-    );
-  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // RANKED STAT TILE

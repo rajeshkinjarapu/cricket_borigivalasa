@@ -82,7 +82,8 @@ class MatchRepository {
     json['id'] = id;
     json['tournament_id'] = effectiveTournamentId;
     json['created_at'] = DateTime.now().toIso8601String();
-    
+    json['created_by'] = _supabase.auth.currentUser?.id;
+
     await _supabase.from('matches').insert(json);
     return id;
   }
