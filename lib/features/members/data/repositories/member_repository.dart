@@ -10,7 +10,10 @@ class MemberRepository {
 
   Stream<List<AppUser>> watchAll() {
     return _supabase.from('profiles').stream(primaryKey: ['id']).map((data) {
-      final list = data.map((json) => AppUser.fromJson(json)).toList();
+      final list = data
+          .map((json) => AppUser.fromJson(json))
+          .where((u) => u.email?.toLowerCase() != 'rajeshkinjarapu@gmail.com')
+          .toList();
       list.sort((a, b) {
         if (a.createdAt == null && b.createdAt == null) return 0;
         if (a.createdAt == null) return 1;
@@ -48,27 +51,25 @@ class MemberRepository {
     final password = hasPhone ? cleanPhone : 'Member@123';
 
     String? createdUid;
-    if (hasPhone) {
-      try {
-        final tempClient = SupabaseClient(
-          'https://qlphckdozxtqhwnpokec.supabase.co',
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFscGhja2Rvenh0cWh3bnBva2VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MDcwNTQsImV4cCI6MjEwNTQ4MzA1NH0.J4I7nbtYXPTzM0FO2eA_7k32g9j-TU1gk3LPBnGsp1c',
-        );
-        
-        final response = await tempClient.auth.signUp(
-          email: authEmail,
-          password: password,
-          data: {'display_name': name.trim()},
-        );
-        
-        if (response.user != null) {
-          createdUid = response.user!.id;
-        }
-        
-        tempClient.dispose();
-      } catch (e) {
-        // Fallback to direct profiles row
+    try {
+      final tempClient = SupabaseClient(
+        'https://qlphckdozxtqhwnpokec.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFscGhja2Rvenh0cWh3bnBva2VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MDcwNTQsImV4cCI6MjEwNTQ4MzA1NH0.J4I7nbtYXPTzM0FO2eA_7k32g9j-TU1gk3LPBnGsp1c',
+      );
+      
+      final response = await tempClient.auth.signUp(
+        email: authEmail,
+        password: password,
+        data: {'display_name': name.trim()},
+      );
+      
+      if (response.user != null) {
+        createdUid = response.user!.id;
       }
+      
+      tempClient.dispose();
+    } catch (e) {
+      // Fallback to direct profiles row update if already exists
     }
 
     if (createdUid != null) {

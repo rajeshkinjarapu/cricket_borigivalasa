@@ -691,41 +691,12 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Row(
             children: [
-              // Rank Badge
+              // Player Avatar (Square)
               Container(
-                width: 30,
-                height: 30,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: isTop3 ? accentColor : const Color(0xFFF1F5F9),
-                  shape: BoxShape.circle,
-                  boxShadow: isTop3
-                      ? [
-                          BoxShadow(
-                            color: accentColor.withOpacity(0.3),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '$rank',
-                  style: TextStyle(
-                    color: isTop3 ? Colors.white : const Color(0xFF64748B),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 12.5,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-
-              // Player Avatar (Small)
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(10),
                   color: const Color(0xFFF1F5F9),
                   border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                   image: p.profilePicUrl != null && p.profilePicUrl!.isNotEmpty
@@ -740,41 +711,15 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
                       )
                     : null,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 14),
 
               // Player Info
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      p.name,
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF0F172A)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      (stats.teamName.isNotEmpty &&
-                              stats.teamName.toLowerCase() != p.name.toLowerCase() &&
-                              stats.teamName != 'Independent')
-                          ? stats.teamName
-                          : p.role.label,
-                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 6,
-                      children: secondaryMetrics
-                          .map(
-                            (m) => Text(
-                              m,
-                              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ],
+                child: Text(
+                  p.name,
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15.5, color: Color(0xFF0F172A)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
 

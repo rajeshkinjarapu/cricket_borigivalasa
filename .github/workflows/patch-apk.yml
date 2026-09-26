@@ -49,6 +49,6 @@ jobs:
           cache: true
 
       - name: Patch Shorebird Release
-        run: shorebird patch android --release-version=latest --allow-native-diffs -- --no-tree-shake-icons
+        run: shorebird patch android --release-version=latest --allow-native-diffs --allow-asset-diffs -- --no-tree-shake-icons
         env:
           SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}

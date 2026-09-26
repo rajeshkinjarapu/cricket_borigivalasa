@@ -903,6 +903,7 @@ class _AddMemberOrScorerScreenState extends ConsumerState<AddMemberOrScorerScree
   Widget build(BuildContext context) {
     final allPlayersAsync = ref.watch(allPlayersProvider);
     final allMembersAsync = ref.watch(memberListProvider);
+    final isScorerMode = widget.initialRole == UserRole.scorer;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -914,53 +915,54 @@ class _AddMemberOrScorerScreenState extends ConsumerState<AddMemberOrScorerScree
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Appoint / Add Scorer & Member',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
+              isScorerMode ? 'Appoint / Add Scorer' : 'Register New Member',
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
             ),
             Text(
-              'Select from players, members, or register new',
-              style: TextStyle(fontSize: 11, color: Color(0xFF93C5FD), fontWeight: FontWeight.w500),
+              isScorerMode
+                  ? 'Select from players, members, or register new'
+                  : 'Add a new member to the club roster',
+              style: const TextStyle(fontSize: 11, color: Color(0xFF93C5FD), fontWeight: FontWeight.w500),
             ),
           ],
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Container(
-            color: const Color(0xFF1E3A8A),
-            child: TabBar(
+        bottom: isScorerMode
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(48),
+                child: Container(
+                  color: const Color(0xFF1E3A8A),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicatorColor: const Color(0xFF38BDF8),
+                    indicatorWeight: 3.5,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: const Color(0xFF94A3B8),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5),
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                    tabs: const [
+                      Tab(text: 'From Players'),
+                      Tab(text: 'From Members'),
+                      Tab(text: 'Register New'),
+                    ],
+                  ),
+                ),
+              )
+            : null,
+      ),
+      body: isScorerMode
+          ? TabBarView(
               controller: _tabController,
-              indicatorColor: const Color(0xFF38BDF8),
-              indicatorWeight: 3.5,
-              labelColor: Colors.white,
-              unselectedLabelColor: const Color(0xFF94A3B8),
-              labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-              tabs: const [
-                Tab(text: 'From Players'),
-                Tab(text: 'From Members'),
-                Tab(text: 'Register New'),
+              children: [
+                _buildPlayersTab(allPlayersAsync),
+                _buildMembersTab(allMembersAsync),
+                _buildRegisterNewTab(),
               ],
-            ),
-          ),
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // ── TAB 1: From Existing Players ──
-          _buildPlayersTab(allPlayersAsync),
-
-          // ── TAB 2: From Existing Members ──
-          _buildMembersTab(allMembersAsync),
-
-          // ── TAB 3: Register New Scorer / Member Form ──
-          _buildRegisterNewTab(),
-        ],
-      ),
+            )
+          : _buildRegisterNewTab(),
     );
   }
 
@@ -1325,7 +1327,7 @@ class _AddMemberOrScorerScreenState extends ConsumerState<AddMemberOrScorerScree
                 ),
                 const Expanded(
                   child: Text(
-                    'Also add to Club Players roster',
+                    'Add to Players List (Can play matches)',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
                   ),
                 ),

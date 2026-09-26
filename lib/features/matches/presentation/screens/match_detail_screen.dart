@@ -1141,35 +1141,105 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(top: 24, bottom: 8),
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFBBF7D0)),
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFDCFCE7),
+            const Color(0xFFBBF7D0).withOpacity(0.6),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.8), width: 1.5),
         boxShadow: [
-          BoxShadow(color: const Color(0xFF16A34A).withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3)),
+          BoxShadow(
+            color: const Color(0xFF22C55E).withOpacity(0.12),
+            blurRadius: 16,
+            spreadRadius: -2,
+            offset: const Offset(0, 6),
+          ),
         ],
       ),
-      child: Column(
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
         children: [
-          const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 28),
-          const SizedBox(height: 8),
-          Text(
-            '$tossWinner won the toss and elected to ${match.tossDecision?.label.toLowerCase() ?? 'bat'}.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF15803D),
-              fontWeight: FontWeight.w800,
-              fontSize: 14.5,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
+            child: Column(
+              children: [
+                Text(
+                  '$tossWinner won the toss\nand elected to ${match.tossDecision?.label.toLowerCase() ?? 'bat'}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF14532D),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    height: 1.3,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF22C55E).withOpacity(0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.sports_cricket, size: 16, color: Color(0xFF16A34A)),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$battingFirst will bat first',
+                        style: const TextStyle(
+                          color: Color(0xFF15803D),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '$battingFirst will bat first.',
-            style: const TextStyle(
-              color: Color(0xFF166534),
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+          Positioned(
+            top: -24,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF16A34A).withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
             ),
           ),
         ],

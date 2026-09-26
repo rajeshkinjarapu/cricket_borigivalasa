@@ -51,6 +51,22 @@ class PlayerRepository {
     return player;
   }
 
+  bool _isAdmin(Player player, List<dynamic> profiles) {
+    Map<String, dynamic>? match;
+    for (final raw in profiles) {
+      final p = raw as Map<String, dynamic>;
+      if (p['id'] == player.id) {
+        match = p;
+        break;
+      }
+    }
+    if (match != null) {
+      final email = (match['email'] as String? ?? '').toLowerCase();
+      if (email == 'rajeshkinjarapu@gmail.com') return true;
+    }
+    return false;
+  }
+
   Future<List<Player>> getAll() async {
     try {
       final data = await _supabase.from('players').select();
@@ -62,7 +78,7 @@ class PlayerRepository {
       final list = (data as List).map((json) {
         final player = Player.fromJson(json as Map<String, dynamic>);
         return _enrichWithProfile(player, profilesData);
-      }).toList();
+      }).where((p) => !_isAdmin(p, profilesData)).toList();
 
       list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       return list;
@@ -82,7 +98,7 @@ class PlayerRepository {
       final list = data.map((json) {
         final player = Player.fromJson(json);
         return _enrichWithProfile(player, profilesData);
-      }).toList();
+      }).where((p) => !_isAdmin(p, profilesData)).toList();
 
       list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       return list;
