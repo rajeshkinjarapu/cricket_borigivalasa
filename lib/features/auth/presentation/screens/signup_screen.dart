@@ -78,11 +78,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       controller: controller,
       keyboardType: keyboard,
       obscureText: obscure,
-      style: const TextStyle(fontSize: 15),
+      style: const TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: Color(0xFF0F172A),
+      ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400),
-        prefixIcon: Icon(icon, color: Colors.grey.shade500),
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+        prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
         suffixIcon: suffix,
         filled: true,
         fillColor: Colors.white,
@@ -147,35 +151,22 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             const SizedBox(height: 14),
 
                             // App Title
-                            const Text(
-                              'CRICKET BV',
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 4,
+                            const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'Cricket Borigivalasa',
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 1.2,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: accentGold,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'BORIGIVALASA',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: darkBlue,
-                        letterSpacing: 3,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                            const SizedBox(height: 18),
 
-                  // Card
+                            // Card
                   Container(
                     decoration: BoxDecoration(
                       color: cream,

@@ -112,33 +112,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 const SizedBox(height: 16),
 
                               // ─── App Title ───
-                              const Text(
-                                'CRICKET BV',
-                                style: TextStyle(
-                                  fontSize: 34,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  letterSpacing: 4,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: accentGold,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Text(
-                                  'BORIGIVALASA',
+                              const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'Cricket Borigivalasa',
+                                  maxLines: 1,
                                   style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: darkBlue,
-                                    letterSpacing: 3,
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                    letterSpacing: 1.2,
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 20),
 
                               // ─── Card ───
                               Container(
@@ -209,15 +196,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               TextFormField(
                                 controller: _p,
                                 obscureText: _obscure,
-                                style: const TextStyle(fontSize: 15),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF0F172A),
+                                ),
                                 decoration: InputDecoration(
                                   hintText: 'Password',
-                                  hintStyle: TextStyle(color: Colors.grey.shade400),
-                                  prefixIcon: Icon(Icons.lock_outline, color: Colors.grey.shade500),
+                                  hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+                                  prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF64748B)),
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                      color: Colors.grey.shade500,
+                                      color: const Color(0xFF64748B),
                                     ),
                                     onPressed: () => setState(() => _obscure = !_obscure),
                                   ),
@@ -373,11 +364,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     return TextFormField(
       controller: controller,
       keyboardType: keyboard,
-      style: const TextStyle(fontSize: 15),
+      style: const TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: Color(0xFF0F172A),
+      ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400),
-        prefixIcon: Icon(icon, color: Colors.grey.shade500),
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+        prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),

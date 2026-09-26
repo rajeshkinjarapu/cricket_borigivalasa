@@ -19,36 +19,55 @@ class ScorecardTab extends ConsumerWidget {
     final bowlRowsAsync = ref.watch(bowlingScorecardProvider(key));
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       children: [
-        // Batting Table
+        // ── BATTING CARD ──
         Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade300)),
+          elevation: 1.5,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          color: Colors.white,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
                 child: const Row(
                   children: [
-                    Expanded(flex: 4, child: Text('Batsman', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                    Expanded(child: Text('R', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                    Expanded(child: Text('B', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                    Expanded(child: Text('4s', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                    Expanded(child: Text('6s', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                    Expanded(flex: 2, child: Text('SR', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                    Expanded(flex: 4, child: Text('BATTER', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5))),
+                    Expanded(child: Text('R', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11))),
+                    Expanded(child: Text('B', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w800, fontSize: 11))),
+                    Expanded(child: Text('4s', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w800, fontSize: 11))),
+                    Expanded(child: Text('6s', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w800, fontSize: 11))),
+                    Expanded(flex: 2, child: Text('SR', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w800, fontSize: 11))),
                   ],
                 ),
               ),
+
               batRowsAsync.when(
-                loading: () => const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator(color: Color(0xFF1E3A8A))),
+                ),
                 error: (e, _) => Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
                 data: (rows) {
+                  if (rows.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Center(child: Text('No batting data available', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600))),
+                    );
+                  }
                   return Column(
                     children: [
                       ...rows.asMap().entries.map((e) {
@@ -56,8 +75,8 @@ class ScorecardTab extends ConsumerWidget {
                         final r = e.value;
                         final sr = r.balls > 0 ? (r.runs * 100 / r.balls).toStringAsFixed(1) : '0.0';
                         return Container(
-                          color: i.isEven ? Colors.white : Colors.grey.shade50,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          color: i.isEven ? Colors.white : const Color(0xFFF8FAFC),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -68,63 +87,114 @@ class ScorecardTab extends ConsumerWidget {
                                     child: Text(
                                       r.playerName,
                                       style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: r.isOut ? Colors.black87 : Colors.blue.shade800,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13,
+                                        color: r.isOut ? const Color(0xFF334155) : const Color(0xFF1E3A8A),
                                       ),
                                     ),
                                   ),
-                                  Expanded(child: Text('${r.runs}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
-                                  Expanded(child: Text('${r.balls}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54))),
-                                  Expanded(child: Text('${r.fours}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54))),
-                                  Expanded(child: Text('${r.sixes}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54))),
-                                  Expanded(flex: 2, child: Text(sr, textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54))),
+                                  Expanded(
+                                    child: Text(
+                                      '${r.runs}',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF0F172A)),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      '${r.balls}',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      '${r.fours}',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      '${r.sixes}',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      sr,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
                                 ],
                               ),
                               if (r.isOut && r.dismissalText != null)
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 4),
+                                  padding: const EdgeInsets.only(top: 3),
                                   child: Text(
                                     r.dismissalText!,
-                                    style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontStyle: FontStyle.italic, fontWeight: FontWeight.w500),
                                   ),
                                 ),
                               if (!r.isOut)
-                                const Padding(
-                                  padding: EdgeInsets.only(top: 4),
-                                  child: Text('not out', style: TextStyle(fontSize: 12, color: Colors.blue, fontStyle: FontStyle.italic)),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 3),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEFF6FF),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'batting',
+                                      style: TextStyle(fontSize: 9.5, color: Color(0xFF1D4ED8), fontWeight: FontWeight.w800),
+                                    ),
+                                  ),
                                 ),
                             ],
                           ),
                         );
                       }),
-                      // Extras and Total Row
+
+                      // Extras Row
                       Container(
-                        color: Colors.grey.shade100,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        color: const Color(0xFFF1F5F9),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         child: Row(
                           children: [
-                            const Expanded(flex: 4, child: Text('Extras', style: TextStyle(fontWeight: FontWeight.bold))),
+                            const Expanded(
+                              flex: 4,
+                              child: Text('Extras', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF475569), fontSize: 12)),
+                            ),
                             Expanded(
                               flex: 5,
                               child: Text(
                                 '${innings.extras} (WD ${innings.wides}, NB ${innings.noballs}, B ${innings.byes}, LB ${innings.legbyes})',
-                                style: const TextStyle(fontSize: 12, color: Colors.black87),
+                                style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
                               ),
                             ),
                           ],
                         ),
                       ),
+
+                      // Total Row
                       Container(
-                        color: Theme.of(context).primaryColor.withOpacity(0.1),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        color: const Color(0xFFEFF6FF),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         child: Row(
                           children: [
-                            const Expanded(flex: 4, child: Text('TOTAL', style: TextStyle(fontWeight: FontWeight.bold))),
+                            const Expanded(
+                              flex: 4,
+                              child: Text('TOTAL', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1E3A8A), fontSize: 13, letterSpacing: 0.5)),
+                            ),
                             Expanded(
                               flex: 5,
                               child: Text(
                                 '${innings.runs}/${innings.wickets} (${innings.oversText} Overs)',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF1E3A8A)),
                               ),
                             ),
                           ],
@@ -138,41 +208,54 @@ class ScorecardTab extends ConsumerWidget {
           ),
         ),
         
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         
-        // Bowling Table
+        // ── BOWLING CARD ──
         Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade300)),
+          elevation: 1.5,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          color: Colors.white,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade700,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF334155), Color(0xFF475569)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
                 child: const Row(
                   children: [
-                    Expanded(flex: 4, child: Text('Bowler', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                    Expanded(child: Text('O', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                    Expanded(child: Text('M', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                    Expanded(child: Text('R', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                    Expanded(child: Text('W', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                    Expanded(flex: 2, child: Text('ECON', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                    Expanded(flex: 4, child: Text('BOWLER', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5))),
+                    Expanded(child: Text('O', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11))),
+                    Expanded(child: Text('M', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFCBD5E1), fontWeight: FontWeight.w800, fontSize: 11))),
+                    Expanded(child: Text('R', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFCBD5E1), fontWeight: FontWeight.w800, fontSize: 11))),
+                    Expanded(child: Text('W', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11))),
+                    Expanded(flex: 2, child: Text('ECON', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFCBD5E1), fontWeight: FontWeight.w800, fontSize: 11))),
                   ],
                 ),
               ),
+
               bowlRowsAsync.when(
-                loading: () => const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator(color: Color(0xFF1E3A8A))),
+                ),
                 error: (e, _) => Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
                 data: (allRows) {
                   final rows = allRows.where((r) => r.balls > 0 || r.wides > 0 || r.noballs > 0).toList();
                   if (rows.isEmpty) {
                     return const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: Text('No bowlers yet', style: TextStyle(color: Colors.black54))),
+                      padding: EdgeInsets.all(20),
+                      child: Center(child: Text('No bowlers yet', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600))),
                     );
                   }
                   return Column(
@@ -182,16 +265,53 @@ class ScorecardTab extends ConsumerWidget {
                       final econ = r.balls > 0 ? (r.runs * 6 / r.balls).toStringAsFixed(1) : '0.0';
                       final oversText = '${r.balls ~/ 6}.${r.balls % 6}';
                       return Container(
-                        color: i.isEven ? Colors.white : Colors.grey.shade50,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        color: i.isEven ? Colors.white : const Color(0xFFF8FAFC),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         child: Row(
                           children: [
-                            Expanded(flex: 4, child: Text(r.playerName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87))),
-                            Expanded(child: Text(oversText, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
-                            Expanded(child: Text('${r.maidens}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54))),
-                            Expanded(child: Text('${r.runs}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54))),
-                            Expanded(child: Text('${r.wickets}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87))),
-                            Expanded(flex: 2, child: Text(econ, textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54))),
+                            Expanded(
+                              flex: 4,
+                              child: Text(
+                                r.playerName,
+                                style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A), fontSize: 13),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                oversText,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A), fontSize: 13),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '${r.maidens}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '${r.runs}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '${r.wickets}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF7C3AED), fontSize: 13.5),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                econ,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w600),
+                              ),
+                            ),
                           ],
                         ),
                       );
