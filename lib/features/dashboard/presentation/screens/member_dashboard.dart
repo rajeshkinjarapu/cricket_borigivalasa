@@ -13,6 +13,7 @@ import '../../../scoring/data/models/innings.dart';
 import '../../../scoring/presentation/providers/scoring_providers.dart';
 import '../providers/dashboard_providers.dart';
 import '../widgets/app_drawer.dart';
+import 'performance_details_screen.dart';
 
 // ─── Model for Player's Per-Match Breakdown ──────────────────────────────────
 class PlayerMatchDetail {
@@ -479,11 +480,10 @@ class MemberDashboard extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
 
-            // ── 6 STATS CARDS (3 CARDS PER ROW) ──
+            // ── 8 STATS CARDS (4 CARDS PER ROW) ──
             const Row(
               children: [
-                Icon(Icons.analytics_rounded,
-                    size: 16, color: Color(0xFF1E3A8A)),
+                Icon(Icons.analytics_rounded, size: 16, color: Color(0xFF1E3A8A)),
                 SizedBox(width: 6),
                 Text(
                   'MY PERFORMANCE',
@@ -498,140 +498,196 @@ class MemberDashboard extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
 
-            GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 1.04,
+            Wrap(
+              spacing: 8,
+              runSpacing: 10,
               children: [
                 // 1. Matches Played
-                _StatCard(
-                  emoji: '🏏',
-                  label: 'Matches Played',
-                  value: '$matchesPlayed',
-                  accentColor: const Color(0xFF2563EB),
-                  bgColor: const Color(0xFFEFF6FF),
-                  onTap: () {
-                    _showPerformanceSheet(
-                      context: context,
-                      title: 'Matches Played',
-                      totalCount: '$matchesPlayed Matches',
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  child: AspectRatio(
+                    aspectRatio: 0.72,
+                    child: _StatCard(
+                      emoji: '🏏',
+                      label: 'Matches Played',
+                      value: '$matchesPlayed',
                       accentColor: const Color(0xFF2563EB),
-                      items: detailedPerfList,
-                      type: 'matches',
-                    );
-                  },
+                      bgColor: const Color(0xFFEFF6FF),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PerformanceDetailsScreen(
+                        title: 'Matches Played',
+                        totalCount: '$matchesPlayed Matches',
+                        accentColor: const Color(0xFF2563EB),
+                        items: detailedPerfList,
+                        type: 'matches',
+                      ))),
+                    ),
+                  ),
                 ),
 
                 // 2. Matches Won
-                _StatCard(
-                  emoji: '🏆',
-                  label: 'Matches Won',
-                  value: '$matchesWon',
-                  accentColor: const Color(0xFFD97706),
-                  bgColor: const Color(0xFFFEF3C7),
-                  onTap: () {
-                    final wonList =
-                        detailedPerfList.where((item) => item.isWin).toList();
-                    _showPerformanceSheet(
-                      context: context,
-                      title: 'Matches Won',
-                      totalCount: '$matchesWon Victories',
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  child: AspectRatio(
+                    aspectRatio: 0.72,
+                    child: _StatCard(
+                      emoji: '🏆',
+                      label: 'Matches Won',
+                      value: '$matchesWon',
                       accentColor: const Color(0xFFD97706),
-                      items: wonList,
-                      type: 'won',
-                    );
-                  },
+                      bgColor: const Color(0xFFFEF3C7),
+                      onTap: () {
+                        final wonList = detailedPerfList.where((item) => item.isWin).toList();
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => PerformanceDetailsScreen(
+                          title: 'Matches Won',
+                          totalCount: '$matchesWon Victories',
+                          accentColor: const Color(0xFFD97706),
+                          items: wonList,
+                          type: 'won',
+                        )));
+                      },
+                    ),
+                  ),
                 ),
 
-                // 3. Total Runs
-                _StatCard(
-                  emoji: '🎯',
-                  label: 'Total Runs',
-                  value: '$totalRuns',
-                  accentColor: const Color(0xFF059669),
-                  bgColor: const Color(0xFFECFDF5),
-                  onTap: () {
-                    final runsList = List<PlayerMatchDetail>.from(
-                        detailedPerfList)
-                      ..sort((a, b) => b.runs.compareTo(a.runs));
-                    _showPerformanceSheet(
-                      context: context,
-                      title: 'Match-wise Runs',
-                      totalCount: '$totalRuns Total Runs',
+                // 3. Win Percentage
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  child: AspectRatio(
+                    aspectRatio: 0.72,
+                    child: _StatCard(
+                      emoji: '📈',
+                      label: 'Win %',
+                      value: matchesPlayed > 0 ? '${((matchesWon / matchesPlayed) * 100).toStringAsFixed(0)}%' : '0%',
+                      accentColor: const Color(0xFF0F766E),
+                      bgColor: const Color(0xFFCCFBF1),
+                      onTap: null, // Just a metric
+                    ),
+                  ),
+                ),
+
+                // 4. Man of the Matches
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  child: AspectRatio(
+                    aspectRatio: 0.72,
+                    child: _StatCard(
+                      emoji: '🏅',
+                      label: 'Man of the Match',
+                      value: '${detailedPerfList.where((i) => i.isMoM).length}',
+                      accentColor: const Color(0xFFEAB308),
+                      bgColor: const Color(0xFFFEF9C3),
+                      onTap: () {
+                        final momList = detailedPerfList.where((item) => item.isMoM).toList();
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => PerformanceDetailsScreen(
+                          title: 'Man of the Matches',
+                          totalCount: '${momList.length} Awards',
+                          accentColor: const Color(0xFFEAB308),
+                          items: momList,
+                          type: 'mom',
+                        )));
+                      },
+                    ),
+                  ),
+                ),
+
+                // 5. Total Runs
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  child: AspectRatio(
+                    aspectRatio: 0.72,
+                    child: _StatCard(
+                      emoji: '🎯',
+                      label: 'Total Runs',
+                      value: '$totalRuns',
                       accentColor: const Color(0xFF059669),
-                      items: runsList,
-                      type: 'runs',
-                    );
-                  },
+                      bgColor: const Color(0xFFECFDF5),
+                      onTap: () {
+                        final runsList = List<PlayerMatchDetail>.from(detailedPerfList)..sort((a, b) => b.runs.compareTo(a.runs));
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => PerformanceDetailsScreen(
+                          title: 'Match-wise Runs',
+                          totalCount: '$totalRuns Total Runs',
+                          accentColor: const Color(0xFF059669),
+                          items: runsList,
+                          type: 'runs',
+                        )));
+                      },
+                    ),
+                  ),
                 ),
 
-                // 4. Total Wickets
-                _StatCard(
-                  emoji: '🎳',
-                  label: 'Total Wickets',
-                  value: '$totalWickets',
-                  accentColor: const Color(0xFF9333EA),
-                  bgColor: const Color(0xFFFAF5FF),
-                  onTap: () {
-                    final wktList = List<PlayerMatchDetail>.from(
-                        detailedPerfList)
-                      ..sort((a, b) => b.wickets.compareTo(a.wickets));
-                    _showPerformanceSheet(
-                      context: context,
-                      title: 'Match-wise Wickets',
-                      totalCount: '$totalWickets Total Wickets',
+                // 6. Total Wickets
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  child: AspectRatio(
+                    aspectRatio: 0.72,
+                    child: _StatCard(
+                      emoji: '🎳',
+                      label: 'Total Wickets',
+                      value: '$totalWickets',
                       accentColor: const Color(0xFF9333EA),
-                      items: wktList,
-                      type: 'wickets',
-                    );
-                  },
+                      bgColor: const Color(0xFFFAF5FF),
+                      onTap: () {
+                        final wktList = List<PlayerMatchDetail>.from(detailedPerfList)..sort((a, b) => b.wickets.compareTo(a.wickets));
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => PerformanceDetailsScreen(
+                          title: 'Match-wise Wickets',
+                          totalCount: '$totalWickets Total Wickets',
+                          accentColor: const Color(0xFF9333EA),
+                          items: wktList,
+                          type: 'wickets',
+                        )));
+                      },
+                    ),
+                  ),
                 ),
 
-                // 5. Total Fours
-                _StatCard(
-                  emoji: '💥',
-                  label: 'Total Fours',
-                  value: '$totalFours',
-                  accentColor: const Color(0xFF0284C7),
-                  bgColor: const Color(0xFFF0F9FF),
-                  onTap: () {
-                    final foursList = List<PlayerMatchDetail>.from(
-                        detailedPerfList)
-                      ..sort((a, b) => b.fours.compareTo(a.fours));
-                    _showPerformanceSheet(
-                      context: context,
-                      title: 'Fours Breakdown',
-                      totalCount: '$totalFours Fours Hit',
-                      accentColor: const Color(0xFF0284C7),
-                      items: foursList,
-                      type: 'fours',
-                    );
-                  },
+                // 7. No of 50s
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  child: AspectRatio(
+                    aspectRatio: 0.72,
+                    child: _StatCard(
+                      emoji: '🔥',
+                      label: 'No of 50s',
+                      value: '${detailedPerfList.where((i) => i.runs >= 50).length}',
+                      accentColor: const Color(0xFFE11D48),
+                      bgColor: const Color(0xFFFFE4E6),
+                      onTap: () {
+                        final fiftiesList = detailedPerfList.where((item) => item.runs >= 50).toList();
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => PerformanceDetailsScreen(
+                          title: 'Half Centuries',
+                          totalCount: '${fiftiesList.length} Fifties',
+                          accentColor: const Color(0xFFE11D48),
+                          items: fiftiesList,
+                          type: 'fifties',
+                        )));
+                      },
+                    ),
+                  ),
                 ),
 
-                // 6. Total Sixes
-                _StatCard(
-                  emoji: '🚀',
-                  label: 'Total Sixes',
-                  value: '$totalSixes',
-                  accentColor: const Color(0xFFDC2626),
-                  bgColor: const Color(0xFFFEF2F2),
-                  onTap: () {
-                    final sixesList = List<PlayerMatchDetail>.from(
-                        detailedPerfList)
-                      ..sort((a, b) => b.sixes.compareTo(a.sixes));
-                    _showPerformanceSheet(
-                      context: context,
-                      title: 'Sixes Breakdown',
-                      totalCount: '$totalSixes Sixes Hit',
-                      accentColor: const Color(0xFFDC2626),
-                      items: sixesList,
-                      type: 'sixes',
-                    );
-                  },
+                // 8. Total Sixes
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  child: AspectRatio(
+                    aspectRatio: 0.72,
+                    child: _StatCard(
+                      emoji: '🚀',
+                      label: 'Total Sixes',
+                      value: '$totalSixes',
+                      accentColor: const Color(0xFFEA580C),
+                      bgColor: const Color(0xFFFFEDD5),
+                      onTap: () {
+                        final sixesList = List<PlayerMatchDetail>.from(detailedPerfList)..sort((a, b) => b.sixes.compareTo(a.sixes));
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => PerformanceDetailsScreen(
+                          title: 'Sixes Breakdown',
+                          totalCount: '$totalSixes Sixes Hit',
+                          accentColor: const Color(0xFFEA580C),
+                          items: sixesList,
+                          type: 'sixes',
+                        )));
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -639,266 +695,6 @@ class MemberDashboard extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // DETAILED MODAL BOTTOM SHEET FOR PERFORMANCE CARDS
-  // ─────────────────────────────────────────────────────────────────────────
-  void _showPerformanceSheet({
-    required BuildContext context,
-    required String title,
-    required String totalCount,
-    required Color accentColor,
-    required List<PlayerMatchDetail> items,
-    required String type,
-  }) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.75,
-          ),
-          decoration: const BoxDecoration(
-            color: Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Drag Handle
-              const SizedBox(height: 12),
-              Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCBD5E1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Header Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          totalCount,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w800,
-                            color: accentColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded,
-                          color: Color(0xFF64748B)),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Divider(height: 1, color: Color(0xFFE2E8F0)),
-
-              // List of Matches
-              Expanded(
-                child: items.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.sports_cricket_outlined,
-                                  size: 48, color: const Color(0xFFCBD5E1)),
-                              const SizedBox(height: 12),
-                              Text(
-                                'No records found yet for this metric.',
-                                style: TextStyle(
-                                  color: const Color(0xFF64748B),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        itemCount: items.length,
-                        itemBuilder: (context, idx) {
-                          final item = items[idx];
-                          final m = item.match;
-
-                          String metricValueText = '';
-                          String metricSubtitleText = '';
-
-                          if (type == 'runs') {
-                            metricValueText = '${item.runs} Runs';
-                            metricSubtitleText =
-                                '${item.balls} balls • ${item.fours} 4s • ${item.sixes} 6s';
-                          } else if (type == 'wickets') {
-                            metricValueText = '${item.wickets} Wkts';
-                            metricSubtitleText = 'Bowling spell';
-                          } else if (type == 'fours') {
-                            metricValueText = '${item.fours} 4s';
-                            metricSubtitleText = '${item.runs} total runs';
-                          } else if (type == 'sixes') {
-                            metricValueText = '${item.sixes} 6s';
-                            metricSubtitleText = '${item.runs} total runs';
-                          } else if (type == 'won') {
-                            metricValueText = '🏆 Won';
-                            metricSubtitleText = m.resultText ?? 'Match Completed';
-                          } else {
-                            metricValueText = '${item.runs}r • ${item.wickets}w';
-                            metricSubtitleText = m.status.label;
-                          }
-
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            elevation: 1,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              side: const BorderSide(color: Color(0xFFE2E8F0)),
-                            ),
-                            color: Colors.white,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(14),
-                              onTap: () {
-                                Navigator.pop(ctx);
-                                if (m.tournamentId.isNotEmpty) {
-                                  if (m.isCompleted) {
-                                    context.push(
-                                        '/tournaments/${m.tournamentId}/matches/${m.id}/summary');
-                                  } else {
-                                    context.push(
-                                        '/tournaments/${m.tournamentId}/matches/${m.id}');
-                                  }
-                                }
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 12),
-                                child: Row(
-                                  children: [
-                                    // Match Icon Badge
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: accentColor.withOpacity(0.12),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.sports_cricket_rounded,
-                                        size: 18,
-                                        color: accentColor,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-
-                                    // Teams & Date
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            '${m.teamA} vs ${m.teamB}',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 14,
-                                              color: Color(0xFF0F172A),
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            DateFormat('MMM dd, yyyy • hh:mm a')
-                                                .format(m.matchDate),
-                                            style: const TextStyle(
-                                              color: Color(0xFF64748B),
-                                              fontSize: 11.5,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          if (metricSubtitleText.isNotEmpty) ...[
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              metricSubtitleText,
-                                              style: TextStyle(
-                                                color: Color(0xFF475569),
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-
-                                    // Metric Score Chip
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 5),
-                                      decoration: BoxDecoration(
-                                        color: accentColor.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                            color: accentColor.withOpacity(0.3)),
-                                      ),
-                                      child: Text(
-                                        metricValueText,
-                                        style: TextStyle(
-                                          color: accentColor,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    const Icon(
-                                      Icons.chevron_right_rounded,
-                                      size: 18,
-                                      color: Color(0xFF94A3B8),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

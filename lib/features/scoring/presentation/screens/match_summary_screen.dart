@@ -10,6 +10,7 @@ import '../../../teams/presentation/providers/team_providers.dart';
 import '../../data/models/innings.dart';
 import '../providers/scoring_providers.dart';
 import 'scorecard_tab.dart';
+import 'combined_scorecard_tab.dart';
 
 class MatchSummaryScreen extends ConsumerStatefulWidget {
   const MatchSummaryScreen({super.key, required this.tournamentId, required this.matchId});
@@ -105,7 +106,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
           final i2 = i2Async.value;
           final isCounty = match.liveScore?['matchType'] == 'county' || match.liveScore?['isCounty'] == true;
 
-          final tabCount = isCounty ? 2 : 3;
+          final tabCount = isCounty ? 3 : 4;
           _initTabController(tabCount);
 
           final resultText = _getMatchResult(match, i1, i2, isCounty);
@@ -136,17 +137,19 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                     indicatorSize: TabBarIndicatorSize.tab,
                     labelColor: Colors.white,
                     unselectedLabelColor: const Color(0xFF64748B),
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11.5, letterSpacing: 0.4),
-                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11.5),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10.5, letterSpacing: 0.2),
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10.5),
                     tabs: isCounty
                         ? const [
                             Tab(text: 'MATCH INFO'),
                             Tab(text: 'SCORECARD'),
+                            Tab(text: 'SHARE'),
                           ]
                         : [
-                            const Tab(text: 'MATCH INFO'),
-                            Tab(text: '1ST INN'),
-                            Tab(text: '2ND INN'),
+                            const Tab(text: 'INFO'),
+                            const Tab(text: '1ST INN'),
+                            const Tab(text: '2ND INN'),
+                            const Tab(text: 'SHARE'),
                           ],
                   ),
                 ),
@@ -162,6 +165,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                           i1 != null
                               ? ScorecardTab(tournamentId: widget.tournamentId, matchId: widget.matchId, innings: i1, match: match)
                               : const Center(child: Text('Scorecard not available yet', style: TextStyle(fontWeight: FontWeight.bold))),
+                          CombinedScorecardTab(match: match, i1: i1, i2: i2, tournamentId: widget.tournamentId, matchId: widget.matchId),
                         ]
                       : [
                           _InfoTab(match: match, i1: i1, i2: i2, isCounty: false),
@@ -171,11 +175,13 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                           i2 != null
                               ? ScorecardTab(tournamentId: widget.tournamentId, matchId: widget.matchId, innings: i2, match: match)
                               : const Center(child: Text('2nd Innings has not started yet', style: TextStyle(fontWeight: FontWeight.bold))),
+                          CombinedScorecardTab(match: match, i1: i1, i2: i2, tournamentId: widget.tournamentId, matchId: widget.matchId),
                         ],
                 ),
               ),
             ],
           );
+
         },
       ),
     );
