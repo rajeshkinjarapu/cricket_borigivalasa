@@ -151,18 +151,9 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                 }
               },
             ),
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Match Squads',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white, letterSpacing: -0.5),
-                ),
-                Text(
-                  '${match.teamA} vs ${match.teamB}',
-                  style: const TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w500),
-                ),
-              ],
+            title: const Text(
+              'Match Squads',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white, letterSpacing: -0.5),
             ),
           ),
           body: Column(
