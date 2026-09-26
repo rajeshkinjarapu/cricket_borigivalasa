@@ -1171,21 +1171,13 @@ class _StatCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        gradient: LinearGradient(
-          colors: [
-            Colors.white,
-            bgColor.withOpacity(0.35),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accentColor.withOpacity(0.25), width: 1.2),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: accentColor.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -1194,80 +1186,59 @@ class _StatCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
+          splashColor: accentColor.withOpacity(0.1),
+          highlightColor: accentColor.withOpacity(0.05),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.all(12),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Top Row: Emoji Icon on top-left + subtle arrow on top-right
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // Top Icon
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    emoji,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+                
+                // Bottom Value and Label
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: accentColor.withOpacity(0.3),
-                          width: 1.2,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        value,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 26,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.5,
+                          height: 1.1,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: accentColor.withOpacity(0.15),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
                       ),
-                      alignment: Alignment.center,
-                      child: Text(emoji, style: const TextStyle(fontSize: 16)),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2.0),
-                      child: Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 10,
-                        color: accentColor.withOpacity(0.4),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF64748B),
+                        height: 1.2,
+                        letterSpacing: 0.2,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                ),
-
-                // Big Bold Centered Number
-                Center(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      value,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 28,
-                        color: accentColor,
-                        letterSpacing: -0.5,
-                        height: 1.0,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Card Label Centered
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF334155),
-                    letterSpacing: 0.1,
-                    height: 1.1,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -1277,3 +1248,4 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
+
