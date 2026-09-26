@@ -251,6 +251,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                   i2: i2,
                   isCounty: isCounty,
                   isTeamA: true,
+                  isCompleted: isCompleted,
                 ),
               ),
 
@@ -279,6 +280,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                   i2: i2,
                   isCounty: isCounty,
                   isTeamA: false,
+                  isCompleted: isCompleted,
                 ),
               ),
             ],
@@ -357,6 +359,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
     required Innings? i2,
     required bool isCounty,
     required bool isTeamA,
+    required bool isCompleted,
   }) {
     Innings? teamInn;
     if (i1?.battingTeamId == teamId) teamInn = i1;
@@ -426,7 +429,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
               'Opponent',
               style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5, fontWeight: FontWeight.w600),
             ),
-          ] else if (match.isCompleted) ...[
+          ] else if (isCompleted) ...[
             const Text(
               '—',
               style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.bold),

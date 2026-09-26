@@ -811,7 +811,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
-          mainAxisSize: MainAxisSize.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(18),
