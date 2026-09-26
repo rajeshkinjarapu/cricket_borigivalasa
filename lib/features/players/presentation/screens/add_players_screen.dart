@@ -256,9 +256,13 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
       error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
       data: (allPlayers) {
         final teams = allTeamsAsync.value ?? [];
-        final countyTeamIds = teams.where((t) => t.isCounty).map((t) => t.id).toSet();
+        final countyTeamIds = teams.where((t) => t.isCounty && t.id.isNotEmpty).map((t) => t.id).toSet();
         
         final filteredPlayers = allPlayers.where((p) {
+          if (widget.team.isCounty) {
+            if (countyTeamIds.contains(p.teamId)) return false;
+          }
+          
           if (_selectedRoleFilter != null && p.role != _selectedRoleFilter) {
             return false;
           }
