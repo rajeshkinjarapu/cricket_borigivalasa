@@ -1435,6 +1435,25 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                context.push('/tournaments/$effectiveTournamentId/matches/${widget.matchId}/squads');
+              },
+              icon: const Icon(Icons.group_add_rounded, color: Color(0xFF1E3A8A), size: 20),
+              label: const Text(
+                'Update Playing Squads',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A)),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
         ] else ...[
           SizedBox(
             width: double.infinity,
