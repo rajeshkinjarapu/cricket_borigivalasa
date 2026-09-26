@@ -1,9 +1,6 @@
 name: Build & Release Android APK
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 # Permissions for creating releases and uploading artifacts
