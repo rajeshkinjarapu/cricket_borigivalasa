@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/cricket_enums.dart';
@@ -51,25 +53,37 @@ class MemberRepository {
     final password = hasPhone ? cleanPhone : 'Member@123';
 
     String? createdUid;
+    String? signUpError;
     try {
-      final tempClient = SupabaseClient(
-        'https://qlphckdozxtqhwnpokec.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFscGhja2Rvenh0cWh3bnBva2VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MDcwNTQsImV4cCI6MjEwNTQ4MzA1NH0.J4I7nbtYXPTzM0FO2eA_7k32g9j-TU1gk3LPBnGsp1c',
+      final url = Uri.parse('https://qlphckdozxtqhwnpokec.supabase.co/auth/v1/signup');
+      final anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFscGhja2Rvenh0cWh3bnBva2VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MDcwNTQsImV4cCI6MjEwNTQ4MzA1NH0.J4I7nbtYXPTzM0FO2eA_7k32g9j-TU1gk3LPBnGsp1c';
+      
+      final response = await http.post(
+        url,
+        headers: {
+          'apikey': anonKey,
+          'Authorization': 'Bearer $anonKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'email': authEmail,
+          'password': password,
+          'data': {'display_name': name.trim()},
+        }),
       );
       
-      final response = await tempClient.auth.signUp(
-        email: authEmail,
-        password: password,
-        data: {'display_name': name.trim()},
-      );
-      
-      if (response.user != null) {
-        createdUid = response.user!.id;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final body = jsonDecode(response.body);
+        createdUid = body['id'] ?? body['user']?['id'];
+        if (createdUid == null) {
+          signUpError = 'No user ID returned from sign up';
+        }
+      } else {
+        final body = jsonDecode(response.body);
+        signUpError = body['msg'] ?? body['message'] ?? 'Unknown auth error (${response.statusCode})';
       }
-      
-      tempClient.dispose();
     } catch (e) {
-      // Fallback to direct profiles row update if already exists
+      signUpError = e.toString();
     }
 
     if (createdUid != null) {
@@ -107,19 +121,7 @@ class MemberRepository {
         await _supabase.from('profiles').update(updateMap).eq('id', existingId);
         return existingId;
       } else {
-        final newId = const Uuid().v4();
-        final map = <String, dynamic>{
-          'id': newId,
-          'email': authEmail,
-          'display_name': name.trim(),
-          'role': role.name,
-          'created_at': DateTime.now().toIso8601String(),
-        };
-        if (photoUrl != null && photoUrl.isNotEmpty) {
-          map['photo_url'] = photoUrl;
-        }
-        await _supabase.from('profiles').insert(map);
-        return newId;
+        throw Exception(signUpError ?? "Registration failed. Could not create user profile.");
       }
     }
   }

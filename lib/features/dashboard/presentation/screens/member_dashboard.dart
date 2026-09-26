@@ -385,7 +385,7 @@ class MemberDashboard extends ConsumerWidget {
 
                 final bool hasTodayMatches = todayMatches.isNotEmpty;
                 final displayMatches = hasTodayMatches
-                    ? todayMatches
+                    ? [todayMatches.first]
                     : (sortedMatches.isNotEmpty ? [sortedMatches.first] : <Match>[]);
 
                 return Column(
@@ -406,7 +406,7 @@ class MemberDashboard extends ConsumerWidget {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              hasTodayMatches ? "TODAY'S MATCHES" : "LAST MATCH",
+                              hasTodayMatches ? "TODAY'S MATCH" : "LAST MATCH",
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w900,
@@ -1382,7 +1382,7 @@ class _StatCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5.5),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1390,33 +1390,36 @@ class _StatCard extends StatelessWidget {
                 // Top Row: Emoji Icon on top-left + subtle arrow on top-right
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 25,
-                      height: 25,
+                      width: 30,
+                      height: 30,
                       decoration: BoxDecoration(
-                        color: bgColor,
-                        borderRadius: BorderRadius.circular(7),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: accentColor.withOpacity(0.25),
-                          width: 1,
+                          color: accentColor.withOpacity(0.3),
+                          width: 1.2,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: accentColor.withOpacity(0.08),
-                            blurRadius: 3,
-                            offset: const Offset(0, 1.5),
+                            color: accentColor.withOpacity(0.15),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
                       alignment: Alignment.center,
-                      child: Text(emoji, style: const TextStyle(fontSize: 12.5)),
+                      child: Text(emoji, style: const TextStyle(fontSize: 16)),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 8,
-                      color: accentColor.withOpacity(0.35),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2.0),
+                      child: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 10,
+                        color: accentColor.withOpacity(0.4),
+                      ),
                     ),
                   ],
                 ),
@@ -1430,7 +1433,7 @@ class _StatCard extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        fontSize: 20,
+                        fontSize: 28,
                         color: accentColor,
                         letterSpacing: -0.5,
                         height: 1.0,
@@ -1444,10 +1447,10 @@ class _StatCard extends StatelessWidget {
                   label,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 9.8,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
-                    letterSpacing: 0.05,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF334155),
+                    letterSpacing: 0.1,
                     height: 1.1,
                   ),
                   maxLines: 2,

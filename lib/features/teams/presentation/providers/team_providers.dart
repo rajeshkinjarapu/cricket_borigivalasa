@@ -5,13 +5,17 @@ import '../../data/repositories/team_repository.dart';
 final teamRepositoryProvider = Provider((ref) => TeamRepository());
 
 final teamsProvider = StreamProvider<List<Team>>((ref) {
-  return ref.watch(teamRepositoryProvider).watchAll();
+  return ref.watch(teamRepositoryProvider).watchAll().map(
+        (teams) => teams.where((t) => !t.isCounty && !t.name.toLowerCase().contains('county')).toList(),
+      );
 });
 
 final allTeamsProvider = teamsProvider;
 
 final tournamentTeamsProvider = StreamProvider.family<List<Team>, String>((ref, tournamentId) {
-  return ref.watch(teamRepositoryProvider).watchByTournament(tournamentId);
+  return ref.watch(teamRepositoryProvider).watchByTournament(tournamentId).map(
+        (teams) => teams.where((t) => !t.isCounty && !t.name.toLowerCase().contains('county')).toList(),
+      );
 });
 
 final teamDetailProvider = StreamProvider.family<Team?, String>((ref, id) {

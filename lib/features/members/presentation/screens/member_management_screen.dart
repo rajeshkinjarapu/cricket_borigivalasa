@@ -915,20 +915,9 @@ class _AddMemberOrScorerScreenState extends ConsumerState<AddMemberOrScorerScree
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isScorerMode ? 'Appoint / Add Scorer' : 'Register New Member',
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
-            ),
-            Text(
-              isScorerMode
-                  ? 'Select from players, members, or register new'
-                  : 'Add a new member to the club roster',
-              style: const TextStyle(fontSize: 11, color: Color(0xFF93C5FD), fontWeight: FontWeight.w500),
-            ),
-          ],
+        title: Text(
+          isScorerMode ? 'Appoint / Add Scorer' : 'Register New Member',
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
         ),
         bottom: isScorerMode
             ? PreferredSize(

@@ -33,21 +33,21 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
   String? _bowlerId;
   bool _isSaving = false;
 
-  Future<void> _startInnings(List<Player> batPlayers, List<Player> bowlPlayers, String batId, String bowlId, String batTeamName, String bowlTeamName) async {
-    if (_strikerId == null || _nonStrikerId == null || _bowlerId == null) {
+  Future<void> _startInnings(List<Player> batPlayers, List<Player> bowlPlayers, String batId, String bowlId, String batTeamName, String bowlTeamName, {bool isCounty = false}) async {
+    if (_strikerId == null || _bowlerId == null || (!isCounty && _nonStrikerId == null)) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select all players')));
       return;
     }
-    if (_strikerId == _nonStrikerId) {
+    if (!isCounty && _strikerId == _nonStrikerId) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Striker and Non-Striker cannot be the same')));
       return;
     }
 
     final openingStriker = batPlayers.where((p) => p.id == _strikerId).firstOrNull;
-    final openingNonStriker = batPlayers.where((p) => p.id == _nonStrikerId).firstOrNull;
+    final openingNonStriker = isCounty ? null : batPlayers.where((p) => p.id == _nonStrikerId).firstOrNull;
     final openingBowler = bowlPlayers.where((p) => p.id == _bowlerId).firstOrNull;
 
-    if (openingStriker == null || openingNonStriker == null || openingBowler == null) {
+    if (openingStriker == null || (!isCounty && openingNonStriker == null) || openingBowler == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selected players could not be found.')));
       return;
     }
@@ -109,6 +109,33 @@ class _InningsSetupScreenState extends ConsumerState<InningsSetupScreen> {
 
     final batPlayers = batPlayersAsync.value ?? [];
     final bowlPlayers = bowlPlayersAsync.value ?? [];
+
+    final isCounty = match.liveScore?['isCounty'] == true;
+
+    if (isCounty && !_isSaving) {
+      if (batPlayers.isNotEmpty && bowlPlayers.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _strikerId = batPlayers.first.id;
+          _nonStrikerId = null;
+          _bowlerId = bowlPlayers.first.id;
+          _startInnings(batPlayers, bowlPlayers, batId, bowlId, batTeamName, bowlTeamName, isCounty: true);
+        });
+      }
+      return const Scaffold(
+        backgroundColor: Color(0xFFF1F5F9),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Color(0xFF1E3A8A)),
+              SizedBox(height: 16),
+              Text('Starting County Duel...', style: TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      );
+    }
 
     final hasEnoughPlayers = batPlayers.length >= 2 && bowlPlayers.isNotEmpty;
 

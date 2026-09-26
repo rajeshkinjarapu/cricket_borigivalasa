@@ -140,7 +140,7 @@ class _GlobalTeamsScreenState extends ConsumerState<GlobalTeamsScreen> {
               ),
               data: (teams) {
                 // Filter out County teams
-                final normalTeams = teams.where((t) => !t.isCounty).toList();
+                final normalTeams = teams.where((t) => !t.isCounty && !t.name.toLowerCase().contains('county')).toList();
                 
                 final filtered = normalTeams.where((t) {
                   if (_searchQuery.isEmpty) return true;

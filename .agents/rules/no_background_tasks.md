@@ -1,6 +1,11 @@
-# No Background Tasks
+# Critical Rule: Never Run Background Tasks or Commands Directly
 
-The user explicitly requested that no terminal commands should be run in the background.
+The user strictly forbids running commands or tasks in the background.
 
-**Rule:**
-Whenever you need to run a terminal command, do **NOT** use the `run_command` tool in the background or use any tool that executes commands without the user's direct involvement. Instead, format the command nicely in a markdown block, present it to the user, and ask them to copy and run it in their own terminal. Wait for them to provide the output before proceeding.
+## Mandatory Instructions:
+1. **NEVER use `run_command`** to run servers, scripts, builds, or tests in the background (no `IsDaemon: true`, no background tasks).
+2. **DO NOT execute commands automatically** when the user asks to run, open, test, build, or deploy anything.
+3. **Always provide the command as a copyable markdown code block**:
+   - Provide the exact command(s) cleanly formatted.
+   - Ask the user to copy and run it in their terminal.
+   - Wait for the user to provide output or confirm before proceeding.

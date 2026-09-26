@@ -18,8 +18,8 @@ class TeamListTab extends ConsumerWidget {
       children: [
         teamsAsync.when(
           data: (teams) {
-            // Filter out County teams based on database flag
-            final displayTeams = teams.where((t) => !t.isCounty).toList();
+            // Filter out County teams based on database flag and name
+            final displayTeams = teams.where((t) => !t.isCounty && !t.name.toLowerCase().contains('county')).toList();
 
             if (displayTeams.isEmpty) {
               return Center(

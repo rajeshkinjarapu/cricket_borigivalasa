@@ -7,7 +7,9 @@ import '../../data/repositories/player_repository.dart';
 final playerRepositoryProvider = Provider((ref) => PlayerRepository());
 
 final allPlayersProvider = StreamProvider<List<Player>>((ref) {
-  return ref.watch(playerRepositoryProvider).watchAll();
+  return ref.watch(playerRepositoryProvider).watchAll().map(
+        (players) => players.where((p) => !p.name.toLowerCase().contains('county')).toList(),
+      );
 });
 
 final loggedInPlayerProvider = StreamProvider<Player?>((ref) {
