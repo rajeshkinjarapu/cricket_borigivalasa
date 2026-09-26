@@ -39,9 +39,18 @@ class PlayerTournamentStats {
 
 // ─── Provider: Computes Live Ball-by-Ball & Player Stats for ALL Players ──────
 final tournamentStatsProvider = FutureProvider<List<PlayerTournamentStats>>((ref) async {
-  final players = await ref.watch(allPlayersProvider.future);
-  final teamsAsync = ref.watch(allTeamsProvider);
-  final teams = teamsAsync.value ?? [];
+  final playerRepo = ref.read(playerRepositoryProvider);
+  final teamRepo = ref.read(teamRepositoryProvider);
+  
+  final allPlayers = await playerRepo.getAll();
+  final allTeams = await teamRepo.getAll();
+
+  // Identify county teams & county team IDs
+  final countyTeamIds = allTeams.where((t) => t.isCounty).map((t) => t.id).toSet();
+  
+  // Filter out county teams and players who strictly belong to county teams
+  final players = allPlayers.where((p) => !countyTeamIds.contains(p.teamId)).toList();
+  final teams = allTeams.where((t) => !t.isCounty).toList();
 
   final Map<String, String> teamNames = {
     for (final t in teams) t.id: t.name,
@@ -49,11 +58,32 @@ final tournamentStatsProvider = FutureProvider<List<PlayerTournamentStats>>((ref
 
   final sb = Supabase.instance.client;
 
+  // Identify county matches to strictly exclude them from tournament stats
+  final Set<String> countyMatchIds = {};
+  try {
+    final matchesRes = await sb.from('matches').select('id, team_a_id, team_b_id, live_score');
+    for (final m in (matchesRes as List)) {
+      final mid = m['id']?.toString();
+      final live = m['live_score'] as Map<String, dynamic>?;
+      final teamAId = m['team_a_id']?.toString();
+      final teamBId = m['team_b_id']?.toString();
+      final isCounty = (live?['matchType'] == 'county') ||
+          (live?['isCounty'] == true) ||
+          (teamAId != null && countyTeamIds.contains(teamAId)) ||
+          (teamBId != null && countyTeamIds.contains(teamBId));
+      if (mid != null && isCounty) {
+        countyMatchIds.add(mid);
+      }
+    }
+  } catch (e) {
+    debugPrint('Error fetching matches for county filter: $e');
+  }
+
   // Fetch ball-by-ball events for live boundaries, catches, stumps
   List<Map<String, dynamic>> balls = [];
   try {
     final res = await sb.from('ball_events').select(
-      'batter_id, bowler_id, fielder_id, runs_scored, is_boundary, extras_type, wicket_type, player_out_id'
+      'match_id, batter_id, bowler_id, fielder_id, runs_scored, is_boundary, extras_type, wicket_type, player_out_id'
     );
     balls = List<Map<String, dynamic>>.from(res);
   } catch (_) {
@@ -66,8 +96,17 @@ final tournamentStatsProvider = FutureProvider<List<PlayerTournamentStats>>((ref
   final Map<String, int> ballWickets = {};
   final Map<String, int> ballCatches = {};
   final Map<String, int> ballStumps = {};
+  final Map<String, int> ballHighest = {};
+  final Map<String, Map<String, int>> matchBatterRuns = {};
+  final Map<String, Set<String>> playerMatches = {};
 
   for (final b in balls) {
+    final matchId = b['match_id']?.toString();
+    // Exclude county matches completely from tournament stats
+    if (matchId != null && countyMatchIds.contains(matchId)) {
+      continue;
+    }
+
     final batterId = b['batter_id'] as String?;
     final bowlerId = b['bowler_id'] as String?;
     final fielderId = b['fielder_id'] as String?;
@@ -83,16 +122,29 @@ final tournamentStatsProvider = FutureProvider<List<PlayerTournamentStats>>((ref
       if (isBoundary && runsScored == 6) {
         ballSixes[batterId] = (ballSixes[batterId] ?? 0) + 1;
       }
+      if (matchId != null) {
+        playerMatches.putIfAbsent(batterId, () => {}).add(matchId);
+        matchBatterRuns.putIfAbsent(matchId, () => {});
+        matchBatterRuns[matchId]![batterId] = (matchBatterRuns[matchId]![batterId] ?? 0) + runsScored;
+      }
     }
 
-    if (bowlerId != null && wicketType != null) {
-      final bowlerWickets = ['bowled', 'lbw', 'caught', 'stumped', 'hitWicket'];
-      if (bowlerWickets.contains(wicketType)) {
-        ballWickets[bowlerId] = (ballWickets[bowlerId] ?? 0) + 1;
+    if (bowlerId != null) {
+      if (matchId != null) {
+        playerMatches.putIfAbsent(bowlerId, () => {}).add(matchId);
+      }
+      if (wicketType != null) {
+        final bowlerWickets = ['bowled', 'lbw', 'caught', 'stumped', 'hitWicket'];
+        if (bowlerWickets.contains(wicketType)) {
+          ballWickets[bowlerId] = (ballWickets[bowlerId] ?? 0) + 1;
+        }
       }
     }
 
     if (fielderId != null) {
+      if (matchId != null) {
+        playerMatches.putIfAbsent(fielderId, () => {}).add(matchId);
+      }
       if (wicketType == 'caught') {
         ballCatches[fielderId] = (ballCatches[fielderId] ?? 0) + 1;
       }
@@ -102,11 +154,22 @@ final tournamentStatsProvider = FutureProvider<List<PlayerTournamentStats>>((ref
     }
   }
 
+  // Calculate highest score in a single non-county tournament match
+  for (final matchRuns in matchBatterRuns.values) {
+    for (final entry in matchRuns.entries) {
+      final pId = entry.key;
+      final r = entry.value;
+      if (r > (ballHighest[pId] ?? 0)) {
+        ballHighest[pId] = r;
+      }
+    }
+  }
+
   return players.map((p) {
-    // Take max of ball-events aggregate or player profile saved stats
-    final computedRuns = (ballRuns[p.id] ?? 0) > p.stats.runsScored ? (ballRuns[p.id] ?? 0) : p.stats.runsScored;
-    final computedWickets = (ballWickets[p.id] ?? 0) > p.stats.wicketsTaken ? (ballWickets[p.id] ?? 0) : p.stats.wicketsTaken;
-    final m = p.stats.matchesPlayed > 0 ? p.stats.matchesPlayed : ((computedRuns > 0 || computedWickets > 0) ? 1 : 0);
+    final computedRuns = ballRuns[p.id] ?? 0;
+    final computedWickets = ballWickets[p.id] ?? 0;
+    final m = playerMatches[p.id]?.length ?? 0;
+    final highest = ballHighest[p.id] ?? 0;
 
     return PlayerTournamentStats(
       player: p,
@@ -118,7 +181,7 @@ final tournamentStatsProvider = FutureProvider<List<PlayerTournamentStats>>((ref
       catches: ballCatches[p.id] ?? 0,
       stumps: ballStumps[p.id] ?? 0,
       matches: m,
-      highestScore: p.stats.highestScore > 0 ? p.stats.highestScore : computedRuns,
+      highestScore: highest,
       average: m > 0 ? (computedRuns / m) : 0.0,
     );
   }).toList();
@@ -177,18 +240,9 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
         ),
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'League & Tournament Stats',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 0.3),
-            ),
-            Text(
-              'All Players Leaderboards & Records',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF93C5FD)),
-            ),
-          ],
+        title: const Text(
+          'League & Tournament Stats',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 0.3),
         ),
         actions: [
           IconButton(
@@ -468,33 +522,25 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
     final sorted = List<PlayerTournamentStats>.from(list)..sort((a, b) => b.runs.compareTo(a.runs));
     if (sorted.isEmpty) return _buildEmptyState('No batting stats available yet');
 
-    final top3 = sorted.take(3).toList();
-    final rest = sorted.skip(3).toList();
-
-    return ListView(
+    return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      children: [
-        if (top3.isNotEmpty) ...[
-          _buildPodium(top3, metricLabel: 'RUNS', getValue: (s) => '${s.runs} R'),
-          const SizedBox(height: 16),
-        ],
-        ...List.generate(sorted.length, (idx) {
-          final s = sorted[idx];
-          return _buildPlayerStatTile(
-            rank: idx + 1,
-            stats: s,
-            primaryMetric: '${s.runs}',
-            primaryLabel: 'RUNS',
-            secondaryMetrics: [
-              '${s.matches} M',
-              '${s.fours} 4s',
-              '${s.sixes} 6s',
-              'Avg ${s.average.toStringAsFixed(1)}',
-            ],
-            accentColor: const Color(0xFFD97706),
-          );
-        }),
-      ],
+      itemCount: sorted.length,
+      itemBuilder: (context, idx) {
+        final s = sorted[idx];
+        return _buildPlayerStatTile(
+          rank: idx + 1,
+          stats: s,
+          primaryMetric: '${s.runs}',
+          primaryLabel: 'RUNS',
+          secondaryMetrics: [
+            '${s.matches} M',
+            '${s.fours} 4s',
+            '${s.sixes} 6s',
+            'Avg ${s.average.toStringAsFixed(1)}',
+          ],
+          accentColor: const Color(0xFFD97706),
+        );
+      },
     );
   }
 
@@ -505,31 +551,24 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
     final sorted = List<PlayerTournamentStats>.from(list)..sort((a, b) => b.wickets.compareTo(a.wickets));
     if (sorted.isEmpty) return _buildEmptyState('No bowling stats available yet');
 
-    final top3 = sorted.take(3).toList();
-
-    return ListView(
+    return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      children: [
-        if (top3.isNotEmpty) ...[
-          _buildPodium(top3, metricLabel: 'WICKETS', getValue: (s) => '${s.wickets} W'),
-          const SizedBox(height: 16),
-        ],
-        ...List.generate(sorted.length, (idx) {
-          final s = sorted[idx];
-          return _buildPlayerStatTile(
-            rank: idx + 1,
-            stats: s,
-            primaryMetric: '${s.wickets}',
-            primaryLabel: 'WKTS',
-            secondaryMetrics: [
-              '${s.matches} M',
-              'Best: ${s.player.stats.bestBowling}',
-              'Econ: ${s.player.stats.economyRate > 0 ? s.player.stats.economyRate.toStringAsFixed(1) : '-'}',
-            ],
-            accentColor: const Color(0xFF9333EA),
-          );
-        }),
-      ],
+      itemCount: sorted.length,
+      itemBuilder: (context, idx) {
+        final s = sorted[idx];
+        return _buildPlayerStatTile(
+          rank: idx + 1,
+          stats: s,
+          primaryMetric: '${s.wickets}',
+          primaryLabel: 'WKTS',
+          secondaryMetrics: [
+            '${s.matches} M',
+            'Best: ${s.player.stats.bestBowling}',
+            'Econ: ${s.player.stats.economyRate > 0 ? s.player.stats.economyRate.toStringAsFixed(1) : '-'}',
+          ],
+          accentColor: const Color(0xFF9333EA),
+        );
+      },
     );
   }
 
@@ -541,9 +580,10 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
       ..sort((a, b) => ((b.sixes * 6) + (b.fours * 4)).compareTo((a.sixes * 6) + (a.fours * 4)));
     if (sorted.isEmpty) return _buildEmptyState('No boundary data yet');
 
-    return ListView(
+    return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      children: List.generate(sorted.length, (idx) {
+      itemCount: sorted.length,
+      itemBuilder: (context, idx) {
         final s = sorted[idx];
         final boundaryRuns = (s.sixes * 6) + (s.fours * 4);
         return _buildPlayerStatTile(
@@ -558,7 +598,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
           ],
           accentColor: const Color(0xFF059669),
         );
-      }),
+      },
     );
   }
 
@@ -570,9 +610,10 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
       ..sort((a, b) => (b.catches + b.stumps).compareTo(a.catches + a.stumps));
     if (sorted.isEmpty) return _buildEmptyState('No fielding data recorded yet');
 
-    return ListView(
+    return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      children: List.generate(sorted.length, (idx) {
+      itemCount: sorted.length,
+      itemBuilder: (context, idx) {
         final s = sorted[idx];
         return _buildPlayerStatTile(
           rank: idx + 1,
@@ -586,7 +627,7 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
           ],
           accentColor: const Color(0xFF0284C7),
         );
-      }),
+      },
     );
   }
 
@@ -691,7 +732,11 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            s.teamName,
+                            (s.teamName.isNotEmpty &&
+                                    s.teamName.toLowerCase() != p.name.toLowerCase() &&
+                                    s.teamName != 'Independent')
+                                ? s.teamName
+                                : p.role.label,
                             style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 5),
@@ -727,137 +772,6 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
           );
         }),
       ],
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // PODIUM (TOP 3 PLAYERS SHOWCASE)
-  // ─────────────────────────────────────────────────────────────────────────
-  Widget _buildPodium(
-    List<PlayerTournamentStats> top3, {
-    required String metricLabel,
-    required String Function(PlayerTournamentStats) getValue,
-  }) {
-    final rank1 = top3.isNotEmpty ? top3[0] : null;
-    final rank2 = top3.length > 1 ? top3[1] : null;
-    final rank3 = top3.length > 2 ? top3[2] : null;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFF334155)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.emoji_events_rounded, color: Color(0xFFF59E0B), size: 18),
-              SizedBox(width: 6),
-              Text(
-                'TOP PERFORMERS PODIUM',
-                style: TextStyle(
-                  color: Color(0xFFFDE68A),
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // Rank 2 (Silver)
-              if (rank2 != null)
-                _buildPodiumStep(rank2, rank: 2, color: const Color(0xFF94A3B8), crown: '🥈', getValue: getValue)
-              else
-                const SizedBox(width: 80),
-
-              // Rank 1 (Gold)
-              if (rank1 != null)
-                _buildPodiumStep(rank1, rank: 1, color: const Color(0xFFF59E0B), crown: '👑', isGold: true, getValue: getValue),
-
-              // Rank 3 (Bronze)
-              if (rank3 != null)
-                _buildPodiumStep(rank3, rank: 3, color: const Color(0xFFD97706), crown: '🥉', getValue: getValue)
-              else
-                const SizedBox(width: 80),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPodiumStep(
-    PlayerTournamentStats s, {
-    required int rank,
-    required Color color,
-    required String crown,
-    bool isGold = false,
-    required String Function(PlayerTournamentStats) getValue,
-  }) {
-    final p = s.player;
-    return SizedBox(
-      width: isGold ? 105 : 90,
-      child: Column(
-        children: [
-          Text(crown, style: TextStyle(fontSize: isGold ? 22 : 18)),
-          const SizedBox(height: 2),
-          Container(
-            width: isGold ? 58 : 48,
-            height: isGold ? 58 : 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              border: Border.all(color: color, width: isGold ? 3 : 2),
-              image: p.profilePicUrl != null && p.profilePicUrl!.isNotEmpty
-                  ? DecorationImage(image: NetworkImage(p.profilePicUrl!), fit: BoxFit.cover)
-                  : null,
-            ),
-            alignment: Alignment.center,
-            child: p.profilePicUrl == null || p.profilePicUrl!.isEmpty
-                ? Text(
-                    p.name.substring(0, p.name.length >= 2 ? 2 : 1).toUpperCase(),
-                    style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: isGold ? 18 : 14),
-                  )
-                : null,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            p.name,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11.5),
-          ),
-          const SizedBox(height: 3),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: color.withOpacity(0.5)),
-            ),
-            child: Text(
-              getValue(s),
-              style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: isGold ? 12 : 10.5),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -947,7 +861,11 @@ class _StatsOverviewScreenState extends ConsumerState<StatsOverviewScreen>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      stats.teamName,
+                      (stats.teamName.isNotEmpty &&
+                              stats.teamName.toLowerCase() != p.name.toLowerCase() &&
+                              stats.teamName != 'Independent')
+                          ? stats.teamName
+                          : p.role.label,
                       style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 4),

@@ -241,18 +241,9 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                 }
               },
             ),
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isCounty ? 'County Duel' : 'Match Center',
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 0.3),
-                ),
-                Text(
-                  isCounty ? '⚡ Target Chase Contest' : 'Match Overview & Live Details',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF93C5FD)),
-                ),
-              ],
+            title: Text(
+              isCounty ? 'County Duel' : 'Match Details',
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 0.3),
             ),
             actions: [
               if (isAdmin) ...[

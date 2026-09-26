@@ -5,6 +5,17 @@ import '../models/team.dart';
 class TeamRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  Future<List<Team>> getAll() async {
+    try {
+      final data = await _supabase.from('teams').select();
+      final list = (data as List).map((json) => Team.fromJson(json as Map<String, dynamic>)).toList();
+      list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      return list;
+    } catch (_) {
+      return [];
+    }
+  }
+
   Stream<List<Team>> watchAll() {
     return _supabase.from('teams').stream(primaryKey: ['id']).map(
           (data) {

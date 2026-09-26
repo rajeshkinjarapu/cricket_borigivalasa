@@ -51,6 +51,27 @@ class PlayerRepository {
     return player;
   }
 
+  Future<List<Player>> getAll() async {
+    try {
+      final data = await _supabase.from('players').select();
+      List<dynamic> profilesData = [];
+      try {
+        profilesData = await _supabase.from('profiles').select('id, display_name, email, photo_url');
+      } catch (_) {}
+
+      final list = (data as List).map((json) {
+        final player = Player.fromJson(json as Map<String, dynamic>);
+        return _enrichWithProfile(player, profilesData);
+      }).toList();
+
+      list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      return list;
+    } catch (e) {
+      debugPrint('Error in PlayerRepository.getAll: $e');
+      return [];
+    }
+  }
+
   Stream<List<Player>> watchAll() {
     return _supabase.from('players').stream(primaryKey: ['id']).asyncMap((data) async {
       List<dynamic> profilesData = [];

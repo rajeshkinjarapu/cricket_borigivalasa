@@ -34,12 +34,43 @@ class _PlayerLeaderStats {
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 final _leaderboardProvider = FutureProvider<List<_PlayerLeaderStats>>((ref) async {
-  final players = await ref.watch(allPlayersProvider.future);
+  final allPlayers = await ref.watch(allPlayersProvider.future);
   final sb = Supabase.instance.client;
+
+  // Identify county teams
+  final teamsRes = await sb.from('teams').select('id, is_county');
+  final Set<String> countyTeamIds = {};
+  for (final t in (teamsRes as List)) {
+    if (t['is_county'] == true) {
+      countyTeamIds.add(t['id'].toString());
+    }
+  }
+
+  // Filter players
+  final players = allPlayers.where((p) => !countyTeamIds.contains(p.teamId)).toList();
+
+  // Identify county matches
+  final Set<String> countyMatchIds = {};
+  try {
+    final matchesRes = await sb.from('matches').select('id, team_a_id, team_b_id, live_score');
+    for (final m in (matchesRes as List)) {
+      final mid = m['id']?.toString();
+      final live = m['live_score'] as Map<String, dynamic>?;
+      final teamAId = m['team_a_id']?.toString();
+      final teamBId = m['team_b_id']?.toString();
+      final isCounty = (live?['matchType'] == 'county') ||
+          (live?['isCounty'] == true) ||
+          (teamAId != null && countyTeamIds.contains(teamAId)) ||
+          (teamBId != null && countyTeamIds.contains(teamBId));
+      if (mid != null && isCounty) {
+        countyMatchIds.add(mid);
+      }
+    }
+  } catch (_) {}
 
   // Fetch all ball_events once
   final balls = await sb.from('ball_events').select(
-    'batter_id, bowler_id, fielder_id, runs_scored, is_boundary, extras_type, wicket_type, player_out_id'
+    'match_id, batter_id, bowler_id, fielder_id, runs_scored, is_boundary, extras_type, wicket_type, player_out_id'
   );
 
   // Compute per-player aggregates
@@ -49,8 +80,14 @@ final _leaderboardProvider = FutureProvider<List<_PlayerLeaderStats>>((ref) asyn
   final Map<String, int> wickets = {};
   final Map<String, int> catches = {};
   final Map<String, int> stumps = {};
+  final Map<String, Set<String>> playerMatches = {};
 
   for (final b in balls) {
+    final matchId = b['match_id']?.toString();
+    if (matchId != null && countyMatchIds.contains(matchId)) {
+      continue;
+    }
+
     final batterId = b['batter_id'] as String?;
     final bowlerId = b['bowler_id'] as String?;
     final fielderId = b['fielder_id'] as String?;
@@ -66,17 +103,21 @@ final _leaderboardProvider = FutureProvider<List<_PlayerLeaderStats>>((ref) asyn
       if (isBoundary && runsScored == 6) {
         sixes[batterId] = (sixes[batterId] ?? 0) + 1;
       }
+      if (matchId != null) playerMatches.putIfAbsent(batterId, () => {}).add(matchId);
     }
 
-    if (bowlerId != null && wicketType != null) {
-      // Bowler gets credit for: bowled, lbw, caught, stumped, hitWicket
-      final bowlerWickets = ['bowled', 'lbw', 'caught', 'stumped', 'hitWicket'];
-      if (bowlerWickets.contains(wicketType)) {
-        wickets[bowlerId] = (wickets[bowlerId] ?? 0) + 1;
+    if (bowlerId != null) {
+      if (matchId != null) playerMatches.putIfAbsent(bowlerId, () => {}).add(matchId);
+      if (wicketType != null) {
+        final bowlerWickets = ['bowled', 'lbw', 'caught', 'stumped', 'hitWicket'];
+        if (bowlerWickets.contains(wicketType)) {
+          wickets[bowlerId] = (wickets[bowlerId] ?? 0) + 1;
+        }
       }
     }
 
     if (fielderId != null) {
+      if (matchId != null) playerMatches.putIfAbsent(fielderId, () => {}).add(matchId);
       if (wicketType == 'caught') {
         catches[fielderId] = (catches[fielderId] ?? 0) + 1;
       }
@@ -87,14 +128,14 @@ final _leaderboardProvider = FutureProvider<List<_PlayerLeaderStats>>((ref) asyn
   }
 
   return players.map((p) {
-    final r = runs[p.id] ?? p.stats.runsScored;
-    final m = p.stats.matchesPlayed;
+    final r = runs[p.id] ?? 0;
+    final m = playerMatches[p.id]?.length ?? 0;
     return _PlayerLeaderStats(
       player: p,
       runs: r,
       fours: fours[p.id] ?? 0,
       sixes: sixes[p.id] ?? 0,
-      wickets: wickets[p.id] ?? p.stats.wicketsTaken,
+      wickets: wickets[p.id] ?? 0,
       catches: catches[p.id] ?? 0,
       stumps: stumps[p.id] ?? 0,
       matches: m,

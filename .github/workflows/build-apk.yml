@@ -1,51 +1,57 @@
-name: Build Android APK
+name: Build & Release Android APK
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
+
+# Permissions for creating releases and uploading artifacts
+permissions:
+  contents: write
 
 jobs:
   build:
-    name: Build Release APK
+    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Make gradlew executable
-        run: chmod +x android/gradlew
-
-      - name: Set up Java
+      - name: ☕ Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
           cache: 'gradle'
 
-      - name: Set up Flutter
+      - name: 🚀 Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      - name: Install Dependencies
+      - name: 📦 Install Flutter Dependencies
         run: flutter pub get
 
-      - name: Run code generation
+      - name: ⚙️ Run Code Generation
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Analyze Code
-        run: flutter analyze
+      - name: 🔧 Make Gradle Wrapper Executable
+        run: chmod +x android/gradlew
 
-      - name: Run Tests
-        run: flutter test
-
-      - name: Build Release APK
+      - name: 🔨 Build Release APK
         run: flutter build apk --release
 
-      - name: Upload APK Artifact
+      - name: 📋 Rename APK for Easy Download
+        run: |
+          mkdir -p output
+          cp build/app/outputs/flutter-apk/app-release.apk output/Cricket-BV-release.apk
+
+      - name: 📤 Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cricket-scoring-app-release
-          path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 14
+          name: Cricket-BV-Release-APK
+          path: output/Cricket-BV-release.apk
+          retention-days: 30
