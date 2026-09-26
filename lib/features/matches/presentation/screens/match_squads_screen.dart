@@ -161,7 +161,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
               // ── Modern Segmented Team Selector ──
               Container(
                 color: const Color(0xFF1E3A8A),
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
@@ -195,7 +195,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
               // ── Active Team Squad Content ──
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                   children: [
                     // Squad Header with Dual Action Buttons (Database & Manual)
                     Row(
@@ -254,7 +254,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                         ],
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
 
                     // Players List or Empty View
                     if (activePlayers.isEmpty)
@@ -351,24 +351,24 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                         activeTeam.captainName!.toLowerCase() == player.name.toLowerCase()));
 
                             return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
                               child: Row(
                                 children: [
                                   // Player Number
                                   SizedBox(
-                                    width: 24,
+                                    width: 20,
                                     child: Text(
                                       '${idx + 1}',
                                       textAlign: TextAlign.center,
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFFCBD5E1)),
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFFCBD5E1)),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
 
                                   // Avatar
                                   Container(
-                                    width: 44,
-                                    height: 44,
+                                    width: 38,
+                                    height: 38,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: roleColor.withOpacity(0.1),
@@ -383,7 +383,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                           )
                                         : null,
                                   ),
-                                  const SizedBox(width: 14),
+                                  const SizedBox(width: 10),
 
                                   // Name & Role
                                   Expanded(
@@ -485,7 +485,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
 
               // ── Bottom Fixed Action Bar ──
               Container(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
@@ -510,7 +510,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         backgroundColor: const Color(0xFF10B981),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -528,7 +528,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     InkWell(
                       onTap: () {
                         if (context.canPop()) {
@@ -572,7 +572,7 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
       borderRadius: BorderRadius.circular(10),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
