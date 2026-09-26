@@ -45,7 +45,7 @@ class SplashNotifier extends StateNotifier<bool> {
   }
 
   void _startTimer() async {
-    await Future.delayed(const Duration(milliseconds: 2000));
+    await Future.delayed(const Duration(seconds: 4));
     state = true;
   }
 }

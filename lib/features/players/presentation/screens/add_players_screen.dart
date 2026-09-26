@@ -197,41 +197,37 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
           // ── Mode Switcher Tab Bar ──
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: Container(
-              padding: const EdgeInsets.all(4),
+              height: 36,
+              padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                color: const Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(14),
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: TabBar(
                 controller: _tabController,
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
                 indicator: BoxDecoration(
-                  color: const Color(0xFF1E3A8A),
-                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1E3A8A).withOpacity(0.25),
+                      color: Colors.black.withOpacity(0.04),
                       blurRadius: 4,
-                      offset: const Offset(0, 2),
+                      offset: const Offset(0, 1),
                     ),
                   ],
                 ),
-                labelColor: Colors.white,
-                unselectedLabelColor: const Color(0xFF475569),
-                labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                labelColor: const Color(0xFF0F172A),
+                unselectedLabelColor: const Color(0xFF64748B),
+                labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
                 tabs: const [
-                  Tab(
-                    iconMargin: EdgeInsets.only(bottom: 2),
-                    icon: Icon(Icons.format_list_bulleted_rounded, size: 18),
-                    text: 'Select Existing Player',
-                  ),
-                  Tab(
-                    iconMargin: EdgeInsets.only(bottom: 2),
-                    icon: Icon(Icons.person_add_alt_1_rounded, size: 18),
-                    text: 'Manual Entry / New',
-                  ),
+                  Tab(text: 'Existing Player'),
+                  Tab(text: 'Manual Entry'),
                 ],
               ),
             ),
