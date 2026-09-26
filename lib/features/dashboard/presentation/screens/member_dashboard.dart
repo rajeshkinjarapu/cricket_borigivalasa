@@ -504,7 +504,7 @@ class MemberDashboard extends ConsumerWidget {
               physics: const NeverScrollableScrollPhysics(),
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
-              childAspectRatio: 0.93,
+              childAspectRatio: 1.04,
               children: [
                 // 1. Matches Played
                 _StatCard(
@@ -1382,7 +1382,7 @@ class _StatCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5.5),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1393,11 +1393,11 @@ class _StatCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      width: 28,
-                      height: 28,
+                      width: 25,
+                      height: 25,
                       decoration: BoxDecoration(
                         color: bgColor,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(7),
                         border: Border.all(
                           color: accentColor.withOpacity(0.25),
                           width: 1,
@@ -1405,23 +1405,21 @@ class _StatCard extends StatelessWidget {
                         boxShadow: [
                           BoxShadow(
                             color: accentColor.withOpacity(0.08),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
+                            blurRadius: 3,
+                            offset: const Offset(0, 1.5),
                           ),
                         ],
                       ),
                       alignment: Alignment.center,
-                      child: Text(emoji, style: const TextStyle(fontSize: 14)),
+                      child: Text(emoji, style: const TextStyle(fontSize: 12.5)),
                     ),
                     Icon(
                       Icons.arrow_forward_ios_rounded,
-                      size: 9,
+                      size: 8,
                       color: accentColor.withOpacity(0.35),
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 1),
 
                 // Big Bold Centered Number
                 Center(
@@ -1432,7 +1430,7 @@ class _StatCard extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        fontSize: 22,
+                        fontSize: 20,
                         color: accentColor,
                         letterSpacing: -0.5,
                         height: 1.0,
@@ -1441,18 +1439,16 @@ class _StatCard extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 2),
-
                 // Card Label Centered
                 Text(
                   label,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 9.8,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF64748B),
-                    letterSpacing: 0.1,
-                    height: 1.15,
+                    letterSpacing: 0.05,
+                    height: 1.1,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
