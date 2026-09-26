@@ -782,7 +782,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                   const Icon(Icons.timelapse_rounded, color: Color(0xFF64748B), size: 14),
                   const SizedBox(width: 6),
                   Text(
-                    '${match.totalOvers} Ov',
+                    '${match.totalOvers} Overs',
                     style: const TextStyle(color: Color(0xFF334155), fontSize: 11, fontWeight: FontWeight.w800),
                   ),
                 ],
