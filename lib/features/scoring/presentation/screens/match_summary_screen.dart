@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../matches/data/models/match.dart';
 import '../../../matches/presentation/providers/match_providers.dart';
+import '../../../players/data/models/player.dart';
+import '../../../players/presentation/providers/player_providers.dart';
+import '../../../teams/data/models/team.dart';
+import '../../../teams/presentation/providers/team_providers.dart';
 import '../../data/models/innings.dart';
 import '../providers/scoring_providers.dart';
 import 'scorecard_tab.dart';
@@ -41,6 +45,8 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
     )));
     final i1Async = ref.watch(inningsProvider((tournamentId: widget.tournamentId, matchId: widget.matchId, innings: 1)));
     final i2Async = ref.watch(inningsProvider((tournamentId: widget.tournamentId, matchId: widget.matchId, innings: 2)));
+    final allPlayers = ref.watch(allPlayersProvider).value ?? [];
+    final allTeams = ref.watch(allTeamsProvider).value ?? [];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -107,15 +113,15 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
 
           return Column(
             children: [
-              // ── 1. PREMIUM BRIGHT HERO SCOREBOARD ──
-              _buildHeaderHero(context, match, i1, i2, isCounty, resultText, isCompleted),
+              // ── 1. PREMIUM HERO SCOREBOARD WITH AVATARS ──
+              _buildHeaderHero(context, match, i1, i2, isCounty, resultText, isCompleted, allPlayers, allTeams),
 
               // ── 2. STYLED PINNED TAB BAR ──
               Container(
                 color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 child: Container(
-                  height: 36,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(10),
@@ -130,8 +136,8 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                     indicatorSize: TabBarIndicatorSize.tab,
                     labelColor: Colors.white,
                     unselectedLabelColor: const Color(0xFF64748B),
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.4),
-                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11.5, letterSpacing: 0.4),
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11.5),
                     tabs: isCounty
                         ? const [
                             Tab(text: 'MATCH INFO'),
@@ -154,16 +160,16 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                       ? [
                           _InfoTab(match: match, i1: i1, i2: i2, isCounty: true),
                           i1 != null
-                              ? ScorecardTab(tournamentId: widget.tournamentId, matchId: widget.matchId, innings: i1)
+                              ? ScorecardTab(tournamentId: widget.tournamentId, matchId: widget.matchId, innings: i1, match: match)
                               : const Center(child: Text('Scorecard not available yet', style: TextStyle(fontWeight: FontWeight.bold))),
                         ]
                       : [
                           _InfoTab(match: match, i1: i1, i2: i2, isCounty: false),
                           i1 != null
-                              ? ScorecardTab(tournamentId: widget.tournamentId, matchId: widget.matchId, innings: i1)
+                              ? ScorecardTab(tournamentId: widget.tournamentId, matchId: widget.matchId, innings: i1, match: match)
                               : const Center(child: Text('1st Innings has not started yet', style: TextStyle(fontWeight: FontWeight.bold))),
                           i2 != null
-                              ? ScorecardTab(tournamentId: widget.tournamentId, matchId: widget.matchId, innings: i2)
+                              ? ScorecardTab(tournamentId: widget.tournamentId, matchId: widget.matchId, innings: i2, match: match)
                               : const Center(child: Text('2nd Innings has not started yet', style: TextStyle(fontWeight: FontWeight.bold))),
                         ],
                 ),
@@ -176,7 +182,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // COMPACT & ULTRA-CLEAN HERO SCOREBOARD (CRICBUZZ / ESPNCRICINFO STYLE)
+  // PREMIUM & BEAUTIFUL HERO SCOREBOARD WITH PLAYER AVATARS
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildHeaderHero(
     BuildContext context,
@@ -186,6 +192,8 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
     bool isCounty,
     String resultText,
     bool isCompleted,
+    List<Player> allPlayers,
+    List<Team> allTeams,
   ) {
     // Determine team 1 & 2 innings
     Innings? innA;
@@ -199,6 +207,9 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
       innA = i1;
     }
 
+    String? photoA = _findPhoto(match.teamAId, match.teamA, allPlayers, allTeams);
+    String? photoB = _findPhoto(match.teamBId, match.teamB, allPlayers, allTeams);
+
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -207,23 +218,23 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
           bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Top Micro Meta Bar ──
+          // ── Top Meta Bar ──
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.location_on_rounded, size: 13, color: Color(0xFF64748B)),
+                    const Icon(Icons.location_on_rounded, size: 14, color: Color(0xFF64748B)),
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
                         '${match.venue.isNotEmpty ? match.venue : 'Cricket Ground'} • ${DateFormat('MMM dd, yyyy').format(match.matchDate)}',
-                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w700),
+                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w700),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -232,7 +243,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                 decoration: BoxDecoration(
                   color: isCounty ? const Color(0xFFFEF3C7) : const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(6),
@@ -241,7 +252,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                 child: Text(
                   isCounty ? 'COUNTY' : '${match.totalOvers} OVERS',
                   style: TextStyle(
-                    fontSize: 9.5,
+                    fontSize: 10,
                     fontWeight: FontWeight.w900,
                     color: isCounty ? const Color(0xFFB45309) : const Color(0xFF1D4ED8),
                     letterSpacing: 0.5,
@@ -250,50 +261,57 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
-          // ── Sleek Integrated Scoreboard (No Bulky Boxes) ──
+          // ── Integrated Scoreboard Card with Player Photos ──
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: const [
+                BoxShadow(color: Color(0x04000000), blurRadius: 4, offset: Offset(0, 1)),
+              ],
             ),
             child: Column(
               children: [
                 // Team A Row
-                _buildCompactTeamRow(
+                _buildTeamRow(
                   name: match.teamA,
+                  photoUrl: photoA,
                   inn: innA,
                   isCounty: isCounty,
                   isBattingNow: i1 != null && !i1.isComplete && i1.battingTeamId == match.teamAId,
                   isWinner: match.winnerTeamId == match.teamAId,
                   isCompleted: isCompleted,
+                  isPrimary: true,
                 ),
                 const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 4),
+                  padding: EdgeInsets.symmetric(vertical: 8),
                   child: Divider(height: 1, color: Color(0xFFE2E8F0)),
                 ),
                 // Team B Row
-                _buildCompactTeamRow(
+                _buildTeamRow(
                   name: match.teamB,
+                  photoUrl: photoB,
                   inn: innB,
                   isCounty: isCounty,
                   isBattingNow: i2 != null && !i2.isComplete && i2.battingTeamId == match.teamBId,
                   isWinner: match.winnerTeamId == match.teamBId,
                   isCompleted: isCompleted,
                   isOpponentInCounty: isCounty,
+                  isPrimary: false,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
 
-          // ── Compact Result / Live Status Pill ──
+          // ── Result / Status Pill ──
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
             decoration: BoxDecoration(
               color: isCompleted
                   ? const Color(0xFFECFDF5)
@@ -316,7 +334,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                   color: isCompleted
                       ? const Color(0xFF059669)
                       : (match.isLive ? const Color(0xFFDC2626) : const Color(0xFF64748B)),
-                  size: 13,
+                  size: 14,
                 ),
                 const SizedBox(width: 6),
                 Flexible(
@@ -327,7 +345,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                           ? const Color(0xFF065F46)
                           : (match.isLive ? const Color(0xFF991B1B) : const Color(0xFF334155)),
                       fontWeight: FontWeight.w800,
-                      fontSize: 11.5,
+                      fontSize: 12,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -341,13 +359,35 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
     );
   }
 
-  Widget _buildCompactTeamRow({
+  String? _findPhoto(String id, String name, List<Player> players, List<Team> teams) {
+    // 1. By ID in players
+    final pById = players.where((p) => p.id == id).firstOrNull;
+    if (pById?.profilePicUrl != null && pById!.profilePicUrl!.isNotEmpty) return pById.profilePicUrl;
+
+    // 2. By Name in players
+    final trimmed = name.trim().toLowerCase();
+    final pByName = players.where((p) => p.name.trim().toLowerCase() == trimmed).firstOrNull;
+    if (pByName?.profilePicUrl != null && pByName!.profilePicUrl!.isNotEmpty) return pByName.profilePicUrl;
+
+    // 3. By Team Logo
+    final tById = teams.where((t) => t.id == id).firstOrNull;
+    if (tById?.logoUrl != null && tById!.logoUrl!.isNotEmpty) return tById.logoUrl;
+
+    final tByName = teams.where((t) => t.name.trim().toLowerCase() == trimmed).firstOrNull;
+    if (tByName?.logoUrl != null && tByName!.logoUrl!.isNotEmpty) return tByName.logoUrl;
+
+    return null;
+  }
+
+  Widget _buildTeamRow({
     required String name,
+    required String? photoUrl,
     required Innings? inn,
     required bool isCounty,
     required bool isBattingNow,
     required bool isWinner,
     required bool isCompleted,
+    required bool isPrimary,
     bool isOpponentInCounty = false,
   }) {
     final hasBat = inn != null && (inn.legalBalls > 0 || inn.runs > 0);
@@ -357,7 +397,25 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
 
     return Row(
       children: [
-        // Name & Winner Indicator
+        // ── Person / Team Avatar ──
+        CircleAvatar(
+          radius: 16,
+          backgroundColor: isPrimary ? const Color(0xFFDBEAFE) : const Color(0xFFFCE7F3),
+          backgroundImage: (photoUrl != null && photoUrl.isNotEmpty) ? NetworkImage(photoUrl) : null,
+          child: (photoUrl == null || photoUrl.isEmpty)
+              ? Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : 'T',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: isPrimary ? const Color(0xFF1D4ED8) : const Color(0xFFBE185D),
+                  ),
+                )
+              : null,
+        ),
+        const SizedBox(width: 10),
+
+        // ── Name & Winner / Live Badge ──
         Expanded(
           child: Row(
             children: [
@@ -367,27 +425,27 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                   style: TextStyle(
                     color: isWinner ? const Color(0xFF0F172A) : const Color(0xFF1E293B),
                     fontWeight: isWinner ? FontWeight.w900 : FontWeight.w800,
-                    fontSize: 13.5,
+                    fontSize: 14,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (isWinner) ...[
-                const SizedBox(width: 4),
-                const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF059669)),
+                const SizedBox(width: 5),
+                const Icon(Icons.check_circle_rounded, size: 15, color: Color(0xFF059669)),
               ],
               if (isBattingNow) ...[
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                   decoration: BoxDecoration(
                     color: const Color(0xFFDBEAFE),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(
                     'BAT',
-                    style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFF1D4ED8)),
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF1D4ED8)),
                   ),
                 ),
               ],
@@ -395,7 +453,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
           ),
         ),
 
-        // Score display
+        // ── Score display ──
         if (hasBat) ...[
           RichText(
             text: TextSpan(
@@ -404,7 +462,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                   text: '${inn!.runs}/${inn.wickets}',
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
-                    fontSize: 15,
+                    fontSize: 16,
                     color: Color(0xFF0F172A),
                   ),
                 ),
@@ -412,7 +470,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                   text: ' (${inn.oversText})',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 11,
+                    fontSize: 11.5,
                     color: Color(0xFF64748B),
                   ),
                 ),
@@ -421,7 +479,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
                     text: '  CRR $crr',
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
-                      fontSize: 10,
+                      fontSize: 10.5,
                       color: Color(0xFF2563EB),
                     ),
                   ),
@@ -431,17 +489,17 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
         ] else if (isOpponentInCounty) ...[
           const Text(
             'Opponent',
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w700),
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w700),
           ),
         ] else if (isCompleted) ...[
           const Text(
             '—',
-            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.bold),
           ),
         ] else ...[
           const Text(
             'Yet to bat',
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w600),
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w600),
           ),
         ],
       ],
