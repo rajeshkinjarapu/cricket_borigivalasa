@@ -1337,8 +1337,10 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
           TextFormField(
             controller: _oversController,
             keyboardType: TextInputType.number,
+            style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 15),
             decoration: InputDecoration(
               labelText: 'Total Overs',
+              labelStyle: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500),
               prefixIcon: const Icon(Icons.timelapse_rounded, color: Color(0xFF1E3A8A)),
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
@@ -1355,8 +1357,10 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
           // Venue
           TextFormField(
             controller: _venueController,
+            style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 15),
             decoration: InputDecoration(
               labelText: 'Venue / Ground',
+              labelStyle: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500),
               prefixIcon: const Icon(Icons.place_rounded, color: Color(0xFF1E3A8A)),
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
