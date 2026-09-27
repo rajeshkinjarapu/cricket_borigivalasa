@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../players/data/models/player.dart';
@@ -12,24 +11,19 @@ import '../../../teams/presentation/providers/team_providers.dart';
 import '../../../players/presentation/screens/add_players_screen.dart';
 import '../../data/models/match.dart';
 import '../providers/match_providers.dart';
-
 class MatchSquadsScreen extends ConsumerStatefulWidget {
   const MatchSquadsScreen({
     super.key,
     required this.tournamentId,
     required this.matchId,
   });
-
   final String tournamentId;
   final String matchId;
-
   @override
   ConsumerState<MatchSquadsScreen> createState() => _MatchSquadsScreenState();
 }
-
 class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
   int _selectedSquadTabIndex = 0; // 0 for Team A, 1 for Team B
-
   ImageProvider? _getImageProvider(String? url) {
     if (url == null || url.isEmpty) return null;
     try {
@@ -42,7 +36,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
       return null;
     }
   }
-
   Color _getRoleColor(PlayerRole role) {
     switch (role) {
       case PlayerRole.batter:
@@ -55,7 +48,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
         return const Color(0xFFD97706); // Amber
     }
   }
-
   void _openAddPlayersPage(
     BuildContext context,
     Team? team,
@@ -78,7 +70,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final matchAsync = ref.watch(matchDetailProvider((
@@ -87,7 +78,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
     )));
     final currentUser = ref.watch(currentUserProvider);
     final canManage = currentUser?.role == UserRole.admin || currentUser?.role == UserRole.scorer;
-
     return matchAsync.when(
       loading: () => const Scaffold(
         backgroundColor: Color(0xFFF1F5F9),
@@ -114,27 +104,22 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
             body: const Center(child: Text('Match not found or has been deleted.')),
           );
         }
-
         final teamAAsync = ref.watch(teamDetailProvider(match.teamAId));
         final teamBAsync = ref.watch(teamDetailProvider(match.teamBId));
         final teamA = teamAAsync.value;
         final teamB = teamBAsync.value;
-
         final teamAPlayersAsync = ref.watch(teamPlayersProvider(match.teamAId));
         final teamBPlayersAsync = ref.watch(teamPlayersProvider(match.teamBId));
         final teamAPlayers = teamAPlayersAsync.value ?? [];
         final teamBPlayers = teamBPlayersAsync.value ?? [];
-
         final activeTeamName = _selectedSquadTabIndex == 0 ? match.teamA : match.teamB;
         final activeTeamId = _selectedSquadTabIndex == 0 ? match.teamAId : match.teamBId;
         final activeTeam = _selectedSquadTabIndex == 0 ? teamA : teamB;
         final activePlayers = _selectedSquadTabIndex == 0 ? teamAPlayers : teamBPlayers;
-
         final oppositeTeamName = _selectedSquadTabIndex == 0 ? match.teamB : match.teamA;
         final oppositeTeamPlayerIds = _selectedSquadTabIndex == 0
             ? teamBPlayers.map((p) => p.id).toSet()
             : teamAPlayers.map((p) => p.id).toSet();
-
         return Scaffold(
           backgroundColor: const Color(0xFFF4F7FA),
           appBar: AppBar(
@@ -191,7 +176,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                   ),
                 ),
               ),
-
               // ── Active Team Squad Content ──
               Expanded(
                 child: ListView(
@@ -255,7 +239,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-
                     // Players List or Empty View
                     if (activePlayers.isEmpty)
                       Container(
@@ -349,7 +332,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                 (activeTeam.captainId == player.id ||
                                     (activeTeam.captainName != null &&
                                         activeTeam.captainName!.toLowerCase() == player.name.toLowerCase()));
-
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
                               child: Row(
@@ -364,7 +346,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-
                                   // Avatar
                                   Container(
                                     width: 38,
@@ -384,7 +365,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                         : null,
                                   ),
                                   const SizedBox(width: 10),
-
                                   // Name & Role
                                   Expanded(
                                     child: Column(
@@ -435,7 +415,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                       ],
                                     ),
                                   ),
-
                                   // Quick Options Menu
                                   if (canManage)
                                     PopupMenuButton<String>(
@@ -482,76 +461,66 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                   ],
                 ),
               ),
-
               // ── Bottom Fixed Action Bar ──
               Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 20,
-                      offset: const Offset(0, -5),
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 24,
+                      offset: const Offset(0, -6),
                     ),
                   ],
-                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF10B981), Color(0xFF047857)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withOpacity(0.4),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
                         if (match.hasToss) {
                           context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/scoring');
                         } else {
                           context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}');
                         }
                       },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: 0,
-                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(match.hasToss ? Icons.play_circle_fill_rounded : Icons.sports_cricket_rounded, size: 20),
-                          const SizedBox(width: 8),
+                          Icon(match.hasToss ? Icons.play_circle_fill_rounded : Icons.sports_cricket_rounded, size: 24, color: Colors.white),
+                          const SizedBox(width: 10),
                           Text(
                             match.hasToss ? 'CONFIRM & START SCORING' : 'CONFIRM SQUADS & GO TO TOSS',
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                            style: const TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                              color: Colors.white,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    InkWell(
-                      onTap: () {
-                        if (context.canPop()) {
-                          context.pop();
-                        } else {
-                          context.pushReplacement('/tournaments/${widget.tournamentId}/matches/${widget.matchId}');
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                          'Back to Match Center',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -560,7 +529,6 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
       },
     );
   }
-
   Widget _buildTeamTab({
     required String title,
     required int count,
@@ -617,14 +585,11 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
     );
   }
 }
-
 class _IconActionBtn extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-
   const _IconActionBtn({required this.icon, required this.color, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
     return InkWell(

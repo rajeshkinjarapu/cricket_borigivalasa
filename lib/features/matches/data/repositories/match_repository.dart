@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/cricket_enums.dart';
@@ -85,6 +87,21 @@ class MatchRepository {
     json['created_by'] = _supabase.auth.currentUser?.id;
 
     await _supabase.from('matches').insert(json);
+
+    // Insert a notification about the new match
+    try {
+      final matchDateStr = DateFormat('MMM dd, yyyy - hh:mm a').format(match.matchDate);
+      await _supabase.from('notifications').insert({
+        'title': 'New Match Scheduled!',
+        'body': '${match.teamA} vs ${match.teamB} is scheduled on $matchDateStr.',
+        'type': 'match',
+        'match_id': id,
+        'tournament_id': effectiveTournamentId,
+      });
+    } catch (e) {
+      debugPrint('Error creating notification: $e');
+    }
+
     return id;
   }
 

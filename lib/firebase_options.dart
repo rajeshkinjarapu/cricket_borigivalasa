@@ -57,7 +57,6 @@ class DefaultFirebaseOptions {
     projectId: 'cricket-borigivalasa',
     storageBucket: 'cricket-borigivalasa.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyC8cA6qHIeR8Q7zr92Ot9GDvZj3ff5LcgA',
     appId: '1:492410104110:ios:28196682b1252adbdff2bf',
@@ -66,7 +65,6 @@ class DefaultFirebaseOptions {
     storageBucket: 'cricket-borigivalasa.firebasestorage.app',
     iosBundleId: 'com.yourdomain.cricketScoringApp',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyC8cA6qHIeR8Q7zr92Ot9GDvZj3ff5LcgA',
     appId: '1:492410104110:ios:28196682b1252adbdff2bf',

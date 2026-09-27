@@ -161,7 +161,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     )));
 
     final currentUser = ref.watch(currentUserProvider);
-    final isAdmin = currentUser?.role == UserRole.admin;
+    final isAdmin = currentUser?.role?.isAdmin == true;
     final isScorer = currentUser?.role == UserRole.scorer;
     final canScore = isAdmin || isScorer;
 

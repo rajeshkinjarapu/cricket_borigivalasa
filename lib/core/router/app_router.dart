@@ -85,11 +85,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isSuperAdmin = user.role == UserRole.superAdmin;
       final isAdmin = user.role.isAdmin;
       final isScorer = user.role == UserRole.scorer;
-      final home = isSuperAdmin ? '/admin' : '/member';
+      final home = isAdmin ? '/admin' : '/member';
       if (loc == '/splash' || onAuthRoute) return home;
 
       final superAdminOnly = loc.startsWith('/admin') || loc.startsWith('/members');
-      if (superAdminOnly && !isSuperAdmin) return home;
+      if (superAdminOnly && !isAdmin) return home;
 
       final matchScoringOnly = loc.endsWith('/scoring') || loc.startsWith('/matches/new');
       if (matchScoringOnly && !isAdmin && !isScorer) return home;
@@ -112,7 +112,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: '/home',
                 redirect: (context, state) {
                   final user = ref.read(authStateProvider).value;
-                  if (user != null && user.role == UserRole.superAdmin) return '/admin';
+                  if (user != null && user.role.isAdmin) return '/admin';
                   return '/member';
                 },
                 builder: (_, __) => const SizedBox(),
