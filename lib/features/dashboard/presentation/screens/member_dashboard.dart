@@ -520,9 +520,9 @@ class MemberDashboard extends ConsumerWidget {
               children: [
                 // 1. Matches Played
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
                   child: AspectRatio(
-                    aspectRatio: 0.72,
+                    aspectRatio: 1.3,
                     child: _StatCard(
                       emoji: '🏏',
                       label: 'Matches Played',
@@ -542,9 +542,9 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 2. Matches Won
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
                   child: AspectRatio(
-                    aspectRatio: 0.72,
+                    aspectRatio: 1.3,
                     child: _StatCard(
                       emoji: '🏆',
                       label: 'Matches Won',
@@ -567,9 +567,9 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 3. Win Percentage
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
                   child: AspectRatio(
-                    aspectRatio: 0.72,
+                    aspectRatio: 1.3,
                     child: _StatCard(
                       emoji: '📈',
                       label: 'Win %',
@@ -583,9 +583,9 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 4. Man of the Matches
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
                   child: AspectRatio(
-                    aspectRatio: 0.72,
+                    aspectRatio: 1.3,
                     child: _StatCard(
                       emoji: '🏅',
                       label: 'Man of the Match',
@@ -608,9 +608,9 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 5. Total Runs
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
                   child: AspectRatio(
-                    aspectRatio: 0.72,
+                    aspectRatio: 1.3,
                     child: _StatCard(
                       emoji: '🎯',
                       label: 'Total Runs',
@@ -633,9 +633,9 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 6. Total Wickets
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
                   child: AspectRatio(
-                    aspectRatio: 0.72,
+                    aspectRatio: 1.3,
                     child: _StatCard(
                       emoji: '🎳',
                       label: 'Total Wickets',
@@ -658,9 +658,9 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 7. No of 50s
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
                   child: AspectRatio(
-                    aspectRatio: 0.72,
+                    aspectRatio: 1.3,
                     child: _StatCard(
                       emoji: '🔥',
                       label: 'No of 50s',
@@ -683,9 +683,9 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 8. Total Sixes
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 3)) / 4,
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
                   child: AspectRatio(
-                    aspectRatio: 0.72,
+                    aspectRatio: 1.3,
                     child: _StatCard(
                       emoji: '🚀',
                       label: 'Total Sixes',
@@ -700,6 +700,31 @@ class MemberDashboard extends ConsumerWidget {
                           accentColor: const Color(0xFFEA580C),
                           items: sixesList,
                           type: 'sixes',
+                        )));
+                      },
+                    ),
+                  ),
+                ),
+
+                // 9. Total Fours
+                SizedBox(
+                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
+                  child: AspectRatio(
+                    aspectRatio: 1.3,
+                    child: _StatCard(
+                      emoji: '✨',
+                      label: 'Total Fours',
+                      value: '$totalFours',
+                      accentColor: const Color(0xFF3B82F6),
+                      bgColor: const Color(0xFFDBEAFE),
+                      onTap: () {
+                        final foursList = List<PlayerMatchDetail>.from(detailedPerfList)..sort((a, b) => b.fours.compareTo(a.fours));
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => PerformanceDetailsScreen(
+                          title: 'Fours Breakdown',
+                          totalCount: '$totalFours Fours Hit',
+                          accentColor: const Color(0xFF3B82F6),
+                          items: foursList,
+                          type: 'fours',
                         )));
                       },
                     ),
