@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -72,7 +72,7 @@ class LiveScorerScreen extends ConsumerWidget {
           return InningsSetupScreen(tournamentId: tournamentId, matchId: matchId, inningsNumber: 1);
         }
         if (inn1.isComplete) {
-          // County match has only 1 innings — finalize directly
+          // County match has only 1 innings â€” finalize directly
           final isCounty = match?.liveScore?['isCounty'] == true || match?.liveScore?['matchType'] == 'county';
           if (isCounty) {
             return _FinalizeCountyMatch(tournamentId: tournamentId, matchId: matchId, inn1: inn1);
@@ -629,6 +629,9 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     final totalExtras = live.wides + live.noballs + live.byes + live.legbyes;
     final projectedScore = live.legalBalls > 0 ? ((live.runs / live.legalBalls) * (maxOvers * 6)).round() : 0;
 
+    final batPlayers = ref.watch(teamPlayersProvider(live.battingTeamId)).value ?? [];
+    final bowlPlayers = ref.watch(teamPlayersProvider(live.bowlingTeamId)).value ?? [];
+
     final isCountyMatch = match?.liveScore?['matchType'] == 'county' || match?.liveScore?['isCounty'] == true;
 
     return Scaffold(
@@ -664,16 +667,17 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── TOP SCROLLABLE CRICKET DASHBOARD ──
-            Expanded(
+            // â”€â”€ TOP SCROLLABLE CRICKET DASHBOARD â”€â”€
+            Flexible(
               child: ListView(
+                shrinkWrap: true,
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                 children: [
-                  // 1. ── HERO STADIUM SCOREBOARD CARD (ROYAL SAPPHIRE GRADIENT) ──
-                  _buildHeroScoreboardCard(live, maxOvers, totalExtras, projectedScore),
+                  // 1. â”€â”€ HERO STADIUM SCOREBOARD CARD (ROYAL SAPPHIRE GRADIENT) â”€â”€
+                  _buildHeroScoreboardCard(live, maxOvers, totalExtras, projectedScore, match),
                   const SizedBox(height: 12),
 
-                  // ── PROMINENT FULL SCORECARD BUTTON ──
+                  // â”€â”€ PROMINENT FULL SCORECARD BUTTON â”€â”€
                   SizedBox(
                     width: double.infinity,
                     height: 48,
@@ -691,21 +695,21 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                   ),
                   const SizedBox(height: 12),
 
-                  // 2. ── BATSMEN ON CREASE (STRIKER & NON-STRIKER) ──
-                  _buildBatsmenSection(striker, nonStriker, live, isCounty: isCountyMatch),
+                  // 2. â”€â”€ BATSMEN ON CREASE (STRIKER & NON-STRIKER) â”€â”€
+                  _buildBatsmenSection(striker, nonStriker, live, isCounty: isCountyMatch, batPlayers: batPlayers),
                   const SizedBox(height: 12),
 
-                  // 3. ── CURRENT BOWLER CARD ──
-                  _buildBowlerSection(currentBowler, live),
+                  // 3. â”€â”€ CURRENT BOWLER CARD â”€â”€
+                  _buildBowlerSection(currentBowler, live, bowlPlayers: bowlPlayers),
                   const SizedBox(height: 12),
 
-                  // 4. ── THIS OVER TIMELINE (LIVE BALLS) ──
+                  // 4. â”€â”€ THIS OVER TIMELINE (LIVE BALLS) â”€â”€
                   _buildThisOverSection(live),
                 ],
               ),
             ),
 
-            // ── TACTILE ERGONOMIC SCORING KEYPAD OR COMPLETION PANELS ──
+            // â”€â”€ TACTILE ERGONOMIC SCORING KEYPAD OR COMPLETION PANELS â”€â”€
             if (isMatchOver)
               _buildMatchCompletedPanel(context, match, live)
             else if (isInnings1Complete)
@@ -718,17 +722,21 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // 1. HERO SCOREBOARD CARD (ROYAL SAPPHIRE STADIUM GRADIENT)
-  // ─────────────────────────────────────────────────────────────────────────────
-  Widget _buildHeroScoreboardCard(Innings live, int maxOvers, int totalExtras, int projectedScore) {
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Widget _buildHeroScoreboardCard(Innings live, int maxOvers, int totalExtras, int projectedScore, MatchModel? match) {
     final ballsRemaining = (maxOvers * 6) - live.legalBalls;
     final target = live.targetRuns;
     final runsNeeded = target != null ? (target - live.runs).clamp(0, 9999) : null;
     final crr = live.legalBalls > 0 ? (live.runs / (live.legalBalls / 6)).toStringAsFixed(2) : '0.00';
+    final isCounty = match?.liveScore?['matchType'] == 'county';
     final reqInfo = (runsNeeded != null && ballsRemaining > 0 && runsNeeded > 0)
         ? 'Need $runsNeeded from $ballsRemaining balls'
         : null;
+
+    final battingName = live.battingTeamName.isNotEmpty ? live.battingTeamName : (match?.teamNameById(live.battingTeamId) ?? 'Team A');
+    final bowlingName = live.bowlingTeamName.isNotEmpty ? live.bowlingTeamName : (match?.teamNameById(live.bowlingTeamId) ?? 'Team B');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -736,7 +744,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
-            '${live.battingTeamName} vs ${live.bowlingTeamName}',
+            '$battingName vs $bowlingName',
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5),
           ),
@@ -831,8 +839,9 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Container(
+              if (!isCounty) ...[
+                const SizedBox(height: 16),
+                Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.only(bottomLeft: Radius.circular(22), bottomRight: Radius.circular(22)),
@@ -873,6 +882,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                   ],
                 ),
               ),
+              ],
             ],
           ),
         ),
@@ -902,10 +912,10 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // 2. BATSMEN SECTION (ONE BY ONE UNIFIED TABLE LIST)
-  // ─────────────────────────────────────────────────────────────────────────────
-  Widget _buildBatsmenSection(BattingScorecardRow? striker, BattingScorecardRow? nonStriker, Innings live, {bool isCounty = false}) {
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Widget _buildBatsmenSection(BattingScorecardRow? striker, BattingScorecardRow? nonStriker, Innings live, {bool isCounty = false, List<Player> batPlayers = const []}) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -985,19 +995,31 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
           ),
 
           // Striker Row
-          _buildBatsmanRow(striker, isStriker: true),
+          _buildBatsmanRow(
+            striker, 
+            isStriker: true, 
+            fallbackName: isCounty && live.strikerId == null ? live.openingStrikerName : live.strikerName,
+            batterId: live.strikerId ?? (isCounty ? live.openingStrikerId : null),
+            batPlayers: batPlayers,
+          ),
 
           // Non-Striker Row
           if (!isCounty) ...[
             const Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9)),
-            _buildBatsmanRow(nonStriker, isStriker: false),
+            _buildBatsmanRow(
+              nonStriker, 
+              isStriker: false, 
+              fallbackName: live.nonStrikerName,
+              batterId: live.nonStrikerId,
+              batPlayers: batPlayers,
+            ),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildBatsmanRow(BattingScorecardRow? batter, {required bool isStriker}) {
+  Widget _buildBatsmanRow(BattingScorecardRow? batter, {required bool isStriker, String? fallbackName, String? batterId, List<Player> batPlayers = const []}) {
     final runs = batter?.runs ?? 0;
     final balls = batter?.balls ?? 0;
     final fours = batter?.fours ?? 0;
@@ -1038,7 +1060,18 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                         children: [
                           Flexible(
                             child: Text(
-                              batter?.playerName ?? 'Selecting...',
+                              (() {
+                                String name = batter?.playerName ?? fallbackName ?? 'Selecting...';
+                                if (name.isEmpty || name == 'Unknown' || name == 'Selecting...') {
+                                  final pid = batter?.playerId ?? batterId;
+                                  if (pid != null && pid.isNotEmpty) {
+                                    final p = batPlayers.where((p) => p.id == pid).firstOrNull;
+                                    if (p != null && p.name.isNotEmpty) name = p.name;
+                                  }
+                                }
+                                if (name.isEmpty) name = 'Unknown Batter';
+                                return name;
+                              })(),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -1124,10 +1157,10 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // 3. CURRENT BOWLER SECTION
-  // ─────────────────────────────────────────────────────────────────────────────
-  Widget _buildBowlerSection(BowlingScorecardRow? bowler, Innings live) {
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Widget _buildBowlerSection(BowlingScorecardRow? bowler, Innings live, {List<Player> bowlPlayers = const []}) {
     final balls = bowler?.balls ?? 0;
     final oversText = '${balls ~/ 6}.${balls % 6}';
     final econ = balls > 0 ? ((bowler?.runs ?? 0) * 6 / balls).toStringAsFixed(2) : '0.00';
@@ -1163,7 +1196,18 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    bowler?.playerName ?? 'Unknown Bowler',
+                    (() {
+                      String name = bowler?.playerName ?? live.currentBowlerName ?? 'Unknown Bowler';
+                      if (name.isEmpty || name == 'Unknown Bowler' || name == 'Unknown') {
+                        final pid = bowler?.playerId ?? live.currentBowlerId;
+                        if (pid != null && pid.isNotEmpty) {
+                          final p = bowlPlayers.where((p) => p.id == pid).firstOrNull;
+                          if (p != null && p.name.isNotEmpty) name = p.name;
+                        }
+                      }
+                      if (name.isEmpty) name = 'Unknown Bowler';
+                      return name;
+                    })(),
                     style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
                   ),
                 ],
@@ -1231,9 +1275,9 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // 4. THIS OVER TIMELINE
-  // ─────────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildThisOverSection(Innings live) {
     final currentOverNum = (live.legalBalls ~/ 6) + 1;
     final ballsAsync = ref.watch(currentOverBallsProvider((
@@ -1293,7 +1337,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   alignment: Alignment.center,
                   child: const Text(
-                    '⚡ Ready for 1st ball of this over',
+                    'âš¡ Ready for 1st ball of this over',
                     style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12.5, fontWeight: FontWeight.w600),
                   ),
                 );
@@ -1357,9 +1401,9 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // 5. TACTILE ERGONOMIC SCORING KEYPAD CONSOLE (FLOATING CARD DESIGN)
-  // ─────────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildScoringKeypad(Innings live) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     final bottomPadding = bottomInset > 0 ? bottomInset + 8 : 28.0;
@@ -1407,7 +1451,7 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
               _buildActionButton('NB', _noball, color: const Color(0xFFD97706)),
               _buildActionButton('BYE', () => _byes(isLegBye: false), color: const Color(0xFF475569)),
               _buildActionButton('LB', () => _byes(isLegBye: true), color: const Color(0xFF475569)),
-              _buildActionButton('OUT 🎯', _wicket, color: const Color(0xFFDC2626), isOut: true),
+              _buildActionButton('OUT ðŸŽ¯', _wicket, color: const Color(0xFFDC2626), isOut: true),
             ],
           ),
           const SizedBox(height: 8),
@@ -1544,8 +1588,8 @@ class _LiveScorerEngineState extends ConsumerState<_LiveScorerEngine> {
     final String result = (match.resultText != null && match.resultText!.trim().isNotEmpty)
         ? match.resultText!
         : (live.runs >= (live.targetRuns ?? 0)
-            ? '$battingTeamName won the match 🎉'
-            : '$bowlingTeamName won the match 🎉');
+            ? '$battingTeamName won the match ðŸŽ‰'
+            : '$bowlingTeamName won the match ðŸŽ‰');
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
@@ -1927,7 +1971,7 @@ class _MoMSelectionSheetState extends ConsumerState<_MoMSelectionSheet> {
   }
 }
 
-// ─── County Match Finalizer (no 2nd innings) ─────────────────────────────────
+// â”€â”€â”€ County Match Finalizer (no 2nd innings) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _FinalizeCountyMatch extends ConsumerStatefulWidget {
   const _FinalizeCountyMatch({
     required this.tournamentId,
@@ -1984,7 +2028,7 @@ class _FinalizeCountyMatchState extends ConsumerState<_FinalizeCountyMatch> {
   }
 }
 
-// ─── County Innings 2 Auto Init (legacy, no longer used for county) ───────────
+// â”€â”€â”€ County Innings 2 Auto Init (legacy, no longer used for county) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _AutoInitCountyInnings2 extends ConsumerStatefulWidget {
   const _AutoInitCountyInnings2({
     required this.tournamentId,
@@ -2057,3 +2101,6 @@ class _AutoInitCountyInnings2State extends ConsumerState<_AutoInitCountyInnings2
     );
   }
 }
+
+
+

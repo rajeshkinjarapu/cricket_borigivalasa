@@ -148,12 +148,23 @@ class ScoringRepository {
       'tournament_id': tournamentId,
       'innings_number': inningsNumber,
       'batting_team_id': battingTeam.id,
+      'batting_team_name': battingTeam.name,
+      'batting_team_short': battingTeam.shortName,
       'bowling_team_id': bowlingTeam.id,
+      'bowling_team_name': bowlingTeam.name,
+      'bowling_team_short': bowlingTeam.shortName,
       'runs': 0, 'wickets': 0, 'legal_balls': 0,
       'target_runs': targetRuns, 'is_complete': false,
+      'opening_striker_id': openingStriker.id,
+      'opening_striker_name': openingStriker.name,
+      'opening_non_striker_id': openingNonStriker?.id,
+      'opening_non_striker_name': openingNonStriker?.name,
       'current_striker_id': openingStriker.id,
+      'striker_name': openingStriker.name,
       'current_non_striker_id': openingNonStriker?.id,
+      'non_striker_name': openingNonStriker?.name,
       'current_bowler_id': openingBowler.id,
+      'current_bowler_name': openingBowler.name,
       'created_at': DateTime.now().toIso8601String()
     };
     
@@ -222,12 +233,8 @@ class ScoringRepository {
       'current_bowler_id': ball.bowlerId,
       'is_complete': complete != null,
     };
-    if (snap.strikerId != null) {
-      updateData['current_striker_id'] = snap.strikerId;
-    }
-    if (snap.nonStrikerId != null) {
-      updateData['current_non_striker_id'] = snap.nonStrikerId;
-    }
+    updateData['current_striker_id'] = snap.strikerId;
+    updateData['current_non_striker_id'] = snap.nonStrikerId;
 
     await Future.wait([
       _supabase.from('ball_events').insert(dbBallData),

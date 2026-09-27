@@ -249,7 +249,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
               },
             ),
             title: Text(
-              isCounty ? 'County Duel' : 'Match Details',
+              isCounty ? 'County Match' : 'Match Details',
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 0.3),
             ),
             actions: [
@@ -356,7 +356,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
 
                       // ── 2. MATCH STATUS / ACTIONS SECTION ──
                       if (match.status == MatchStatus.completed) ...[
-                        _buildCompletedCard(context, match, isCounty),
+                        _buildCompletedCard(context, match, isCounty, inn1, inn2),
                         const SizedBox(height: 16),
                       ] else if (match.status == MatchStatus.live) ...[
                         _buildLiveActionsCard(context, match, canScore),
@@ -419,7 +419,15 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
     String scoreB = '';
 
     if (inn1 != null) {
-      if (inn1.battingTeamId == match.teamAId || isCounty) {
+      if (isCounty) {
+        if (inn1.battingTeamId == match.teamAId) {
+          scoreA = formatInningsScore(inn1);
+          scoreB = '${inn1.wickets} W / ${inn1.runs} R';
+        } else {
+          scoreB = formatInningsScore(inn1);
+          scoreA = '${inn1.wickets} W / ${inn1.runs} R';
+        }
+      } else if (inn1.battingTeamId == match.teamAId) {
         scoreA = formatInningsScore(inn1);
       } else if (inn1.battingTeamId == match.teamBId) {
         scoreB = formatInningsScore(inn1);
@@ -498,7 +506,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                   Icon(isCounty ? Icons.bolt_rounded : Icons.sports_cricket_rounded, color: const Color(0xFF64748B), size: 12),
                   const SizedBox(width: 4),
                   Text(
-                    isCounty ? 'COUNTY DUEL' : 'TOURNAMENT MATCH',
+                    isCounty ? 'COUNTY MATCH' : 'TOURNAMENT MATCH',
                     style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w800, fontSize: 10, letterSpacing: 0.5),
                   ),
                 ],
@@ -554,7 +562,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                         width: 70,
                         height: 70,
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(12),
                           color: Colors.white,
                           border: Border.all(
                             color: isWinnerA ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
@@ -617,20 +625,28 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                     ),
                   ),
                   if (scoreA.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDF4),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFF0FDF4), Color(0xFFDCFCE7)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF86EFAC).withOpacity(0.5)),
+                        boxShadow: [
+                          BoxShadow(color: const Color(0xFF22C55E).withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 3)),
+                        ],
                       ),
                       child: Text(
                         scoreA,
                         style: const TextStyle(
-                          color: Color(0xFF16A34A),
-                          fontSize: 13,
+                          color: Color(0xFF15803D),
+                          fontSize: 18,
                           fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
@@ -639,24 +655,28 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
               ),
             ),
 
-            // ── CENTER VS EMBLEM ──
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              margin: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              margin: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFF1F5F9), Color(0xFFE2E8F0)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                  BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, 3)),
                 ],
               ),
               child: const Text(
                 'VS',
                 style: TextStyle(
-                  color: Color(0xFF94A3B8),
+                  color: Color(0xFF475569),
                   fontWeight: FontWeight.w900,
-                  fontSize: 12,
+                  fontSize: 13,
+                  letterSpacing: 1.0,
                 ),
               ),
             ),
@@ -673,7 +693,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                         width: 70,
                         height: 70,
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(12),
                           color: Colors.white,
                           border: Border.all(
                             color: isWinnerB ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
@@ -736,20 +756,28 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                     ),
                   ),
                   if (scoreB.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDF4),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFF0FDF4), Color(0xFFDCFCE7)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF86EFAC).withOpacity(0.5)),
+                        boxShadow: [
+                          BoxShadow(color: const Color(0xFF22C55E).withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 3)),
+                        ],
                       ),
                       child: Text(
                         scoreB,
                         style: const TextStyle(
-                          color: Color(0xFF16A34A),
-                          fontSize: 13,
+                          color: Color(0xFF15803D),
+                          fontSize: 18,
                           fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
@@ -840,7 +868,41 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
   // ─────────────────────────────────────────────────────────────────────────
   // 2. COMPLETED MATCH RESULT & QUICK ACTIONS
   // ─────────────────────────────────────────────────────────────────────────
-  Widget _buildCompletedCard(BuildContext context, Match match, bool isCounty) {
+  Widget _buildCompletedCard(BuildContext context, Match match, bool isCounty, Innings? inn1, Innings? inn2) {
+    String displayResult = match.resultText ?? 'Match Completed';
+    
+    // Dynamic fallback calculation if resultText is missing or generic
+    if (displayResult == 'Match Completed' || displayResult.isEmpty || displayResult.contains('duel')) {
+      if (isCounty && inn1 != null) {
+        final target = inn1.targetRuns ?? 0;
+        final runs = inn1.runs;
+        if (target > 0) {
+          if (runs >= target) {
+            final winnerName = match.teamNameById(inn1.battingTeamId);
+            displayResult = '$winnerName won the County match';
+          } else {
+            final winnerName = match.teamNameById(inn1.bowlingTeamId);
+            final runDiff = target - runs;
+            displayResult = '$winnerName won the County match by $runDiff runs';
+          }
+        }
+      } else if (inn1 != null && inn2 != null) {
+        final r1 = inn1.runs;
+        final r2 = inn2.runs;
+        if (r2 > r1) {
+          final winnerName = match.teamNameById(inn2.battingTeamId);
+          displayResult = '$winnerName won by ${(10 - inn2.wickets).clamp(1, 10)} wickets';
+        } else if (r1 > r2) {
+          final winnerName = match.teamNameById(inn1.battingTeamId);
+          displayResult = '$winnerName won by ${r1 - r2} runs';
+        } else {
+          displayResult = 'Match Tied';
+        }
+      }
+    }
+
+    displayResult = displayResult.replaceAll('duel', 'County match');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -884,7 +946,7 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      match.resultText ?? 'Match Completed',
+                      displayResult,
                       style: const TextStyle(
                         fontSize: 15.5,
                         fontWeight: FontWeight.w900,
@@ -899,41 +961,19 @@ class _MatchDetailScreenState extends ConsumerState<MatchDetailScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/summary'),
-                  icon: const Icon(Icons.sports_score_rounded, size: 20, color: Colors.white),
-                  label: const Text('MATCH SUMMARY', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E3A8A),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    elevation: 2,
-                  ),
-                ),
-              ),
+        SizedBox(
+          height: 48,
+          child: ElevatedButton.icon(
+            onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/summary'),
+            icon: const Icon(Icons.sports_score_rounded, size: 20, color: Colors.white),
+            label: const Text('MATCH SUMMARY', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E3A8A),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              elevation: 2,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: OutlinedButton.icon(
-                  onPressed: () => context.push('/tournaments/${widget.tournamentId}/matches/${widget.matchId}/charts'),
-                  icon: const Icon(Icons.bar_chart_rounded, size: 20, color: Color(0xFF1E3A8A)),
-                  label: const Text('CHARTS & STATS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1E3A8A))),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    backgroundColor: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ],
     );
