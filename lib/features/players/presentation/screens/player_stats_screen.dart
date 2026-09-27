@@ -278,9 +278,20 @@ class PlayerStatsScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              player.name,
-                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    player.name,
+                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (player.phoneNumber != null && player.phoneNumber!.trim().isNotEmpty) ...[
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.verified, color: Color(0xFF0284C7), size: 18),
+                                ],
+                              ],
                             ),
                             const SizedBox(height: 6),
                             Row(

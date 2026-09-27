@@ -380,6 +380,10 @@ class _MatchSquadsScreenState extends ConsumerState<MatchSquadsScreen> {
                                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF0F172A)),
                                               ),
                                             ),
+                                            if (player.phoneNumber != null && player.phoneNumber!.trim().isNotEmpty) ...[
+                                              const SizedBox(width: 4),
+                                              const Icon(Icons.verified, color: Color(0xFF0284C7), size: 14),
+                                            ],
                                             if (isCaptain) ...[
                                               const SizedBox(width: 6),
                                               Container(

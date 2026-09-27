@@ -391,15 +391,25 @@ class _PlayerCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            player.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF1E293B),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  player.name,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF1E293B),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (player.phoneNumber != null && player.phoneNumber!.trim().isNotEmpty) ...[
+                                const SizedBox(width: 4),
+                                const Icon(Icons.verified, color: Color(0xFF0284C7), size: 16),
+                              ],
+                            ],
                           ),
                         ),
                         if (player.jerseyNumber != null) ...[

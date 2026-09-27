@@ -300,8 +300,18 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text(top.player.name,
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(top.player.name,
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+                    ),
+                    if (top.player.phoneNumber != null && top.player.phoneNumber!.trim().isNotEmpty) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.verified, color: Colors.blueAccent, size: 16),
+                    ],
+                  ],
+                ),
                 Text(top.player.role.label,
                     style: const TextStyle(color: Colors.white70, fontSize: 12)),
               ],
@@ -384,10 +394,20 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(p.player.name,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(p.player.name,
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                      if (p.player.phoneNumber != null && p.player.phoneNumber!.trim().isNotEmpty) ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.verified, color: Color(0xFF0284C7), size: 14),
+                      ],
+                    ],
+                  ),
                   Text(p.player.role.label,
                       style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B))),
                 ],

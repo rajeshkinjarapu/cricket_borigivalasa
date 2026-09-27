@@ -323,16 +323,26 @@ class _LeaderboardRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    player.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
-                      color: rank <= 3
-                          ? const Color(0xFF0F172A)
-                          : const Color(0xFF1E293B),
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          player.name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                            color: rank <= 3
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFF1E293B),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (player.phoneNumber != null && player.phoneNumber!.trim().isNotEmpty) ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.verified, color: Color(0xFF0284C7), size: 14),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Text(

@@ -336,14 +336,22 @@ class MemberDashboard extends ConsumerWidget {
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: Text(
-                            u?.displayName ?? 'Member',
-                            style: const TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: -0.3,
-                            ),
+                          child: Row(
+                            children: [
+                              Text(
+                                u?.displayName ?? 'Member',
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              if (loggedInPlayer?.phoneNumber != null && loggedInPlayer!.phoneNumber!.trim().isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                const Icon(Icons.verified, color: Color(0xFF38BDF8), size: 22),
+                              ],
+                            ],
                           ),
                         ),
                         const SizedBox(height: 4),
