@@ -14,7 +14,7 @@ class MatchListTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final matchesAsync = ref.watch(tournamentMatchesProvider(tournamentId));
-    final isAdmin = ref.watch(currentUserProvider)?.role == UserRole.admin;
+    final isAdmin = ref.watch(currentUserProvider)?.role?.isAdmin == true;
 
     return matchesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -86,11 +86,7 @@ class _MatchCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () {
-          if (isCompleted) {
-            context.push('/tournaments/$tournamentId/matches/${match.id}/summary');
-          } else {
-            context.push('/tournaments/$tournamentId/matches/${match.id}');
-          }
+          context.push('/tournaments/$tournamentId/matches/${match.id}');
         },
         child: Padding(
           padding: const EdgeInsets.all(16),

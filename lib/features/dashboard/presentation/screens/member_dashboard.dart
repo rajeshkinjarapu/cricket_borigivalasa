@@ -873,12 +873,7 @@ class _TodayMatchCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: () {
           if (m.tournamentId.isNotEmpty) {
-            if (isCompleted) {
-              context.push(
-                  '/tournaments/${m.tournamentId}/matches/${m.id}/summary');
-            } else {
-              context.push('/tournaments/${m.tournamentId}/matches/${m.id}');
-            }
+            context.push('/tournaments/${m.tournamentId}/matches/${m.id}');
           }
         },
         child: Padding(

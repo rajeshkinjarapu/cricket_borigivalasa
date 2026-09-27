@@ -38,7 +38,7 @@ class _GlobalMatchesScreenState extends ConsumerState<GlobalMatchesScreen>
     final upcomingMatchesAsync = ref.watch(upcomingMatchesProvider);
     final allMatchesAsync = ref.watch(allMatchesProvider);
     final currentUser = ref.watch(currentUserProvider);
-    final canScore = currentUser?.role == UserRole.admin || currentUser?.role == UserRole.scorer;
+    final canScore = currentUser?.role?.isAdmin == true || currentUser?.role == UserRole.scorer;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -457,11 +457,7 @@ class _MatchCardItem extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: () {
           if (m.tournamentId.isNotEmpty) {
-            if (isActuallyCompleted) {
-              context.push('/tournaments/${m.tournamentId}/matches/${m.id}/summary');
-            } else {
-              context.push('/tournaments/${m.tournamentId}/matches/${m.id}');
-            }
+            context.push('/tournaments/${m.tournamentId}/matches/${m.id}');
           }
         },
         child: Padding(
