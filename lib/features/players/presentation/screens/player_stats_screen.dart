@@ -1,10 +1,109 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/cricket_enums.dart';
 import '../../../../core/utils/avatar_helper.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../providers/player_providers.dart';
+import '../../../matches/data/models/match.dart' as app_match;
+
+import '../../data/models/player.dart';
+
+class PlayerMatchDetail {
+  final app_match.Match match;
+  final int runs;
+  final int balls;
+  final int fours;
+  final int sixes;
+  final int wickets;
+  final bool isWin;
+  final bool isMoM;
+  PlayerMatchDetail({
+    required this.match,
+    required this.runs,
+    required this.balls,
+    required this.fours,
+    required this.sixes,
+    required this.wickets,
+    required this.isWin,
+    required this.isMoM,
+  });
+}
+
+final playerDetailedStatsProvider = FutureProvider.family<List<PlayerMatchDetail>, Player>((ref, player) async {
+  final sb = Supabase.instance.client;
+  final playerId = player.id;
+  final playerName = player.name;
+  final playerTeamId = player.teamId;
+  final playerTeamIds = player.teamIds;
+
+  List<app_match.Match> allMatches = [];
+  try {
+    final matchesRes = await sb.from('matches').select();
+    allMatches = (matchesRes as List).map((m) => app_match.Match.fromJson(m as Map<String, dynamic>)).toList();
+  } catch (_) {}
+
+  List<Map<String, dynamic>> balls = [];
+  try {
+    final res = await sb.from('ball_events').select('match_id, batter_id, bowler_id, runs_scored, is_boundary, wicket_type');
+    balls = List<Map<String, dynamic>>.from(res);
+  } catch (_) {}
+
+  final Map<String, int> matchRuns = {};
+  final Map<String, int> matchBalls = {};
+  final Map<String, int> matchFours = {};
+  final Map<String, int> matchSixes = {};
+  final Map<String, int> matchWickets = {};
+  final Set<String> playedMatchIds = {};
+
+  for (final b in balls) {
+    final mid = b['match_id']?.toString();
+    if (mid == null) continue;
+    final batterId = b['batter_id']?.toString();
+    final bowlerId = b['bowler_id']?.toString();
+    final runs = b['runs_scored'] as int? ?? 0;
+    final isBoundary = b['is_boundary'] as bool? ?? false;
+    final wicketType = b['wicket_type'] as String?;
+
+    if (batterId == playerId) {
+      playedMatchIds.add(mid);
+      matchRuns[mid] = (matchRuns[mid] ?? 0) + runs;
+      matchBalls[mid] = (matchBalls[mid] ?? 0) + 1;
+      if (isBoundary && runs == 4) matchFours[mid] = (matchFours[mid] ?? 0) + 1;
+      if (isBoundary && runs == 6) matchSixes[mid] = (matchSixes[mid] ?? 0) + 1;
+    }
+    if (bowlerId == playerId) {
+      playedMatchIds.add(mid);
+      if (wicketType != null && ['bowled', 'lbw', 'caught', 'stumped', 'hitWicket'].contains(wicketType)) {
+        matchWickets[mid] = (matchWickets[mid] ?? 0) + 1;
+      }
+    }
+  }
+
+  final List<PlayerMatchDetail> list = [];
+  for (final m in allMatches) {
+    if (!playedMatchIds.contains(m.id)) continue;
+    
+    final bool isWin = m.winnerTeamId != null &&
+        (m.winnerTeamId == playerTeamId || playerTeamIds.contains(m.winnerTeamId));
+        
+    final bool isMoM = (m.manOfTheMatchId == playerId) ||
+        (m.manOfTheMatchName != null && m.manOfTheMatchName!.trim().toLowerCase() == playerName.trim().toLowerCase());
+    
+    list.add(PlayerMatchDetail(
+      match: m,
+      runs: matchRuns[m.id] ?? 0,
+      balls: matchBalls[m.id] ?? 0,
+      fours: matchFours[m.id] ?? 0,
+      sixes: matchSixes[m.id] ?? 0,
+      wickets: matchWickets[m.id] ?? 0,
+      isWin: isWin,
+      isMoM: isMoM,
+    ));
+  }
+  return list;
+});
 
 class PlayerStatsScreen extends ConsumerWidget {
   const PlayerStatsScreen({
@@ -39,9 +138,9 @@ class PlayerStatsScreen extends ConsumerWidget {
         currentUser?.role == UserRole.superAdmin;
 
     return playerAsync.when(
-      loading: () => Scaffold(
-        backgroundColor: const Color(0xFFF1F5F9),
-        body: const Center(
+      loading: () => const Scaffold(
+        backgroundColor: Color(0xFFF1F5F9),
+        body: Center(
           child: CircularProgressIndicator(color: Color(0xFF1E3A8A)),
         ),
       ),
@@ -57,472 +156,319 @@ class PlayerStatsScreen extends ConsumerWidget {
           );
         }
 
+        final detailedStatsAsync = ref.watch(playerDetailedStatsProvider(player));
+        final detailedList = detailedStatsAsync.value ?? [];
+        
+        final int totalFours = detailedList.fold(0, (sum, m) => sum + m.fours);
+        final int totalSixes = detailedList.fold(0, (sum, m) => sum + m.sixes);
+        final int noOf25s = detailedList.where((m) => m.runs >= 25 && m.runs < 50).length;
+        final int noOf50s = detailedList.where((m) => m.runs >= 50).length;
+        final int momCount = detailedList.where((m) => m.isMoM).length;
+        
+        // Approximate win percentage
+        final totalMatches = detailedList.length;
+        final wonMatches = detailedList.where((m) => m.isWin).length; // using the approximated isWin
+        final winPercentage = totalMatches > 0 ? ((wonMatches / totalMatches) * 100).toStringAsFixed(0) : '0';
+
         final roleLabel = player.role.label.toUpperCase();
         final roleColor = _roleColor(roleLabel);
         final initial = player.name.trim().isNotEmpty
             ? player.name.trim()[0].toUpperCase()
-            : '?';
-
-        return Scaffold(
+            : '?';        return Scaffold(
           backgroundColor: const Color(0xFFF1F5F9),
-          body: CustomScrollView(
-            slivers: [
-              // ─── Premium SliverAppBar Hero ───────────────────────────
-              SliverAppBar(
-                expandedHeight: 300,
-                pinned: true,
-                stretch: true,
-                backgroundColor: const Color(0xFF0F172A),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                actions: [
-                  if (isAdmin)
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert_rounded,
-                          color: Colors.white),
-                      color: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      onSelected: (v) async {
-                        if (v == 'edit') {
-                          context.push(
-                              '/tournaments/$tournamentId/teams/$teamId/players/$playerId/edit');
-                        } else if (v == 'delete') {
-                          final ok = await showDialog<bool>(
-                            context: context,
-                            builder: (c) => AlertDialog(
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20)),
-                              title: const Text('Delete Player?',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.w900)),
-                              content: Text(
-                                  'Are you sure you want to remove ${player.name} from the squad?'),
-                              actions: [
-                                TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(c, false),
-                                    child: const Text('Cancel')),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFDC2626),
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10))),
-                                  onPressed: () => Navigator.pop(c, true),
-                                  child: const Text('Delete'),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (ok == true) {
-                            await ref
-                                .read(playerControllerProvider.notifier)
-                                .delete(player.id);
-                            if (context.mounted) context.pop();
-                          }
-                        }
-                      },
-                      itemBuilder: (_) => [
-                        PopupMenuItem(
-                          value: 'edit',
-                          child: Row(children: [
-                            Icon(Icons.edit_rounded,
-                                size: 16, color: roleColor),
-                            const SizedBox(width: 10),
-                            const Text('Edit Player',
-                                style: TextStyle(fontWeight: FontWeight.w700)),
-                          ]),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(children: [
-                            Icon(Icons.delete_outline_rounded,
-                                size: 16, color: Color(0xFFDC2626)),
-                            SizedBox(width: 10),
-                            Text('Delete',
-                                style: TextStyle(
-                                    color: Color(0xFFDC2626),
-                                    fontWeight: FontWeight.w700)),
-                          ]),
-                        ),
-                      ],
-                    ),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  collapseMode: CollapseMode.parallax,
-                  background: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFF0F172A),
-                          roleColor.withOpacity(0.85),
-                          const Color(0xFF0F172A),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        // Background circles
-                        Positioned(
-                          top: -40,
-                          right: -40,
-                          child: Container(
-                            width: 200,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: roleColor.withOpacity(0.12),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 20,
-                          left: -30,
-                          child: Container(
-                            width: 130,
-                            height: 130,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.04),
-                            ),
-                          ),
-                        ),
-                        // Main content
-                        SafeArea(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                // Avatar with glow ring
-                                Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    // Glow ring
-                                    Container(
-                                      width: 110,
-                                      height: 110,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: roleColor.withOpacity(0.5),
-                                            blurRadius: 30,
-                                            spreadRadius: 8,
-                                          ),
-                                        ],
-                                        border: Border.all(
-                                            color: roleColor, width: 3),
-                                        color: Colors.transparent,
-                                      ),
-                                    ),
-                                    // Avatar
-                                    CircleAvatar(
-                                      radius: 50,
-                                      backgroundColor:
-                                          Colors.white.withOpacity(0.15),
-                                      backgroundImage: getAppAvatarProvider(
-                                          player.profilePicUrl),
-                                      child:
-                                          getAppAvatarProvider(
-                                                      player.profilePicUrl) ==
-                                                  null
-                                              ? Text(
-                                                  initial,
-                                                  style: const TextStyle(
-                                                    fontSize: 42,
-                                                    fontWeight: FontWeight.w900,
-                                                    color: Colors.white,
-                                                  ),
-                                                )
-                                              : null,
-                                    ),
-                                    // Jersey number badge
-                                    if (player.jerseyNumber != null)
-                                      Positioned(
-                                        bottom: 0,
-                                        right: 0,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(5),
-                                          decoration: BoxDecoration(
-                                            color: roleColor,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                                color: Colors.white, width: 2),
-                                          ),
-                                          child: Text(
-                                            '#${player.jerseyNumber}',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 14),
-                                // Name
-                                Text(
-                                  player.name,
-                                  style: const TextStyle(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.white,
-                                    letterSpacing: -0.5,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 8),
-                                // Role badge
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: roleColor,
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: roleColor.withOpacity(0.4),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    roleLabel,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 11,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                // Style chips
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    if (player.battingStyle.label.isNotEmpty &&
-                                        player.battingStyle.label != 'None')
-                                      _StyleChip(
-                                        icon: Icons.sports_cricket_rounded,
-                                        label: player.battingStyle.label,
-                                      ),
-                                    if (player.battingStyle.label.isNotEmpty &&
-                                        player.bowlingStyle.label.isNotEmpty &&
-                                        player.battingStyle.label != 'None' &&
-                                        player.bowlingStyle.label != 'None')
-                                      const SizedBox(width: 8),
-                                    if (player.bowlingStyle.label.isNotEmpty &&
-                                        player.bowlingStyle.label != 'None')
-                                      _StyleChip(
-                                        icon: Icons.sports_baseball_rounded,
-                                        label: player.bowlingStyle.label,
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // ─── Stats Content ─────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Section header
-                      Row(
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: roleColor,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          const Text(
-                            'CAREER STATISTICS',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF0F172A),
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Stats Grid — 2 columns, 3 rows
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio: 1.55,
-                        children: [
-                          _StatCard(
-                            label: 'Matches',
-                            value: '${player.stats.matchesPlayed}',
-                            icon: Icons.calendar_month_rounded,
-                            accentColor: const Color(0xFF2563EB),
-                            bgColor: const Color(0xFFEFF6FF),
-                          ),
-                          _StatCard(
-                            label: 'Total Runs',
-                            value: '${player.stats.runsScored}',
-                            icon: Icons.sports_cricket_rounded,
-                            accentColor: const Color(0xFF059669),
-                            bgColor: const Color(0xFFECFDF5),
-                          ),
-                          _StatCard(
-                            label: 'High Score',
-                            value: '${player.stats.highestScore}',
-                            icon: Icons.star_rounded,
-                            accentColor: const Color(0xFFEAB308),
-                            bgColor: const Color(0xFFFEF9C3),
-                          ),
-                          _StatCard(
-                            label: 'Batting Avg',
-                            value: player.stats.battingAverage
-                                .toStringAsFixed(1),
-                            icon: Icons.bar_chart_rounded,
-                            accentColor: const Color(0xFF0284C7),
-                            bgColor: const Color(0xFFF0F9FF),
-                          ),
-                          _StatCard(
-                            label: 'Wickets',
-                            value: '${player.stats.wicketsTaken}',
-                            icon: Icons.sports_baseball_rounded,
-                            accentColor: const Color(0xFF7C3AED),
-                            bgColor: const Color(0xFFF5F3FF),
-                          ),
-                          _StatCard(
-                            label: 'Best Bowling',
-                            value: player.stats.bestBowling.isEmpty
-                                ? '-'
-                                : player.stats.bestBowling,
-                            icon: Icons.emoji_events_rounded,
-                            accentColor: const Color(0xFFEA580C),
-                            bgColor: const Color(0xFFFFEDD5),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Extra info card
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border:
-                              Border.all(color: const Color(0xFFE2E8F0)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+          appBar: AppBar(
+            title: const Text('Player Profile', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            backgroundColor: const Color(0xFF0F172A),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            centerTitle: true,
+            actions: [
+              if (isAdmin)
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  onSelected: (v) async {
+                    if (v == 'edit') {
+                      context.push('/tournaments/$tournamentId/teams/$teamId/players/$playerId/edit');
+                    } else if (v == 'delete') {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (c) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          title: const Text('Delete Player?', style: TextStyle(fontWeight: FontWeight.w900)),
+                          content: Text('Are you sure you want to remove ${player.name} from the squad?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFDC2626),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              onPressed: () => Navigator.pop(c, true),
+                              child: const Text('Delete'),
                             ),
                           ],
                         ),
+                      );
+                      if (ok == true) {
+                        await ref.read(playerControllerProvider.notifier).delete(player.id);
+                        if (context.mounted) context.pop();
+                      }
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(children: [
+                        Icon(Icons.edit_rounded, size: 16, color: roleColor),
+                        const SizedBox(width: 10),
+                        const Text('Edit Player', style: TextStyle(fontWeight: FontWeight.w700)),
+                      ]),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(children: [
+                        Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFDC2626)),
+                        const SizedBox(width: 10),
+                        Text('Delete', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w700)),
+                      ]),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // ─── Header Info Card ───────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Avatar
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: roleColor.withOpacity(0.5), width: 2),
+                        ),
+                        child: CircleAvatar(
+                          backgroundColor: roleColor.withOpacity(0.1),
+                          backgroundImage: getAppAvatarProvider(player.profilePicUrl),
+                          child: getAppAvatarProvider(player.profilePicUrl) == null
+                              ? Text(initial, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: roleColor))
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Details
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Text(
+                              player.name,
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5),
+                            ),
+                            const SizedBox(height: 6),
                             Row(
                               children: [
                                 Container(
-                                  width: 4,
-                                  height: 16,
-                                  decoration: BoxDecoration(
-                                    color: roleColor,
-                                    borderRadius: BorderRadius.circular(2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(color: roleColor.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                                  child: Text(
+                                    roleLabel,
+                                    style: TextStyle(color: roleColor, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'PLAYER INFO',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF0F172A),
-                                    letterSpacing: 1.2,
+                                if (player.jerseyNumber != null) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(12)),
+                                    child: Text(
+                                      '#${player.jerseyNumber}',
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
-                            const SizedBox(height: 14),
-                            _InfoRow(
-                              icon: Icons.sports_cricket_rounded,
-                              label: 'Batting Style',
-                              value: player.battingStyle.label.isEmpty
-                                  ? 'Not set'
-                                  : player.battingStyle.label,
-                              color: const Color(0xFF2563EB),
-                            ),
-                            const _InfoDivider(),
-                            _InfoRow(
-                              icon: Icons.sports_baseball_rounded,
-                              label: 'Bowling Style',
-                              value: player.bowlingStyle.label.isEmpty
-                                  ? 'Not set'
-                                  : player.bowlingStyle.label,
-                              color: const Color(0xFF059669),
-                            ),
-                            const _InfoDivider(),
-                            _InfoRow(
-                              icon: Icons.shield_rounded,
-                              label: 'Playing Role',
-                              value: player.role.label,
-                              color: roleColor,
-                            ),
-                            if (player.jerseyNumber != null) ...[
-                              const _InfoDivider(),
-                              _InfoRow(
-                                icon: Icons.tag_rounded,
-                                label: 'Jersey Number',
-                                value: '#${player.jerseyNumber}',
-                                color: const Color(0xFFD97706),
-                              ),
-                            ],
-                            if (player.phoneNumber != null &&
-                                player.phoneNumber!.isNotEmpty) ...[
-                              const _InfoDivider(),
-                              _InfoRow(
-                                icon: Icons.phone_rounded,
-                                label: 'Phone',
-                                value: player.phoneNumber!,
-                                color: const Color(0xFF0F766E),
-                              ),
-                            ],
                           ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+
+                // ─── Stats Grid ─────────────────────────────────────────
+                Row(
+                  children: [
+                    Container(width: 4, height: 16, decoration: BoxDecoration(color: roleColor, borderRadius: BorderRadius.circular(2))),
+                    const SizedBox(width: 8),
+                    const Text('CAREER STATISTICS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: 1.0)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 3.0,
+                  children: [
+                    _StatCard(
+                      label: 'Matches',
+                      value: '${player.stats.matchesPlayed}',
+                      icon: Icons.calendar_month_rounded,
+                      accentColor: const Color(0xFF2563EB),
+                      bgColor: const Color(0xFFEFF6FF),
+                    ),
+                    _StatCard(
+                      label: 'Total Runs',
+                      value: '${player.stats.runsScored}',
+                      icon: Icons.sports_cricket_rounded,
+                      accentColor: const Color(0xFF059669),
+                      bgColor: const Color(0xFFECFDF5),
+                    ),
+                    _StatCard(
+                      label: 'High Score',
+                      value: '${player.stats.highestScore}',
+                      icon: Icons.star_rounded,
+                      accentColor: const Color(0xFFEAB308),
+                      bgColor: const Color(0xFFFEF9C3),
+                    ),
+                    _StatCard(
+                      label: 'Batting Avg',
+                      value: player.stats.battingAverage.toStringAsFixed(1),
+                      icon: Icons.bar_chart_rounded,
+                      accentColor: const Color(0xFF0284C7),
+                      bgColor: const Color(0xFFF0F9FF),
+                    ),
+                    _StatCard(
+                      label: 'Wickets',
+                      value: '${player.stats.wicketsTaken}',
+                      icon: Icons.sports_baseball_rounded,
+                      accentColor: const Color(0xFF7C3AED),
+                      bgColor: const Color(0xFFF5F3FF),
+                    ),
+                    _StatCard(
+                      label: 'Best Bowling',
+                      value: player.stats.bestBowling.isEmpty ? '-' : player.stats.bestBowling,
+                      icon: Icons.emoji_events_rounded,
+                      accentColor: const Color(0xFFEA580C),
+                      bgColor: const Color(0xFFFFEDD5),
+                    ),
+                    _StatCard(
+                      label: 'Total Fours',
+                      value: '$totalFours',
+                      icon: Icons.sports_baseball,
+                      accentColor: const Color(0xFF2563EB),
+                      bgColor: const Color(0xFFEFF6FF),
+                    ),
+                    _StatCard(
+                      label: 'Total Sixes',
+                      value: '$totalSixes',
+                      icon: Icons.rocket_launch_rounded,
+                      accentColor: const Color(0xFFD97706),
+                      bgColor: const Color(0xFFFEF3C7),
+                    ),
+                    _StatCard(
+                      label: 'No of 25s',
+                      value: '$noOf25s',
+                      icon: Icons.exposure_plus_2,
+                      accentColor: const Color(0xFF059669),
+                      bgColor: const Color(0xFFECFDF5),
+                    ),
+                    _StatCard(
+                      label: 'No of 50s',
+                      value: '$noOf50s',
+                      icon: Icons.fireplace_rounded,
+                      accentColor: const Color(0xFFEA580C),
+                      bgColor: const Color(0xFFFFEDD5),
+                    ),
+                    _StatCard(
+                      label: 'MoM Awards',
+                      value: '$momCount',
+                      icon: Icons.workspace_premium_rounded,
+                      accentColor: const Color(0xFFEAB308),
+                      bgColor: const Color(0xFFFEF9C3),
+                    ),
+                    _StatCard(
+                      label: 'Win %',
+                      value: '$winPercentage%',
+                      icon: Icons.percent_rounded,
+                      accentColor: const Color(0xFF0F766E),
+                      bgColor: const Color(0xFFCCFBF1),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // ─── Player Info Card ─────────────────────────────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(width: 4, height: 16, decoration: BoxDecoration(color: roleColor, borderRadius: BorderRadius.circular(2))),
+                          const SizedBox(width: 8),
+                          const Text('PLAYER DETAILS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: 1.0)),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      _InfoRow(
+                        icon: Icons.sports_cricket_rounded,
+                        label: 'Batting Style',
+                        value: player.battingStyle.label.isEmpty ? 'Not set' : player.battingStyle.label,
+                        color: const Color(0xFF2563EB),
+                      ),
+                      const _InfoDivider(),
+                      _InfoRow(
+                        icon: Icons.sports_baseball_rounded,
+                        label: 'Bowling Style',
+                        value: player.bowlingStyle.label.isEmpty ? 'Not set' : player.bowlingStyle.label,
+                        color: const Color(0xFF059669),
+                      ),
+                      if (player.phoneNumber != null && player.phoneNumber!.isNotEmpty) ...[
+                        const _InfoDivider(),
+                        _InfoRow(
+                          icon: Icons.phone_rounded,
+                          label: 'Phone',
+                          value: player.phoneNumber!,
+                          color: const Color(0xFF0F766E),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -585,62 +531,40 @@ class _StatCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: accentColor.withOpacity(0.2), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: accentColor.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
           children: [
-            // Icon + label row
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, size: 14, color: accentColor),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8)),
+              child: Icon(icon, size: 18, color: accentColor),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
                     label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: accentColor.withOpacity(0.75),
-                      letterSpacing: 0.2,
-                    ),
+                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: accentColor.withOpacity(0.75), letterSpacing: 0.2),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
-            ),
-            // Big bold value
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                  color: accentColor,
-                  letterSpacing: -1,
-                  height: 1.0,
-                ),
+                  const SizedBox(height: 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: accentColor, height: 1.0),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
