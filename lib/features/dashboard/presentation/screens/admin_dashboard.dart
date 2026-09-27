@@ -99,27 +99,40 @@ class AdminDashboard extends ConsumerWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          'Hello, ${(u?.displayName.isNotEmpty == true) ? u!.displayName : 'Rajesh Kinjarapu'} 👋',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 19,
-                              fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFB300),
-                            borderRadius: BorderRadius.circular(8),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${(u?.displayName.isNotEmpty == true) ? u!.displayName : 'Rajesh Kinjarapu'} 👋',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold),
                           ),
-                          child: const Text('Administrator',
-                              style: TextStyle(
-                                  color: Color(0xFF1E3A8A),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800)),
+                        ),
+                        const SizedBox(height: 4),
+                        Builder(
+                          builder: (context) {
+                            if (u == null) return const SizedBox.shrink();
+                            final r = u.role.name;
+                            final formatted = (r == 'superAdmin' || r == 'super_admin') 
+                                ? 'Super Admin' 
+                                : r[0].toUpperCase() + r.substring(1);
+                            
+                            return Text(
+                              formatted,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                color: Color(0xFF94A3B8), // Light slate color
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            );
+                          },
                         ),
                       ],
                     ),

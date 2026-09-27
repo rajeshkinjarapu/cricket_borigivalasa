@@ -178,18 +178,9 @@ class _AddPlayersScreenState extends ConsumerState<AddPlayersScreen>
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Add Players to Squad',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
-            ),
-            Text(
-              'Team: ${widget.team.name}',
-              style: const TextStyle(fontSize: 11.5, color: Color(0xFF93C5FD), fontWeight: FontWeight.w600),
-            ),
-          ],
+        title: const Text(
+          'Add Players to Squad',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
         ),
       ),
       body: Column(

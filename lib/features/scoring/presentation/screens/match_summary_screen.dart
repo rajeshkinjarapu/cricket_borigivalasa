@@ -493,10 +493,7 @@ class _MatchSummaryScreenState extends ConsumerState<MatchSummaryScreen> with Ti
             ),
           ),
         ] else if (isOpponentInCounty) ...[
-          const Text(
-            'Opponent',
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w700),
-          ),
+          const SizedBox.shrink(),
         ] else if (isCompleted) ...[
           const Text(
             '—',

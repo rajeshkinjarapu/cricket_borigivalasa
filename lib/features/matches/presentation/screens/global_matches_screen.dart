@@ -608,14 +608,7 @@ class _MatchCardItem extends ConsumerWidget {
                       ),
                     )
                   else if (isCounty)
-                    const Text(
-                      'Opponent',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF94A3B8),
-                      ),
-                    ),
+                    const SizedBox.shrink(),
                 ],
               ),
 

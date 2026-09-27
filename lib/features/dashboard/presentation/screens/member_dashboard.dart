@@ -327,58 +327,50 @@ class MemberDashboard extends ConsumerWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Welcome back,',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFFCBD5E1),
-                              fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          u?.displayName ?? 'Member',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: -0.3,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 3.5),
-                          decoration: BoxDecoration(
-                            color: roleBorderColor.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: roleBorderColor,
-                              width: 0.8,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            u?.displayName ?? 'Member',
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: -0.3,
                             ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                roleIcon,
-                                color: roleTextColor,
-                                size: 13,
+                        ),
+                        const SizedBox(height: 4),
+                        Builder(
+                          builder: (context) {
+                            final parts = <String>[];
+                            if (u != null) {
+                              final r = u.role.name;
+                              if (r == 'superAdmin' || r == 'super_admin') parts.add('Super Admin');
+                              else parts.add(r[0].toUpperCase() + r.substring(1));
+                            }
+                            if (loggedInPlayer != null) {
+                              final pr = loggedInPlayer.role.name;
+                              if (pr == 'allRounder') parts.add('All Rounder');
+                              else if (pr == 'wicketKeeper') parts.add('Wicket Keeper');
+                              else parts.add(pr[0].toUpperCase() + pr.substring(1));
+                            }
+                            if (parts.isEmpty) return const SizedBox.shrink();
+                            
+                            return Text(
+                              parts.join(' • '),
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                color: Color(0xFF94A3B8), // Light slate color
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
                               ),
-                              const SizedBox(width: 5),
-                              Text(
-                                roleLabel,
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  color: roleTextColor,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ],
-                          ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            );
+                          }
                         ),
                       ],
                     ),
@@ -520,7 +512,7 @@ class MemberDashboard extends ConsumerWidget {
               children: [
                 // 1. Matches Played
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
+                  width: ((MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3) - 1,
                   child: AspectRatio(
                     aspectRatio: 1.3,
                     child: _StatCard(
@@ -542,7 +534,7 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 2. Matches Won
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
+                  width: ((MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3) - 1,
                   child: AspectRatio(
                     aspectRatio: 1.3,
                     child: _StatCard(
@@ -567,7 +559,7 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 3. Win Percentage
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
+                  width: ((MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3) - 1,
                   child: AspectRatio(
                     aspectRatio: 1.3,
                     child: _StatCard(
@@ -583,7 +575,7 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 4. Man of the Matches
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
+                  width: ((MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3) - 1,
                   child: AspectRatio(
                     aspectRatio: 1.3,
                     child: _StatCard(
@@ -608,7 +600,7 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 5. Total Runs
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
+                  width: ((MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3) - 1,
                   child: AspectRatio(
                     aspectRatio: 1.3,
                     child: _StatCard(
@@ -633,7 +625,7 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 6. Total Wickets
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
+                  width: ((MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3) - 1,
                   child: AspectRatio(
                     aspectRatio: 1.3,
                     child: _StatCard(
@@ -658,7 +650,7 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 7. No of 50s
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
+                  width: ((MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3) - 1,
                   child: AspectRatio(
                     aspectRatio: 1.3,
                     child: _StatCard(
@@ -683,7 +675,7 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 8. Total Sixes
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
+                  width: ((MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3) - 1,
                   child: AspectRatio(
                     aspectRatio: 1.3,
                     child: _StatCard(
@@ -708,7 +700,7 @@ class MemberDashboard extends ConsumerWidget {
 
                 // 9. Total Fours
                 SizedBox(
-                  width: (MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3,
+                  width: ((MediaQuery.of(context).size.width - 32 - (8 * 2)) / 3) - 1,
                   child: AspectRatio(
                     aspectRatio: 1.3,
                     child: _StatCard(
@@ -1070,14 +1062,7 @@ class _TodayMatchCard extends ConsumerWidget {
                       ),
                     )
                   else if (isCounty)
-                    const Text(
-                      'Opponent',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF94A3B8),
-                      ),
-                    ),
+                    const SizedBox.shrink(),
                 ],
               ),
 
@@ -1188,18 +1173,26 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Subtle gradient using the light bgColor
+    final HSLColor hsl = HSLColor.fromColor(bgColor);
+    final Color slightlyDarkerBg = hsl.withLightness((hsl.lightness - 0.04).clamp(0.0, 1.0)).toColor();
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          colors: [bgColor, slightlyDarkerBg],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: accentColor.withOpacity(0.08),
-            blurRadius: 12,
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(color: accentColor.withOpacity(0.2), width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1209,56 +1202,39 @@ class _StatCard extends StatelessWidget {
           splashColor: accentColor.withOpacity(0.1),
           highlightColor: accentColor.withOpacity(0.05),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Top Icon
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    emoji,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-                
-                // Bottom Value and Label
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    FittedBox(
+                Expanded(
+                  child: Center(
+                    child: FittedBox(
                       fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
                       child: Text(
                         value,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w900,
-                          fontSize: 26,
-                          color: Color(0xFF0F172A),
+                          fontSize: 32,
+                          color: accentColor,
                           letterSpacing: -0.5,
                           height: 1.1,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF64748B),
-                        height: 1.2,
-                        letterSpacing: 0.2,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                  ),
+                ),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF334155),
+                    height: 1.2,
+                    letterSpacing: 0.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

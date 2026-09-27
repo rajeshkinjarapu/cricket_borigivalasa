@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'member_dashboard.dart';
 
 class PerformanceDetailsScreen extends StatelessWidget {
@@ -33,18 +34,9 @@ class PerformanceDetailsScreen extends StatelessWidget {
           ),
         ),
         foregroundColor: Colors.white,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-            ),
-            Text(
-              totalCount,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Colors.white70),
-            ),
-          ],
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
         ),
       ),
       body: items.isEmpty
@@ -94,7 +86,7 @@ class PerformanceDetailsScreen extends StatelessWidget {
                   metricSubtitleText = '${item.balls} balls • ${item.fours} 4s • ${item.sixes} 6s';
                 } else {
                   metricValueText = '${item.runs}r • ${item.wickets}w';
-                  metricSubtitleText = m.status.name.toUpperCase();
+                  metricSubtitleText = 'Overall performance';
                 }
 
                 return Card(
@@ -118,39 +110,92 @@ class PerformanceDetailsScreen extends StatelessWidget {
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(14),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
+                          // Top row: Date & Format
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${DateFormat('dd MMM yyyy').format(m.matchDate)} • ${m.tournamentId == 'county' ? 'County Match' : 'Tournament'} • ${m.totalOvers} Overs',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: m.isCompleted ? const Color(0xFFDCFCE7) : const Color(0xFFFEF9C3),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  m.status.name.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: m.isCompleted ? const Color(0xFF166534) : const Color(0xFF854D0E),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Middle row: Teams
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
                                   '${m.teamA} vs ${m.teamB}',
-                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: Color(0xFF0F172A)),
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0F172A)),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Text(
-                                      metricValueText,
-                                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: accentColor),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '• $metricSubtitleText',
-                                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w600),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                              ),
+                              const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
+                            ],
                           ),
-                          const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
+                          if (m.resultText != null && m.resultText!.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              m.resultText!,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF059669),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          const SizedBox(height: 12),
+                          // Bottom row: Player Metric
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: accentColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  metricValueText,
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: accentColor),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  metricSubtitleText,
+                                  style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w600),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
