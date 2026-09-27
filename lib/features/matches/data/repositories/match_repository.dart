@@ -91,9 +91,22 @@ class MatchRepository {
     // Insert a notification about the new match
     try {
       final matchDateStr = DateFormat('MMM dd, yyyy - hh:mm a').format(match.matchDate);
+      final title = 'New Match Scheduled!';
+      final body = '${match.teamA} vs ${match.teamB} is scheduled on $matchDateStr.';
+      
+      // Save for In-App Notifications
       await _supabase.from('notifications').insert({
-        'title': 'New Match Scheduled!',
-        'body': '${match.teamA} vs ${match.teamB} is scheduled on $matchDateStr.',
+        'title': title,
+        'body': body,
+        'type': 'match',
+        'match_id': id,
+        'tournament_id': effectiveTournamentId,
+      });
+
+      // Trigger Push Notification via Edge Function
+      await _supabase.functions.invoke('send-notification', body: {
+        'title': title,
+        'body': body,
         'type': 'match',
         'match_id': id,
         'tournament_id': effectiveTournamentId,

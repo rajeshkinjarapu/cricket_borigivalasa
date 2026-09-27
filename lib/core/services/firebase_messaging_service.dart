@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -100,9 +101,35 @@ class FirebaseMessagingService {
     try {
       String? token = await _firebaseMessaging.getToken();
       debugPrint("FCM Token: $token");
-      // You can save this token to Supabase if needed to send targeted notifications
+      if (token != null) {
+        _saveTokenToSupabase(token);
+      }
+      
+      // Listen for token refreshes
+      _firebaseMessaging.onTokenRefresh.listen((newToken) {
+        debugPrint("FCM Token Refreshed: $newToken");
+        _saveTokenToSupabase(newToken);
+      });
     } catch (e) {
       debugPrint("Error getting FCM token: $e");
+    }
+  }
+
+  Future<void> _saveTokenToSupabase(String token) async {
+    try {
+      // Need to import supabase_flutter
+      final supabase = Supabase.instance.client;
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
+        await supabase.from('fcm_tokens').upsert({
+          'user_id': userId,
+          'token': token,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+        debugPrint("FCM token saved to Supabase successfully");
+      }
+    } catch (e) {
+      debugPrint("Error saving FCM token to Supabase: $e");
     }
   }
 }
