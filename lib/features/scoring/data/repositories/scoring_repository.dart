@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -233,8 +233,8 @@ class ScoringRepository {
       'current_bowler_id': ball.bowlerId,
       'is_complete': complete != null,
     };
-    updateData['current_striker_id'] = snap.strikerId;
-    updateData['current_non_striker_id'] = snap.nonStrikerId;
+    if (snap.strikerId != null && snap.strikerId!.isNotEmpty) { updateData['current_striker_id'] = snap.strikerId; }
+    if (snap.nonStrikerId != null && snap.nonStrikerId!.isNotEmpty) { updateData['current_non_striker_id'] = snap.nonStrikerId; }
 
     await Future.wait([
       _supabase.from('ball_events').insert(dbBallData),
@@ -407,8 +407,8 @@ class ScoringRepository {
     
     await _supabase.from('innings').update({
         'runs': snap.runs, 'wickets': snap.wickets, 'legal_balls': snap.legalBalls,
-        'current_striker_id': snap.strikerId,
-        'current_non_striker_id': snap.nonStrikerId,
+        'current_striker_id': (snap.strikerId != null && snap.strikerId!.isNotEmpty) ? snap.strikerId : null,
+        'current_non_striker_id': (snap.nonStrikerId != null && snap.nonStrikerId!.isNotEmpty) ? snap.nonStrikerId : null,
         'is_complete': false,
     }).eq('id', _innId(matchId, inningsNumber));
   }
@@ -507,3 +507,4 @@ class _PlayerImpact {
     return pts;
   }
 }
+

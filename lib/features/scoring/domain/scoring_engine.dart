@@ -1,4 +1,4 @@
-import '../../../core/constants/cricket_enums.dart';
+﻿import '../../../core/constants/cricket_enums.dart';
 import '../data/models/ball_event.dart';
 import '../data/models/batting_scorecard.dart';
 import '../data/models/bowling_scorecard.dart';
@@ -125,12 +125,13 @@ class ScoringEngine {
         }
       }
 
-      if (ball.rotatesStrike) {
+      // Only rotate strike if there is a non-striker (skip for county 1v1 matches)
+      if (ball.rotatesStrike && nonStrikerId != null && nonStrikerId!.isNotEmpty) {
         final tId = strikerId, tName = strikerName;
         strikerId = nonStrikerId; strikerName = nonStrikerName;
         nonStrikerId = tId; nonStrikerName = tName;
       }
-      if (ball.isLegalDelivery && legalBalls % 6 == 0) {
+      if (ball.isLegalDelivery && legalBalls % 6 == 0 && nonStrikerId != null && nonStrikerId!.isNotEmpty) {
         final tId = strikerId, tName = strikerName;
         strikerId = nonStrikerId; strikerName = nonStrikerName;
         nonStrikerId = tId; nonStrikerName = tName;
@@ -183,3 +184,4 @@ class ScoringEngine {
     return null;
   }
 }
+
