@@ -90,6 +90,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final superAdminOnly = loc.startsWith('/admin') || loc.startsWith('/members');
       if (superAdminOnly && !isAdmin) return home;
+      
+      // If an admin tries to access the member dashboard, force them to admin dashboard
+      if (loc == '/member' && isAdmin) return '/admin';
 
       final matchScoringOnly = loc.endsWith('/scoring') || loc.startsWith('/matches/new');
       if (matchScoringOnly && !isAdmin && !isScorer) return home;
