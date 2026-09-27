@@ -2,9 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/notification.dart';
 
 class NotificationRepository {
-  final SupabaseClient _supabase;
-
-  NotificationRepository(this._supabase);
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   Stream<List<NotificationModel>> streamNotifications() {
     return _supabase

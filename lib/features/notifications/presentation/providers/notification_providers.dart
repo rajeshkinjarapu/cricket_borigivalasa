@@ -1,11 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/providers/supabase_provider.dart';
 import '../../data/models/notification.dart';
 import '../../data/repositories/notification_repository.dart';
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  final supabase = ref.watch(supabaseClientProvider);
-  return NotificationRepository(supabase);
+  return NotificationRepository();
 });
 
 final notificationsStreamProvider =
