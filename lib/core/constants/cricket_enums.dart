@@ -1,4 +1,4 @@
-export 'app_constants.dart' show UserRole;
+export 'app_constants.dart' show UserRole, UserRoleX;
 
 enum TournamentFormat { t10, t20, odi }
 extension TournamentFormatX on TournamentFormat {
