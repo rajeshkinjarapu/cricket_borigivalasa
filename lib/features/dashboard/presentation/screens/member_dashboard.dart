@@ -10,6 +10,8 @@ import '../widgets/live_match_card.dart';
 import '../widgets/upcoming_match_card.dart';
 import '../widgets/leaderboard_section.dart';
 import '../widgets/app_drawer.dart';
+import '../../../matches/data/models/match.dart';
+import '../../../players/presentation/providers/player_providers.dart';
 
 class MemberDashboard extends ConsumerStatefulWidget {
   const MemberDashboard({super.key});
@@ -17,6 +19,30 @@ class MemberDashboard extends ConsumerStatefulWidget {
   @override
   ConsumerState<MemberDashboard> createState() => _MemberDashboardState();
 }
+
+/// Matches where the logged-in player was awarded Man of the Match (MoM).
+final _myMomMatchesProvider = Provider<List<Match>>((ref) {
+  final allMatchesAsync = ref.watch(allMatchesProvider);
+  final playerAsync = ref.watch(loggedInPlayerProvider);
+  final userAsync = ref.watch(currentUserProvider);
+
+  final playerId = playerAsync.valueOrNull?.id;
+  final playerName =
+      (playerAsync.valueOrNull?.name ?? userAsync.valueOrNull?.displayName ?? '')
+          .trim()
+          .toLowerCase();
+  if (playerId == null && playerName.isEmpty) return const [];
+
+  final matches = allMatchesAsync.valueOrNull ?? const <Match>[];
+  final myMomMatches = matches
+      .where((m) =>
+          m.manOfTheMatchId == playerId ||
+          (playerName.isNotEmpty &&
+              (m.manOfTheMatchName?.trim().toLowerCase() ?? '') == playerName))
+      .toList()
+    ..sort((a, b) => b.matchDate.compareTo(a.matchDate));
+  return myMomMatches;
+});
 
 class _MemberDashboardState extends ConsumerState<MemberDashboard> {
   ImageProvider? _getAvatarImage(String? photoUrl) {
@@ -242,6 +268,36 @@ class _MemberDashboardState extends ConsumerState<MemberDashboard> {
             ),
             const SizedBox(height: 24),
 
+            // My Performance
+            const _SectionTitle(title: '🌟 MY PERFORMANCE'),
+            Consumer(
+              builder: (context, ref, _) {
+                final momMatches = ref.watch(_myMomMatchesProvider);
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _PerfCard(
+                        value: '${momMatches.length}',
+                        label: 'MoM',
+                        icon: Icons.star_rounded,
+                        color: const Color(0xFFF59E0B),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _PerfCard(
+                        value: momMatches.isNotEmpty ? momMatches.first.teamA : '-',
+                        label: 'LAST MoM MATCH',
+                        icon: Icons.event_available_rounded,
+                        color: const Color(0xFF2563EB),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+
             // Upcoming Matches
             const _SectionTitle(title: '📅 UPCOMING MATCHES'),
             upcomingMatchesAsync.when(
@@ -260,6 +316,45 @@ class _MemberDashboardState extends ConsumerState<MemberDashboard> {
             const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PerfCard extends StatelessWidget {
+  final String value;
+  final String label;
+  final IconData icon;
+  final Color color;
+
+  const _PerfCard({required this.value, required this.label, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey),
+          ),
+        ],
       ),
     );
   }
